@@ -112,3 +112,7 @@ to loopback), then stop the bundled nginx: `docker compose stop nginx`.
 - Dates are stored Gregorian, displayed Jalali (شمسی).
 - Roadmap (SaaS direction): online payments, automated reminders,
   subscriptions, multi-coach support, analytics, mobile app.
+
+## License
+
+Released under the [MIT License](LICENSE) — © 2026 Emad Habibnia.
