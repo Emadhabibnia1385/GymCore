@@ -1,0 +1,64 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - uploads:/srv/gymcore/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  telegram-bot:
+    build: .
+    restart: unless-stopped
+    command: ["python", "-m", "app.bots.telegram_main"]
+    env_file: .env
+    volumes:
+      - uploads:/srv/gymcore/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_started
+
+  bale-bot:
+    build: .
+    restart: unless-stopped
+    command: ["python", "-m", "app.bots.bale_main"]
+    env_file: .env
+    volumes:
+      - uploads:/srv/gymcore/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_started
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  uploads:

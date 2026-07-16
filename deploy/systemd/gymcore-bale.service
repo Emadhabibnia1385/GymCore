@@ -1,0 +1,15 @@
+[Unit]
+Description=GymCore Bale bot
+After=network.target gymcore-api.service
+
+[Service]
+Type=simple
+User=gymcore
+WorkingDirectory=/opt/gymcore
+EnvironmentFile=/opt/gymcore/.env
+ExecStart=/opt/gymcore/.venv/bin/python -m app.bots.bale_main
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

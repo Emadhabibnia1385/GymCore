@@ -1,0 +1,18 @@
+# Bare-metal alternative to Docker (see README).
+# Install: copy to /etc/systemd/system/ then `systemctl enable --now gymcore-api`
+
+[Unit]
+Description=GymCore API (FastAPI)
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=gymcore
+WorkingDirectory=/opt/gymcore
+EnvironmentFile=/opt/gymcore/.env
+ExecStart=/opt/gymcore/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
