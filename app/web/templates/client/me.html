@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}پنل من — GymCore{% endblock %}
+{% block body %}
+<div class="topbar">
+  <div class="brand">🏋️ {{ gym_name }}</div>
+  <div class="actions">
+    <span class="muted">{{ person.name }}</span>
+    <a class="btn small secondary" href="/logout">خروج</a>
+  </div>
+</div>
+<div class="container">
+  {% include "_flash.html" %}
+
+  <div class="card">
+    <h2>دوره‌های من</h2>
+    {% for c in courses %}
+      <div style="border:1px solid var(--border);border-radius:10px;padding:1rem;margin-bottom:0.9rem">
+        <div class="actions" style="justify-content:space-between">
+          <strong>{{ c.course.class_type.title }}</strong>
+          {% if c.course.status.value == 'ACTIVE' %}<span class="badge green">فعال</span>
+          {% elif c.course.status.value == 'PAUSED' %}<span class="badge amber">متوقف</span>
+          {% else %}<span class="badge gray">پایان‌یافته</span>{% endif %}
+        </div>
+        <p class="muted">
+          شروع: {{ c.course.start_date | jdate }} —
+          جلسات: {{ c.course.sessions_total }} —
+          باقی‌مانده: <strong>{{ c.remaining }}</strong>
+        </p>
+        {% if c.attendance %}
+        <table>
+          <tr><th>#</th><th>تاریخ</th><th>وضعیت</th></tr>
+          {% for event in c.attendance %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ event.session_date | jdate }}</td>
+            <td>{{ attendance_label(event.status) }}</td>
+          </tr>
+          {% endfor %}
+        </table>
+        {% endif %}
+      </div>
+    {% else %}
+      <p class="muted">هنوز دوره‌ای برای شما ثبت نشده است.</p>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <h2>برنامه‌های من</h2>
+    <table>
+      <tr><th>عنوان</th><th>نوع</th><th>تاریخ</th><th>فایل</th></tr>
+      {% for plan in plans %}
+      <tr>
+        <td>{{ plan.title }}</td>
+        <td>{{ plan_label(plan.plan_type) }}</td>
+        <td>{{ plan.created_at | jdate }}</td>
+        <td>{% if plan.file_path %}<a href="/api/v1/plans/{{ plan.id }}/file">دانلود</a>{% else %}-{% endif %}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="muted">برنامه فعالی ندارید.</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>پرداخت‌های من</h2>
+    <table>
+      <tr><th>مبلغ (تومان)</th><th>بابت</th><th>تاریخ</th></tr>
+      {% for payment in payments %}
+      <tr>
+        <td>{{ payment.amount | toman }}</td>
+        <td>{{ payment_label(payment.kind) }}</td>
+        <td>{{ payment.paid_at | jdate }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="3" class="muted">پرداختی ثبت نشده.</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,103 @@
+{% extends "admin/_layout.html" %}
+{% block title %}{{ person.name }} — GymCore{% endblock %}
+{% block content %}
+<h1 class="page-title">پرونده {{ person.name }}</h1>
+
+<div class="card">
+  <h2>مشخصات</h2>
+  <form method="post" action="/admin/students/{{ person.id }}">
+    <div class="form-grid">
+      <div><label>نام</label><input name="name" value="{{ person.name }}" required></div>
+      <div><label>موبایل</label><input name="phone" value="{{ person.phone or '' }}"></div>
+      <div>
+        <label>نقش</label>
+        <select name="role">
+          <option value="CLIENT" {{ 'selected' if person.role.value == 'CLIENT' }}>شاگرد</option>
+          <option value="COACH" {{ 'selected' if person.role.value == 'COACH' }}>مربی</option>
+          <option value="ADMIN" {{ 'selected' if person.role.value == 'ADMIN' }}>مدیر</option>
+        </select>
+      </div>
+      <div>
+        <label>وضعیت</label>
+        <select name="is_active">
+          <option value="true" {{ 'selected' if person.is_active }}>فعال</option>
+          <option value="false" {{ 'selected' if not person.is_active }}>غیرفعال</option>
+        </select>
+      </div>
+      <div><label>یادداشت</label><input name="note" value="{{ person.note or '' }}"></div>
+    </div>
+    <div style="margin-top:0.9rem"><button class="btn" type="submit">ذخیره</button></div>
+  </form>
+</div>
+
+<div class="card">
+  <h2>دسترسی وب</h2>
+  <form method="post" action="/admin/students/{{ person.id }}/password" class="actions">
+    <input name="password" type="password" placeholder="رمز عبور جدید (حداقل ۶ کاراکتر)" style="max-width:280px" required>
+    <button class="btn secondary" type="submit">تنظیم رمز</button>
+    {% if person.password_hash %}<span class="badge green">رمز فعال است</span>{% else %}<span class="badge gray">بدون رمز</span>{% endif %}
+  </form>
+  <p class="muted" style="margin-top:0.5rem">اتصال ربات‌ها:
+    {% for identity in person.identities %}
+      <span class="badge blue">{{ identity.platform.value }}</span>
+    {% else %}
+      <span class="badge gray">هنوز به رباتی متصل نشده</span>
+    {% endfor %}
+  </p>
+</div>
+
+<div class="card">
+  <h2>دوره‌ها</h2>
+  <table>
+    <tr><th>کلاس</th><th>جلسات</th><th>باقی‌مانده</th><th>شروع</th><th>وضعیت</th><th></th></tr>
+    {% for c in courses %}
+    <tr>
+      <td>{{ c.course.class_type.title }}</td>
+      <td>{{ c.course.sessions_total }}</td>
+      <td>{{ c.remaining }}</td>
+      <td>{{ c.course.start_date | jdate }}</td>
+      <td>{{ {'ACTIVE':'فعال','FINISHED':'پایان‌یافته','PAUSED':'متوقف'}[c.course.status.value] }}</td>
+      <td><a class="btn small secondary" href="/admin/courses/{{ c.course.id }}">جزئیات</a></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6" class="muted">دوره‌ای ثبت نشده.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="card">
+  <h2>برنامه‌ها</h2>
+  <table>
+    <tr><th>عنوان</th><th>نوع</th><th>تاریخ</th><th>وضعیت</th><th>فایل</th></tr>
+    {% for plan in plans %}
+    <tr>
+      <td>{{ plan.title }}</td>
+      <td>{{ plan_label(plan.plan_type) }}</td>
+      <td>{{ plan.created_at | jdate }}</td>
+      <td>{% if plan.active %}<span class="badge green">فعال</span>{% else %}<span class="badge gray">غیرفعال</span>{% endif %}</td>
+      <td>{% if plan.file_path %}<a href="/api/v1/plans/{{ plan.id }}/file">دانلود</a>{% else %}-{% endif %}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="muted">برنامه‌ای ثبت نشده.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="card">
+  <h2>پرداخت‌ها</h2>
+  <table>
+    <tr><th>مبلغ (تومان)</th><th>بابت</th><th>روش</th><th>تاریخ</th><th>یادداشت</th></tr>
+    {% for payment in payments %}
+    <tr>
+      <td>{{ payment.amount | toman }}</td>
+      <td>{{ payment_label(payment.kind) }}</td>
+      <td>{{ payment.method or '-' }}</td>
+      <td>{{ payment.paid_at | jdate }}</td>
+      <td>{{ payment.note or '-' }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="muted">پرداختی ثبت نشده.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

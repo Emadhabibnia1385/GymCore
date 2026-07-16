@@ -1,0 +1,59 @@
+{% extends "admin/_layout.html" %}
+{% block title %}دوره‌ها — GymCore{% endblock %}
+{% block content %}
+<h1 class="page-title">دوره‌ها</h1>
+
+<div class="card">
+  <h2>ایجاد دوره جدید</h2>
+  <form method="post" action="/admin/courses">
+    <div class="form-grid">
+      <div>
+        <label>شاگرد</label>
+        <select name="client_id" required>
+          {% for p in clients %}<option value="{{ p.id }}">{{ p.name }} {{ '(' ~ p.phone ~ ')' if p.phone }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label>کلاس</label>
+        <select name="class_type_id" required>
+          {% for c in class_types %}<option value="{{ c.id }}">{{ c.title }}</option>{% endfor %}
+        </select>
+      </div>
+      <div><label>تعداد جلسات</label><input name="sessions_total" type="number" min="1" value="12" required></div>
+      <div><label>شهریه (تومان)</label><input name="tuition" type="number" min="0" value="0" required></div>
+      <div><label>ورودی باشگاه (تومان)</label><input name="gym_fee" type="number" min="0" value="0" required></div>
+      <div><label>تاریخ شروع (میلادی)</label><input name="start_date" type="date" required></div>
+    </div>
+    <div style="margin-top:0.9rem"><button class="btn" type="submit">ایجاد دوره</button></div>
+  </form>
+</div>
+
+<div class="card">
+  <div class="actions" style="margin-bottom:1rem">
+    <a class="btn small {{ 'secondary' if status_filter }}" href="/admin/courses">همه</a>
+    <a class="btn small {{ '' if status_filter == 'ACTIVE' else 'secondary' }}" href="/admin/courses?status=ACTIVE">فعال</a>
+    <a class="btn small {{ '' if status_filter == 'PAUSED' else 'secondary' }}" href="/admin/courses?status=PAUSED">متوقف</a>
+    <a class="btn small {{ '' if status_filter == 'FINISHED' else 'secondary' }}" href="/admin/courses?status=FINISHED">پایان‌یافته</a>
+  </div>
+  <table>
+    <tr><th>شاگرد</th><th>کلاس</th><th>جلسات</th><th>باقی‌مانده</th><th>شروع</th><th>وضعیت</th><th></th></tr>
+    {% for c in courses %}
+    <tr>
+      <td>{{ c.course.client.name }}</td>
+      <td>{{ c.course.class_type.title }}</td>
+      <td>{{ c.course.sessions_total }}</td>
+      <td>{{ c.remaining }}</td>
+      <td>{{ c.course.start_date | jdate }}</td>
+      <td>
+        {% if c.course.status.value == 'ACTIVE' %}<span class="badge green">فعال</span>
+        {% elif c.course.status.value == 'PAUSED' %}<span class="badge amber">متوقف</span>
+        {% else %}<span class="badge gray">پایان‌یافته</span>{% endif %}
+      </td>
+      <td><a class="btn small secondary" href="/admin/courses/{{ c.course.id }}">جزئیات</a></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7" class="muted">دوره‌ای یافت نشد.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

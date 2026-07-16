@@ -1,0 +1,23 @@
+{% extends "admin/_layout.html" %}
+{% block title %}تنظیمات — GymCore{% endblock %}
+{% block content %}
+<h1 class="page-title">تنظیمات</h1>
+
+<div class="card">
+  <form method="post" action="/admin/settings">
+    <div class="form-row">
+      <label>نام باشگاه</label>
+      <input name="gym_name" value="{{ values.gym_name }}">
+    </div>
+    <div class="form-row">
+      <label>متن خوش‌آمدگویی ربات</label>
+      <textarea name="welcome_text" rows="3">{{ values.welcome_text }}</textarea>
+    </div>
+    <div class="form-row">
+      <label>راه‌های ارتباطی (نمایش در ربات)</label>
+      <textarea name="contact_text" rows="5">{{ values.contact_text }}</textarea>
+    </div>
+    <button class="btn" type="submit">ذخیره تنظیمات</button>
+  </form>
+</div>
+{% endblock %}

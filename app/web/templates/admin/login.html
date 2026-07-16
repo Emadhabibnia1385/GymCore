@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}ورود مدیریت — GymCore{% endblock %}
+{% block body %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h1>🏋️ ورود مدیریت GymCore</h1>
+    {% include "_flash.html" %}
+    <form method="post" action="/admin/login">
+      <div class="form-row">
+        <label for="phone">شماره موبایل</label>
+        <input id="phone" name="phone" type="text" inputmode="tel" required autofocus>
+      </div>
+      <div class="form-row">
+        <label for="password">رمز عبور</label>
+        <input id="password" name="password" type="password" required>
+      </div>
+      <button class="btn" type="submit" style="width:100%">ورود</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
