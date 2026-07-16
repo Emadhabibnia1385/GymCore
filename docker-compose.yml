@@ -21,7 +21,8 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "127.0.0.1:8000:8000"
+      # Loopback only — public traffic goes through nginx.
+      - "127.0.0.1:${API_PORT:-8000}:8000"
 
   telegram-bot:
     build: .
@@ -55,7 +56,9 @@ services:
     volumes:
       - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     ports:
-      - "80:80"
+      # Set HTTP_PORT in .env when port 80 is taken by another service
+      # on the same server (e.g. HTTP_PORT=8090 -> http://domain:8090).
+      - "${HTTP_PORT:-80}:80"
     depends_on:
       - api
 

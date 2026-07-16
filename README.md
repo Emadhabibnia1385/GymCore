@@ -79,6 +79,24 @@ No token, password or secret is ever hardcoded.
 | `ADMIN_PHONE` / `ADMIN_PASSWORD` | Bootstrap admin, created on first startup |
 | `DOMAIN`, `COOKIE_SECURE` | Set `COOKIE_SECURE=true` once HTTPS is enabled |
 
+## Running beside other services on the same server
+
+If port 80 is already taken (another site/panel on the server), set a free
+port in `.env` and restart:
+
+```bash
+HTTP_PORT=8090
+```
+
+```bash
+docker compose up -d
+```
+
+GymCore is then served at `http://your-domain:8090/…`. Alternatively, keep
+GymCore off port 80 entirely and add a vhost to the **existing** host nginx
+that proxies your (sub)domain to `127.0.0.1:8000` (the API container is bound
+to loopback), then stop the bundled nginx: `docker compose stop nginx`.
+
 ## Deployment variants
 
 - **Docker (recommended):** `docker-compose.yml` — db, api, telegram-bot,

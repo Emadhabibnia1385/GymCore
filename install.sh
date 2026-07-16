@@ -44,15 +44,30 @@ if [[ ! -f .env ]]; then
   "${EDITOR:-nano}" .env
 fi
 
-# --- 3. Build & start ---
+# --- 3. Port conflict check ---
+HTTP_PORT=$(grep -E '^HTTP_PORT=' .env | cut -d= -f2)
+HTTP_PORT=${HTTP_PORT:-80}
+if ss -tlnp 2>/dev/null | grep -q ":${HTTP_PORT} "; then
+  echo ""
+  echo "!! Port ${HTTP_PORT} is already in use by another service."
+  echo "   Set a free port in .env, e.g.:  HTTP_PORT=8090"
+  read -r -p "Press Enter to edit .env and change HTTP_PORT..." _
+  "${EDITOR:-nano}" .env
+  HTTP_PORT=$(grep -E '^HTTP_PORT=' .env | cut -d= -f2)
+  HTTP_PORT=${HTTP_PORT:-80}
+fi
+
+# --- 4. Build & start ---
 echo "==> Building and starting services..."
 docker compose up -d --build
 
+PORT_SUFFIX=""
+[[ "${HTTP_PORT}" != "80" ]] && PORT_SUFFIX=":${HTTP_PORT}"
 echo ""
 echo "==> GymCore is running."
-echo "    Admin panel:      http://<server-ip>/admin"
-echo "    Client dashboard: http://<server-ip>/"
-echo "    API docs:         http://<server-ip>/docs"
+echo "    Admin panel:      http://<server-ip>${PORT_SUFFIX}/admin"
+echo "    Client dashboard: http://<server-ip>${PORT_SUFFIX}/"
+echo "    API docs:         http://<server-ip>${PORT_SUFFIX}/docs"
 echo ""
 echo "    Logs:    docker compose logs -f"
 echo "    Update:  git pull && docker compose up -d --build"
