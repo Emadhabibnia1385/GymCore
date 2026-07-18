@@ -40,7 +40,7 @@
         {% endif %}
       </div>
     {% else %}
-      <p class="muted">هنوز دوره‌ای برای شما ثبت نشده است.</p>
+      <p class="muted">هنوز دوره‌ای به نامت ثبت نشده؛ نخستین قدم را همین امروز بردار 🌱</p>
     {% endfor %}
   </div>
 
@@ -56,7 +56,7 @@
         <td>{% if plan.file_path %}<a href="/api/v1/plans/{{ plan.id }}/file">دانلود</a>{% else %}-{% endif %}</td>
       </tr>
       {% else %}
-      <tr><td colspan="4" class="muted">برنامه فعالی ندارید.</td></tr>
+      <tr><td colspan="4" class="muted">هنوز برنامه‌ای برایت آماده نشده است.</td></tr>
       {% endfor %}
     </table>
   </div>
@@ -72,7 +72,7 @@
         <td>{{ payment.paid_at | jdate }}</td>
       </tr>
       {% else %}
-      <tr><td colspan="3" class="muted">پرداختی ثبت نشده.</td></tr>
+      <tr><td colspan="3" class="muted">هنوز پرداختی ثبت نشده است.</td></tr>
       {% endfor %}
     </table>
   </div>

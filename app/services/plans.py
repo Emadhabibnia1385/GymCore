@@ -94,9 +94,9 @@ def create(
         notifications.notify_person(
             db,
             person,
-            f"{type_label(plan_type)} جدید برای شما ثبت شد 📄\n"
+            f"{type_label(plan_type)}‌ای تازه برایت آماده شد 📄\n"
             f"عنوان: {title}\n"
-            "برای مشاهده از منوی «📄 برنامه‌های من» استفاده کنید.",
+            "برای دیدنش کافی است از منوی «📄 برنامه‌های من» سر بزنی.",
         )
     return plan
 

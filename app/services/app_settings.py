@@ -9,8 +9,13 @@ from app.models.setting import KEY_CONTACT_TEXT, KEY_GYM_NAME, KEY_WELCOME_TEXT
 
 _DEFAULTS = {
     KEY_GYM_NAME: "GymCore",
-    KEY_CONTACT_TEXT: "برای ارتباط با مربی از همین ربات پیام بدهید.",
-    KEY_WELCOME_TEXT: "به باشگاه خوش آمدید! 🏋️",
+    KEY_CONTACT_TEXT: (
+        "برای گفت‌وگو با مربی، همین‌جا در ربات برایمان پیام بگذار؛ کنارت هستیم. 🌿"
+    ),
+    KEY_WELCOME_TEXT: (
+        "به باشگاه خوش آمدی 🏋️🌿\n"
+        "اینجا هر قدم، تو را به بهترین نسخه‌ی خودت نزدیک‌تر می‌کند."
+    ),
 }
 
 

@@ -12,6 +12,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import ValidationError
+from app.core.jalali import format_jalali
 from app.models import Payment, PaymentKind
 from app.services import courses as courses_service
 from app.services import notifications
@@ -86,9 +87,9 @@ def record(
         notifications.notify_person(
             db,
             person,
-            f"پرداخت شما ثبت شد ✅\n"
+            f"پرداختت با سپاس ثبت شد ✅\n"
             f"مبلغ: {amount:,} تومان\n"
             f"بابت: {kind_label(kind)}\n"
-            f"تاریخ: {paid_at.isoformat()}",
+            f"تاریخ: {format_jalali(paid_at)}",
         )
     return payment

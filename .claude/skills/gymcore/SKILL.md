@@ -321,6 +321,57 @@ Code:
 English
 
 
+# Visual Identity
+
+Brand: "Mehdi Sarmad" — phosphor green on black. The web surface is dark-theme only.
+
+Design tokens (single source of truth: `app/web/static/style.css` `:root`):
+
+```css
+:root {
+  /* Brand */
+  --primary: #B2F828;   /* phosphor green — buttons, links, active nav, stat values */
+
+  /* Base */
+  --background: #000000;
+  --foreground: #FFFFFF;
+
+  /* UI */
+  --card: #111111;
+  --border: #2A2A2A;
+
+  /* States */
+  --success: #B2F828;
+  --danger:  #FF4D4F;
+  --warning: #FFC107;
+}
+```
+
+Rules:
+
+- All web colors come from these tokens — never hardcode a hex in a template or rule.
+- Text on a green (`--primary`) fill must be near-black (`--on-primary`), never white:
+  the green is light, so white-on-green fails contrast.
+- Badges/alerts use translucent tints of the state color on the dark card, not solid fills.
+- Bots (Telegram/Bale) have no colors of their own; there the identity is carried by
+  tone, emoji and structure — not styling.
+
+
+# Content & Tone
+
+UI language is Persian; the voice is warm, encouraging and lightly literary —
+GymCore speaks to the athlete as a companion on the road, using informal «تو».
+
+- Prose (greetings, confirmations, reminders, empty states) carries the literary
+  warmth. Keep it concise — a sentence or two, never a paragraph.
+- Buttons and menu labels stay short and iconic; they are also router keys in
+  `app/bots/handlers.py`, so do not turn them into sentences.
+- Validation and error messages stay clear and precise first, warm second.
+- The admin panel stays professional and plain; the literary voice is for
+  client-facing surfaces (client dashboard, bots, notifications).
+- Dates shown to people are Jalali (شمسی); money is integer Toman.
+
+
 # Final Rule
 
 You are not only writing code.

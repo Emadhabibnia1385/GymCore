@@ -67,17 +67,17 @@ def _recently_sent(
 
 def _low_sessions_text(course: Course, remaining: int) -> str:
     return (
-        "یادآوری باشگاه ⏰\n"
-        f"از دوره «{course.class_type.title}» تنها {remaining} جلسه باقی مانده است.\n"
-        "برای تمدید دوره با مربی هماهنگ کنید."
+        "یادِ تو هستیم ⏰\n"
+        f"از دوره‌ی «{course.class_type.title}» تنها {remaining} جلسه برایت باقی مانده.\n"
+        "برای تمدید و ادامه‌ی مسیر با مربی هماهنگ کن."
     )
 
 
 def _inactive_text(course: Course, inactive_days: int) -> str:
     return (
-        "دلمان برایتان تنگ شده! 🙌\n"
-        f"مدتی است در دوره «{course.class_type.title}» جلسه‌ای ثبت نشده "
-        f"({inactive_days} روز). منتظر حضور دوباره شما هستیم."
+        "جایت این روزها خالی‌ست 🌿\n"
+        f"مدتی است در دوره‌ی «{course.class_type.title}» جلسه‌ای ثبت نشده "
+        f"({inactive_days} روز)؛ منتظر بازگشتت هستیم."
     )
 
 

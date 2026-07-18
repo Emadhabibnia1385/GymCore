@@ -11,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import ValidationError
+from app.core.jalali import format_jalali
 from app.models import AttendanceEvent, AttendanceStatus, CourseStatus
 from app.services import courses as courses_service
 from app.services import notifications
@@ -67,8 +68,9 @@ def record(
         notifications.notify_person(
             db,
             course.client,
-            f"ثبت جلسه {course.class_type.title}\n"
-            f"تاریخ: {session_date.isoformat()}\n"
+            f"یک جلسه‌ی دیگر از مسیرت ثبت شد 🌿\n"
+            f"کلاس: {course.class_type.title}\n"
+            f"تاریخ: {format_jalali(session_date)}\n"
             f"وضعیت: {status_label(status)}\n"
             f"جلسات باقی‌مانده: {remaining}",
         )

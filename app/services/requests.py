@@ -75,11 +75,14 @@ def decide_class_request(
 
     if approve:
         text = (
-            f"درخواست ثبت‌نام شما در کلاس «{request.class_type.title}» تایید شد ✅\n"
-            "مربی به‌زودی دوره شما را فعال می‌کند."
+            f"خبر خوب! ثبت‌نامت در کلاس «{request.class_type.title}» تایید شد ✅\n"
+            "مربی به‌زودی دوره‌ات را آغاز می‌کند؛ آماده‌ی شروع باش."
         )
     else:
-        text = f"درخواست ثبت‌نام شما در کلاس «{request.class_type.title}» رد شد."
+        text = (
+            f"این‌بار ثبت‌نامت در کلاس «{request.class_type.title}» میسر نشد؛ "
+            "برای هماهنگی بیشتر با ما در تماس باش."
+        )
     notifications.notify_person(db, request.person, text)
     return request
 
@@ -131,8 +134,14 @@ def decide_plan_request(db: Session, request_id: int, approve: bool) -> PlanRequ
 
     label = plans_service.type_label(request.plan_type)
     if approve:
-        text = f"سفارش {label} شما تایید شد ✅\nبرنامه پس از آماده‌سازی برای شما ارسال می‌شود."
+        text = (
+            f"سفارش {label}‌ات تایید شد ✅\n"
+            "به‌محض آماده‌شدن، برنامه‌ات برایت ارسال می‌شود."
+        )
     else:
-        text = f"سفارش {label} شما رد شد."
+        text = (
+            f"این‌بار سفارش {label}‌ات پذیرفته نشد؛ "
+            "برای هماهنگی بیشتر با ما در تماس باش."
+        )
     notifications.notify_person(db, request.person, text)
     return request
