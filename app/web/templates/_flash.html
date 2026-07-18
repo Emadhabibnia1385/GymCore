@@ -1,6 +1,0 @@
-{% if request.query_params.get("error") %}
-  <div class="alert error">{{ request.query_params.get("error") }}</div>
-{% endif %}
-{% if request.query_params.get("msg") %}
-  <div class="alert success">{{ request.query_params.get("msg") }}</div>
-{% endif %}
