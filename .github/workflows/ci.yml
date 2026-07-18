@@ -23,5 +23,12 @@ jobs:
       - name: Lint (ruff)
         run: ruff check .
 
+      - name: Migrations in sync with models
+        env:
+          DATABASE_URL: sqlite:///./ci_migrations.db
+        run: |
+          alembic upgrade head
+          alembic check
+
       - name: Tests (pytest)
         run: pytest -q

@@ -5,6 +5,7 @@ uvicorn[standard]>=0.30
 # --- Database ---
 SQLAlchemy>=2.0.30
 psycopg[binary]>=3.2 ; python_version >= "3.10"
+alembic>=1.13
 
 # --- Validation / settings ---
 pydantic>=2.7

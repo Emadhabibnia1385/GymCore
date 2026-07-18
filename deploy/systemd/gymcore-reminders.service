@@ -1,0 +1,18 @@
+# Bare-metal alternative to Docker (see README).
+# Install: copy to /etc/systemd/system/ then `systemctl enable --now gymcore-reminders`
+
+[Unit]
+Description=GymCore reminder worker
+After=network.target gymcore-api.service
+
+[Service]
+Type=simple
+User=gymcore
+WorkingDirectory=/opt/gymcore
+EnvironmentFile=/opt/gymcore/.env
+ExecStart=/opt/gymcore/.venv/bin/python -m app.jobs.reminders
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

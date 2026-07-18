@@ -26,7 +26,7 @@ from app.core.exceptions import (
 )
 from app.core.logging import setup_logging
 from app.core.middleware import configure_middleware
-from app.db.base import Base
+from app.db.init import init_dev_schema
 from app.db.session import engine, session_scope
 from app.web import admin as web_admin
 from app.web import client as web_client
@@ -44,11 +44,9 @@ _STATUS_BY_EXCEPTION = {
 async def lifespan(app: FastAPI):
     setup_logging()
     settings = get_settings()
-    # v1 schema management: create missing tables on startup.
-    # (Alembic migrations will take over once the schema starts evolving.)
-    import app.models  # noqa: F401 — register all tables on Base.metadata
-
-    Base.metadata.create_all(bind=engine)
+    # SQLite (dev/test) creates tables from the models; Postgres is managed
+    # by Alembic migrations (run `alembic upgrade head` on deploy).
+    init_dev_schema()
     settings.upload_dir.mkdir(parents=True, exist_ok=True)
     with session_scope() as db:
         from app.services import app_settings, auth

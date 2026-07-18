@@ -51,6 +51,19 @@ class Settings(BaseSettings):
     admin_phone: str = ""
     admin_password: str = ""
 
+    # --- Automated reminders (background worker) ---
+    reminders_enabled: bool = True
+    # How often the worker scans for due reminders.
+    reminder_interval_seconds: int = 6 * 60 * 60  # every 6 hours
+    # Warn the client when remaining sessions drop to/below this count.
+    reminder_low_session_threshold: int = 2
+    # Nudge the client when an active course has had no attendance for this
+    # many days (measured from the last session, or the course start date).
+    reminder_inactive_days: int = 10
+    # Don't resend the same reminder kind for the same course within this
+    # many days (spam guard).
+    reminder_resend_days: int = 3
+
     @property
     def cors_origin_list(self) -> list[str]:
         """`cors_origins` parsed into a clean list (empty when unset)."""

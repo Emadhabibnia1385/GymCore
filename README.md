@@ -8,11 +8,12 @@ one backend.
 ## Architecture
 
 ```
-Telegram Bot ─┐
-Bale Bot ─────┼──▶  Service layer (business rules)  ──▶  PostgreSQL
-Web Admin ────┤            ▲
-Client Panel ─┘            │
-REST API (/api/v1) ────────┘   (future mobile app uses the same API)
+Telegram Bot ───┐
+Bale Bot ───────┤
+Web Admin ──────┼──▶  Service layer (business rules)  ──▶  PostgreSQL
+Client Panel ───┤            ▲
+REST API ───────┤            │
+Reminder worker ┘────────────┘   (future mobile app uses the same API)
 ```
 
 | Layer | Path | Notes |
@@ -22,6 +23,7 @@ REST API (/api/v1) ────────┘   (future mobile app uses the sam
 | REST API | `app/api/v1/` | JWT auth (cookie or Bearer) |
 | Web UI | `app/web/` | Persian RTL, server-rendered |
 | Bots | `app/bots/` | One platform-agnostic core for Telegram & Bale |
+| Jobs | `app/jobs/` | Background workers (reminders) as standalone processes |
 
 ### Business rules baked into the code
 
@@ -31,6 +33,9 @@ REST API (/api/v1) ────────┘   (future mobile app uses the sam
 - **Payments are immutable** — corrections are new rows with negative amounts.
 - Courses auto-finish when the last paid session is consumed.
 - Clients registering via bot are matched to existing students by phone number.
+- **Automated reminders** — a background worker nudges clients when a course is
+  running low on sessions or has gone quiet, without ever spamming (sends are
+  de-duplicated and logged, append-only, in `reminder_logs`).
 
 ## Quick start (Ubuntu server, Docker)
 
@@ -57,11 +62,13 @@ cp .env.example .env                             # fill ADMIN_PHONE / ADMIN_PASS
 .venv/bin/uvicorn app.main:app --reload
 .venv/bin/python -m app.bots.telegram_main       # in another terminal
 .venv/bin/python -m app.bots.bale_main           # in another terminal
+.venv/bin/python -m app.jobs.reminders           # reminder worker (optional)
 ```
 
-Run tests:
+On SQLite the schema is created automatically. Lint and test with:
 
 ```bash
+.venv/bin/ruff check .
 .venv/bin/pytest
 ```
 
@@ -78,6 +85,8 @@ No token, password or secret is ever hardcoded.
 | `BALE_BOT_TOKEN` / `BALE_OWNER_ID` | Bale bot + owner notifications |
 | `ADMIN_PHONE` / `ADMIN_PASSWORD` | Bootstrap admin, created on first startup |
 | `DOMAIN`, `COOKIE_SECURE` | Set `COOKIE_SECURE=true` once HTTPS is enabled |
+| `CORS_ORIGINS` | Comma-separated origins for a cross-origin SPA (empty = same-origin) |
+| `REMINDER_*` | Reminder worker cadence and thresholds (see `.env.example`) |
 
 ## Running beside other services on the same server
 
@@ -99,19 +108,44 @@ to loopback), then stop the bundled nginx: `docker compose stop nginx`.
 
 ## Deployment variants
 
-- **Docker (recommended):** `docker-compose.yml` — db, api, telegram-bot,
-  bale-bot, nginx.
+- **Docker (recommended):** `docker-compose.yml` — db, migrate, api,
+  telegram-bot, bale-bot, reminders, nginx. The one-shot `migrate` service runs
+  `alembic upgrade head` before the app services start.
 - **Bare metal:** systemd units in [deploy/systemd/](deploy/systemd/) +
   [deploy/nginx.conf](deploy/nginx.conf); app lives in `/opt/gymcore` with a
-  virtualenv.
+  virtualenv. The API unit runs `alembic upgrade head` on start.
+
+## Database migrations
+
+The schema is managed by **Alembic** on Postgres. SQLite (local dev/tests)
+still auto-creates tables from the models, so no migration step is needed there.
+
+```bash
+alembic upgrade head        # apply all migrations (run on deploy)
+alembic revision --autogenerate -m "describe change"   # after editing models
+alembic downgrade -1        # roll back one migration
+```
+
+Under Docker this runs automatically (the `migrate` service). Adding a model or
+column? Edit the model, autogenerate a revision, review it, and commit it under
+`migrations/versions/`.
+
+> **Upgrading a pre-Alembic deployment** whose tables were created by the old
+> `create_all`: baseline it once so Alembic won't try to recreate existing
+> tables, then upgrade:
+>
+> ```bash
+> alembic stamp 0001        # mark the v1.0 baseline as already applied
+> alembic upgrade head      # applies only the new migrations (reminder_logs, …)
+> ```
 
 ## Notes & roadmap
 
-- Schema is created automatically on startup (`create_all`); Alembic
-  migrations will be introduced with the first schema change.
 - Dates are stored Gregorian, displayed Jalali (شمسی).
-- Roadmap (SaaS direction): online payments, automated reminders,
-  subscriptions, multi-coach support, analytics, mobile app.
+- Delivered: Alembic migrations, automated reminders, production hardening
+  (CORS, security headers, readiness probe), ruff + CI.
+- Roadmap (SaaS direction): online payments, subscriptions, multi-coach
+  support, analytics, mobile app.
 
 ## License
 

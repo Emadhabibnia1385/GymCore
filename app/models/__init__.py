@@ -10,12 +10,14 @@ from app.models.enums import (
     PaymentKind,
     PlanType,
     Platform,
+    ReminderKind,
     RequestStatus,
     Role,
 )
 from app.models.payment import Payment
 from app.models.person import ChannelIdentity, Person
 from app.models.plan import Plan
+from app.models.reminder import ReminderLog
 from app.models.request import ClassRegistrationRequest, PlanRequest
 from app.models.setting import Setting
 
@@ -34,6 +36,8 @@ __all__ = [
     "PlanRequest",
     "PlanType",
     "Platform",
+    "ReminderKind",
+    "ReminderLog",
     "RequestStatus",
     "Role",
     "SESSION_CONSUMING_STATUSES",

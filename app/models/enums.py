@@ -54,3 +54,12 @@ class RequestStatus(str, enum.Enum):
     PENDING = "PENDING"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
+
+
+class ReminderKind(str, enum.Enum):
+    """Automated reminders sent to clients by the background worker."""
+
+    # Few paid sessions remain on an active course.
+    LOW_SESSIONS = "LOW_SESSIONS"
+    # No attendance recorded on an active course for a while.
+    COURSE_INACTIVE = "COURSE_INACTIVE"

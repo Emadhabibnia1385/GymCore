@@ -8,8 +8,7 @@ import time
 from app.bots.client import BotClient, build_client
 from app.bots.handlers import BotHandler
 from app.core.logging import setup_logging
-from app.db.base import Base
-from app.db.session import engine
+from app.db.init import init_dev_schema
 from app.models import Platform
 
 logger = logging.getLogger(__name__)
@@ -26,7 +25,7 @@ def run_bot(platform: Platform) -> None:
         )
 
     # Idempotent: makes standalone bot runs (without the API) safe too.
-    Base.metadata.create_all(bind=engine)
+    init_dev_schema()
 
     me = client.call("getMe")
     logger.info("%s bot started as @%s", platform.value, me.get("username"))

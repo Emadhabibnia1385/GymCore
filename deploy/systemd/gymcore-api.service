@@ -10,6 +10,8 @@ Type=simple
 User=gymcore
 WorkingDirectory=/opt/gymcore
 EnvironmentFile=/opt/gymcore/.env
+# Bring the schema up to date before serving (idempotent — no-op at head).
+ExecStartPre=/opt/gymcore/.venv/bin/alembic upgrade head
 ExecStart=/opt/gymcore/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
 Restart=always
 RestartSec=5

@@ -11,6 +11,18 @@ services:
       timeout: 5s
       retries: 10
 
+  # One-shot: bring the database schema up to date, then exit. Every app
+  # service waits for this to finish successfully before starting, so the
+  # schema is always migrated before anything reads or writes it.
+  migrate:
+    build: .
+    command: ["alembic", "upgrade", "head"]
+    env_file: .env
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+
   api:
     build: .
     restart: unless-stopped
@@ -20,9 +32,17 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     ports:
       # Loopback only — public traffic goes through nginx.
       - "127.0.0.1:${API_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   telegram-bot:
     build: .
@@ -34,8 +54,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      api:
-        condition: service_started
+      migrate:
+        condition: service_completed_successfully
 
   bale-bot:
     build: .
@@ -47,8 +67,22 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      api:
-        condition: service_started
+      migrate:
+        condition: service_completed_successfully
+
+  # Background worker: sends automated low-session / inactivity reminders.
+  reminders:
+    build: .
+    restart: unless-stopped
+    command: ["python", "-m", "app.jobs.reminders"]
+    env_file: .env
+    volumes:
+      - uploads:/srv/gymcore/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   nginx:
     image: nginx:alpine
