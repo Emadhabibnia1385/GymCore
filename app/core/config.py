@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     bale_owner_id: str = ""
     bale_api_base: str = "https://tapi.bale.ai"
 
+    # --- Plan-order signup (opened as a Telegram Mini App / Bale link) ---
+    signup_url: str = "https://mahdisarmad.ir/signup/"
+
     # --- Bootstrap admin (created on first startup if missing) ---
     admin_name: str = "مدیر"
     admin_phone: str = ""

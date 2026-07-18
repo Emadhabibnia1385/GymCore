@@ -1,8 +1,9 @@
 """Platform-agnostic bot conversation logic.
 
 One handler serves both Telegram and Bale — the `BotClient` and its
-`platform` decide where replies go. Conversation state is a small
-in-memory dict per bot process (each bot runs as its own service).
+`platform` decide where replies go (and whether a signup opens as a Mini App
+or a plain link). Conversation state is a small in-memory dict per bot
+process (each bot runs as its own service).
 
 All business operations go through the shared service layer, so the
 bots, the API and the web panel always behave identically.
@@ -17,18 +18,17 @@ from sqlalchemy.orm import Session
 
 from app.bots import keyboards, texts
 from app.bots.client import BotClient
+from app.core.config import get_settings
 from app.core.exceptions import DomainError
 from app.core.phone import is_valid_phone, normalize_phone
 from app.db.session import SessionLocal
-from app.models import CourseStatus, Person, PlanType
+from app.models import CourseStatus, Person, Platform
 from app.models.setting import KEY_CONTACT_TEXT, KEY_WELCOME_TEXT
 from app.services import app_settings as settings_service
 from app.services import attendance as attendance_service
-from app.services import classes as classes_service
 from app.services import courses as courses_service
 from app.services import persons as persons_service
 from app.services import plans as plans_service
-from app.services import requests as requests_service
 
 logger = logging.getLogger(__name__)
 
@@ -36,12 +36,6 @@ _COURSE_STATUS_LABELS = {
     CourseStatus.ACTIVE: "فعال",
     CourseStatus.FINISHED: "پایان‌یافته",
     CourseStatus.PAUSED: "متوقف",
-}
-
-_PLAN_TYPE_BY_BUTTON = {
-    texts.BTN_PLAN_TRAINING: PlanType.TRAINING,
-    texts.BTN_PLAN_NUTRITION: PlanType.NUTRITION,
-    texts.BTN_PLAN_CUSTOM: PlanType.CUSTOM,
 }
 
 
@@ -98,18 +92,11 @@ class BotHandler:
             self._show_menu(db, chat_id, greet=(text == "/start"))
             return
 
-        step_handlers = {
-            "PICK_CLASS": self._on_pick_class,
-            "PICK_PLAN_TYPE": self._on_pick_plan_type,
-            "PLAN_NOTE": self._on_plan_note,
-        }
-        if state.step in step_handlers:
-            step_handlers[state.step](db, chat_id, person, text)
-            return
-
+        # Registered users have no multi-step menu flows anymore — every menu
+        # button maps to a single, immediate action.
         menu_handlers = {
-            texts.BTN_REGISTER_CLASS: self._start_class_registration,
-            texts.BTN_ORDER_PLAN: self._start_plan_order,
+            texts.BTN_REGISTER_CLASS: self._show_class_contact,
+            texts.BTN_ORDER_PLAN: self._show_plan_signup,
             texts.BTN_MY_CLASSES: self._show_my_classes,
             texts.BTN_MY_PLANS: self._show_my_plans,
             texts.BTN_CONTACT: self._show_contact,
@@ -169,60 +156,22 @@ class BotHandler:
         )
         self.client.send_message(chat_id, text, keyboards.main_menu())
 
-    def _start_class_registration(
-        self, db: Session, chat_id: str, person: Person
-    ) -> None:
-        class_types = classes_service.list_class_types(db, only_active=True)
-        if not class_types:
-            self.client.send_message(
-                chat_id, texts.NO_ACTIVE_CLASSES, keyboards.main_menu()
-            )
-            return
-        state = self.states[chat_id]
-        state.step = "PICK_CLASS"
-        state.data["classes"] = {c.title: c.id for c in class_types}
-        lines = [texts.CHOOSE_CLASS, ""]
-        for c in class_types:
-            lines.append(f"• {c.title}" + (f" — {c.description}" if c.description else ""))
+    def _show_class_contact(self, db: Session, chat_id: str, person: Person) -> None:
+        """«ثبت‌نام کلاس» → راه‌های ارتباطی برای هماهنگی با مربی."""
+        contact_text = settings_service.get_value(db, KEY_CONTACT_TEXT)
+        message = f"{texts.CLASS_CONTACT_INTRO}\n\n{contact_text}"
+        self.client.send_message(chat_id, message, keyboards.main_menu())
+
+    def _show_plan_signup(self, db: Session, chat_id: str, person: Person) -> None:
+        """«سفارش برنامه» → فرم ثبت‌نام (Mini App تلگرام یا لینک بله)."""
+        url = get_settings().signup_url
+        message = texts.PLAN_SIGNUP_INTRO
+        # Bale has no Mini App; keep the raw link in the text as a fallback.
+        if self.platform != Platform.TELEGRAM:
+            message = f"{message}\n\n{url}"
         self.client.send_message(
-            chat_id, "\n".join(lines), keyboards.class_list([c.title for c in class_types])
+            chat_id, message, keyboards.plan_signup(self.platform, url)
         )
-
-    def _on_pick_class(
-        self, db: Session, chat_id: str, person: Person, text: str
-    ) -> None:
-        class_id = self.states[chat_id].data.get("classes", {}).get(text)
-        if class_id is None:
-            self.client.send_message(chat_id, texts.UNKNOWN)
-            return
-        requests_service.create_class_request(db, person.id, class_id)
-        self.states[chat_id] = ChatState()
-        self.client.send_message(chat_id, texts.CLASS_REQUEST_SENT, keyboards.main_menu())
-
-    def _start_plan_order(self, db: Session, chat_id: str, person: Person) -> None:
-        self.states[chat_id].step = "PICK_PLAN_TYPE"
-        self.client.send_message(chat_id, texts.CHOOSE_PLAN_TYPE, keyboards.plan_types())
-
-    def _on_pick_plan_type(
-        self, db: Session, chat_id: str, person: Person, text: str
-    ) -> None:
-        plan_type = _PLAN_TYPE_BY_BUTTON.get(text)
-        if plan_type is None:
-            self.client.send_message(chat_id, texts.UNKNOWN)
-            return
-        state = self.states[chat_id]
-        state.step = "PLAN_NOTE"
-        state.data["plan_type"] = plan_type
-        self.client.send_message(chat_id, texts.ASK_PLAN_NOTE, keyboards.note_or_skip())
-
-    def _on_plan_note(
-        self, db: Session, chat_id: str, person: Person, text: str
-    ) -> None:
-        note = None if text == texts.BTN_NO_NOTE else text
-        plan_type = self.states[chat_id].data["plan_type"]
-        requests_service.create_plan_request(db, person.id, plan_type, note)
-        self.states[chat_id] = ChatState()
-        self.client.send_message(chat_id, texts.PLAN_REQUEST_SENT, keyboards.main_menu())
 
     def _show_my_classes(self, db: Session, chat_id: str, person: Person) -> None:
         courses = courses_service.list_courses(db, client_id=person.id)

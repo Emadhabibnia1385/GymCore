@@ -14,7 +14,7 @@ from fastapi.responses import RedirectResponse
 from app.api.deps import COOKIE_NAME, DbDep
 from app.core.config import get_settings
 from app.core.exceptions import AuthError
-from app.models import AttendanceStatus, CourseStatus, PaymentKind, PlanType, RequestStatus, Role
+from app.models import AttendanceStatus, CourseStatus, PaymentKind, PlanType, Role
 from app.models.setting import KEY_CONTACT_TEXT, KEY_GYM_NAME, KEY_WELCOME_TEXT
 from app.services import app_settings as settings_service
 from app.services import attendance as attendance_service
@@ -24,7 +24,6 @@ from app.services import courses as courses_service
 from app.services import payments as payments_service
 from app.services import persons as persons_service
 from app.services import plans as plans_service
-from app.services import requests as requests_service
 from app.services import stats as stats_service
 from app.web.deps import AdminWeb, templates
 
@@ -81,12 +80,6 @@ def dashboard(request: Request, db: DbDep, admin: AdminWeb):
         {
             "active": "dashboard",
             "stats": stats_service.dashboard(db),
-            "pending_class": requests_service.list_class_requests(
-                db, RequestStatus.PENDING
-            ),
-            "pending_plan": requests_service.list_plan_requests(
-                db, RequestStatus.PENDING
-            ),
         },
     )
 
@@ -371,38 +364,6 @@ def toggle_plan(plan_id: int, db: DbDep, admin: AdminWeb):
     plan = plans_service.get(db, plan_id)
     plans_service.set_active(db, plan_id, not plan.active)
     return _redirect("/admin/plans", "وضعیت برنامه تغییر کرد")
-
-
-# --- Requests ---
-
-
-@router.get("/requests")
-def requests_page(request: Request, db: DbDep, admin: AdminWeb):
-    return templates.TemplateResponse(
-        request,
-        "admin/requests.html",
-        {
-            "active": "requests",
-            "class_requests": requests_service.list_class_requests(db),
-            "plan_requests": requests_service.list_plan_requests(db),
-        },
-    )
-
-
-@router.post("/requests/classes/{request_id}")
-def decide_class_request(
-    request_id: int, db: DbDep, admin: AdminWeb, decision: str = Form(...)
-):
-    requests_service.decide_class_request(db, request_id, decision == "approve")
-    return _redirect("/admin/requests", "درخواست بررسی شد")
-
-
-@router.post("/requests/plans/{request_id}")
-def decide_plan_request(
-    request_id: int, db: DbDep, admin: AdminWeb, decision: str = Form(...)
-):
-    requests_service.decide_plan_request(db, request_id, decision == "approve")
-    return _redirect("/admin/requests", "سفارش بررسی شد")
 
 
 # --- Settings ---

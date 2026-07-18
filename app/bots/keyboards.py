@@ -1,8 +1,9 @@
-"""Reply keyboards (Telegram Bot API format — Bale compatible)."""
+"""Reply/inline keyboards (Telegram Bot API format — Bale compatible)."""
 
 from __future__ import annotations
 
 from app.bots import texts
+from app.models import Platform
 
 
 def _keyboard(rows: list[list[dict]]) -> dict:
@@ -10,10 +11,10 @@ def _keyboard(rows: list[list[dict]]) -> dict:
 
 
 def main_menu() -> dict:
+    # «ثبت‌نام کلاس» و «سفارش برنامه» کنار هم در یک ردیف.
     return _keyboard(
         [
-            [{"text": texts.BTN_REGISTER_CLASS}],
-            [{"text": texts.BTN_ORDER_PLAN}],
+            [{"text": texts.BTN_REGISTER_CLASS}, {"text": texts.BTN_ORDER_PLAN}],
             [{"text": texts.BTN_MY_CLASSES}, {"text": texts.BTN_MY_PLANS}],
             [{"text": texts.BTN_CONTACT}],
         ]
@@ -24,25 +25,17 @@ def share_phone() -> dict:
     return _keyboard([[{"text": texts.BTN_SHARE_PHONE, "request_contact": True}]])
 
 
-def class_list(titles: list[str]) -> dict:
-    rows = [[{"text": title}] for title in titles]
-    rows.append([{"text": texts.BTN_BACK}])
-    return _keyboard(rows)
+def plan_signup(platform: Platform, url: str) -> dict:
+    """Inline button that opens the plan-order signup.
 
-
-def plan_types() -> dict:
-    return _keyboard(
-        [
-            [{"text": texts.BTN_PLAN_TRAINING}],
-            [{"text": texts.BTN_PLAN_NUTRITION}],
-            [{"text": texts.BTN_PLAN_CUSTOM}],
-            [{"text": texts.BTN_BACK}],
-        ]
-    )
-
-
-def note_or_skip() -> dict:
-    return _keyboard([[{"text": texts.BTN_NO_NOTE}], [{"text": texts.BTN_BACK}]])
+    Telegram opens it inside the app as a Mini App (``web_app``); Bale — which
+    does not support Web Apps — falls back to a normal URL button.
+    """
+    if platform == Platform.TELEGRAM:
+        button = {"text": texts.BTN_PLAN_SIGNUP, "web_app": {"url": url}}
+    else:
+        button = {"text": texts.BTN_PLAN_SIGNUP, "url": url}
+    return {"inline_keyboard": [[button]]}
 
 
 def remove() -> dict:

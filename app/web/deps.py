@@ -44,12 +44,4 @@ def require_admin_web(request: Request, db: DbDep) -> Person:
     return person
 
 
-def require_person_web(request: Request, db: DbDep) -> Person:
-    person = get_current_person_optional(request, db)
-    if person is None:
-        raise LoginRedirect("/login")
-    return person
-
-
 AdminWeb = Annotated[Person, Depends(require_admin_web)]
-PersonWeb = Annotated[Person, Depends(require_person_web)]

@@ -9,7 +9,6 @@ from app.api.v1 import (
     payments,
     persons,
     plans,
-    requests,
     settings,
 )
 
@@ -20,5 +19,4 @@ api_router.include_router(classes.router)
 api_router.include_router(courses.router)
 api_router.include_router(payments.router)
 api_router.include_router(plans.router)
-api_router.include_router(requests.router)
 api_router.include_router(settings.router)

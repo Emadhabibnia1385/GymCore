@@ -1,9 +1,9 @@
 """GymCore FastAPI application entrypoint.
 
 Serves:
-  - REST API under /api/v1 (web, bots-adjacent tooling, future mobile app)
+  - REST API under /api/v1 (admin tooling, future mobile app)
   - Persian RTL admin panel under /admin
-  - Client dashboard under / (login) and /me
+Clients use the Telegram and Bale bots — there is no client web panel.
 """
 
 from contextlib import asynccontextmanager
@@ -29,7 +29,6 @@ from app.core.middleware import configure_middleware
 from app.db.init import init_dev_schema
 from app.db.session import engine, session_scope
 from app.web import admin as web_admin
-from app.web import client as web_client
 from app.web.deps import LoginRedirect
 
 _STATUS_BY_EXCEPTION = {
@@ -103,9 +102,14 @@ def readiness():
     return {"status": "ready", "version": __version__}
 
 
+@app.get("/", include_in_schema=False)
+def root() -> RedirectResponse:
+    # The client-facing product is the bots; the web root is the admin panel.
+    return RedirectResponse("/admin", status_code=307)
+
+
 app.include_router(api_router)
 app.include_router(web_admin.router)
-app.include_router(web_client.router)
 
 _static_dir = Path(__file__).parent / "web" / "static"
 app.mount("/static", StaticFiles(directory=_static_dir), name="static")

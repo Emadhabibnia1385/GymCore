@@ -6,37 +6,14 @@
 <div class="stats">
   <div class="stat"><div class="value">{{ stats.clients }}</div><div class="label">شاگرد فعال</div></div>
   <div class="stat"><div class="value">{{ stats.active_courses }}</div><div class="label">دوره فعال</div></div>
-  <div class="stat"><div class="value">{{ stats.pending_class_requests }}</div><div class="label">درخواست ثبت‌نام در انتظار</div></div>
-  <div class="stat"><div class="value">{{ stats.pending_plan_requests }}</div><div class="label">سفارش برنامه در انتظار</div></div>
   <div class="stat"><div class="value">{{ stats.total_payments | toman }}</div><div class="label">مجموع پرداختی‌ها (تومان)</div></div>
 </div>
 
 <div class="card" style="margin-top:1.25rem">
-  <h2>درخواست‌های در انتظار</h2>
-  {% if pending_class or pending_plan %}
-    <table>
-      <tr><th>نوع</th><th>نام</th><th>جزئیات</th><th>تاریخ</th><th></th></tr>
-      {% for r in pending_class %}
-      <tr>
-        <td><span class="badge blue">ثبت‌نام کلاس</span></td>
-        <td>{{ r.person.name }}</td>
-        <td>{{ r.class_type.title }}</td>
-        <td>{{ r.created_at | jdate }}</td>
-        <td><a class="btn small secondary" href="/admin/requests">بررسی</a></td>
-      </tr>
-      {% endfor %}
-      {% for r in pending_plan %}
-      <tr>
-        <td><span class="badge amber">سفارش برنامه</span></td>
-        <td>{{ r.person.name }}</td>
-        <td>{{ plan_label(r.plan_type) }}</td>
-        <td>{{ r.created_at | jdate }}</td>
-        <td><a class="btn small secondary" href="/admin/requests">بررسی</a></td>
-      </tr>
-      {% endfor %}
-    </table>
-  {% else %}
-    <p class="muted">درخواست جدیدی وجود ندارد.</p>
-  {% endif %}
+  <h2>مدیریت</h2>
+  <p class="muted">
+    ثبت‌نام کلاس و سفارش برنامه اکنون از طریق ربات‌های تلگرام و بله انجام می‌شود.
+    از منوی راست به شاگردان، دوره‌ها، برنامه‌ها و پرداخت‌ها دسترسی داری.
+  </p>
 </div>
 {% endblock %}

@@ -12,7 +12,6 @@ from app.models import (
     PaymentKind,
     PlanType,
     Platform,
-    RequestStatus,
     Role,
 )
 from app.schemas.common import ORMModel
@@ -187,30 +186,6 @@ class PlanOut(ORMModel):
     active: bool
     created_at: datetime
     has_file: bool = False
-
-
-# --- Requests ---
-
-
-class ClassRequestOut(ORMModel):
-    id: int
-    person_id: int
-    class_type_id: int
-    note: str | None
-    status: RequestStatus
-    created_at: datetime
-    person_name: str = ""
-    class_title: str = ""
-
-
-class PlanRequestOut(ORMModel):
-    id: int
-    person_id: int
-    plan_type: PlanType
-    note: str | None
-    status: RequestStatus
-    created_at: datetime
-    person_name: str = ""
 
 
 # --- Settings / stats ---

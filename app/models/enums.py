@@ -50,12 +50,6 @@ class PlanType(str, enum.Enum):
     CUSTOM = "CUSTOM"
 
 
-class RequestStatus(str, enum.Enum):
-    PENDING = "PENDING"
-    APPROVED = "APPROVED"
-    REJECTED = "REJECTED"
-
-
 class ReminderKind(str, enum.Enum):
     """Automated reminders sent to clients by the background worker."""
 
