@@ -8,8 +8,8 @@ from app.models.enums import (
     AttendanceStatus,
     CourseStatus,
     PaymentKind,
-    Platform,
     PlanType,
+    Platform,
     RequestStatus,
     Role,
 )

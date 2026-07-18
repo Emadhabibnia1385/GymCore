@@ -1,0 +1,47 @@
+# Tooling configuration for GymCore.
+# Dependencies stay in requirements*.txt (deployment reads them directly);
+# this file only configures developer tooling (ruff, pytest).
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["migrations/versions"]
+
+[tool.ruff.lint]
+# Conservative, high-signal rule set — matches the existing code style.
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = [
+    # Keep quoted forward-ref annotations (paired with `# noqa: F821`) as written.
+    "UP037",
+    # Keep `class X(str, Enum)`: switching to StrEnum changes str()/format semantics
+    # that SQLAlchemy Enum columns and f-string rendering rely on.
+    "UP042",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.ruff.lint.per-file-ignores]
+# conftest sets environment variables before importing the app — imports
+# genuinely cannot all sit at the top of the file.
+"tests/conftest.py" = ["E402"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI dependency-injection markers are call-in-default by design, not a bug.
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Query",
+    "fastapi.Path",
+    "fastapi.Body",
+    "fastapi.Header",
+    "fastapi.Cookie",
+    "fastapi.Form",
+    "fastapi.File",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = [
+    # Starlette's TestClient re-exports httpx with a deprecation shim; not ours to fix.
+    "ignore:Using .httpx. with .starlette.testclient. is deprecated",
+]

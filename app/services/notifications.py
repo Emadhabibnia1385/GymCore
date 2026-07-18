@@ -11,9 +11,9 @@ import threading
 
 from sqlalchemy.orm import Session
 
-from app.core.config import get_settings
 from app.bots.client import build_client
-from app.models import ChannelIdentity, Person, Platform
+from app.core.config import get_settings
+from app.models import Person, Platform
 
 logger = logging.getLogger(__name__)
 

@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     secret_key: str = "change-me-in-production"
     access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
     cookie_secure: bool = False  # set True once HTTPS is configured
+    # Comma-separated browser origins allowed to call the API cross-origin
+    # (a future SPA / web mobile client). Empty = same-origin only, which
+    # is the safe default; native mobile apps are not subject to CORS.
+    cors_origins: str = ""
 
     # --- Database ---
     # Production: postgresql+psycopg://user:pass@host:5432/gymcore
@@ -46,6 +50,19 @@ class Settings(BaseSettings):
     admin_name: str = "مدیر"
     admin_phone: str = ""
     admin_password: str = ""
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        """`cors_origins` parsed into a clean list (empty when unset)."""
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def is_sqlite(self) -> bool:
+        """True for the local SQLite dev/test database.
+
+        Schema is auto-created for SQLite; Postgres is managed by Alembic.
+        """
+        return self.database_url.startswith("sqlite")
 
 
 @lru_cache

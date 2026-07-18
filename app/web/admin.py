@@ -14,7 +14,7 @@ from fastapi.responses import RedirectResponse
 from app.api.deps import COOKIE_NAME, DbDep
 from app.core.config import get_settings
 from app.core.exceptions import AuthError
-from app.models import CourseStatus, PaymentKind, PlanType, Role
+from app.models import AttendanceStatus, CourseStatus, PaymentKind, PlanType, RequestStatus, Role
 from app.models.setting import KEY_CONTACT_TEXT, KEY_GYM_NAME, KEY_WELCOME_TEXT
 from app.services import app_settings as settings_service
 from app.services import attendance as attendance_service
@@ -26,7 +26,6 @@ from app.services import persons as persons_service
 from app.services import plans as plans_service
 from app.services import requests as requests_service
 from app.services import stats as stats_service
-from app.models import AttendanceStatus, RequestStatus
 from app.web.deps import AdminWeb, templates
 
 router = APIRouter(prefix="/admin", include_in_schema=False)

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
@@ -18,7 +18,6 @@ from app.services import classes as classes_service
 from app.services import notifications
 from app.services import persons as persons_service
 from app.services import plans as plans_service
-
 
 # --- Class registration requests ---
 
@@ -70,7 +69,7 @@ def decide_class_request(
     if request.status != RequestStatus.PENDING:
         raise ValidationError("این درخواست قبلاً بررسی شده است")
     request.status = RequestStatus.APPROVED if approve else RequestStatus.REJECTED
-    request.decided_at = datetime.now(timezone.utc)
+    request.decided_at = datetime.now(UTC)
     db.commit()
     db.refresh(request)
 
@@ -126,7 +125,7 @@ def decide_plan_request(db: Session, request_id: int, approve: bool) -> PlanRequ
     if request.status != RequestStatus.PENDING:
         raise ValidationError("این درخواست قبلاً بررسی شده است")
     request.status = RequestStatus.APPROVED if approve else RequestStatus.REJECTED
-    request.decided_at = datetime.now(timezone.utc)
+    request.decided_at = datetime.now(UTC)
     db.commit()
     db.refresh(request)
 

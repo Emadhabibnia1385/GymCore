@@ -9,7 +9,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt
 
@@ -42,7 +42,7 @@ def verify_password(password: str, stored: str) -> bool:
 
 def create_access_token(person_id: int, role: str) -> str:
     settings = get_settings()
-    expires = datetime.now(timezone.utc) + timedelta(
+    expires = datetime.now(UTC) + timedelta(
         minutes=settings.access_token_expire_minutes
     )
     payload = {"sub": str(person_id), "role": role, "exp": expires}

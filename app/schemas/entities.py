@@ -10,13 +10,12 @@ from app.models import (
     AttendanceStatus,
     CourseStatus,
     PaymentKind,
-    Platform,
     PlanType,
+    Platform,
     RequestStatus,
     Role,
 )
 from app.schemas.common import ORMModel
-
 
 # --- Auth ---
 
