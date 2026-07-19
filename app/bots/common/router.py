@@ -78,7 +78,7 @@ class Dispatcher:
                     return
                 self.ctx.answer(callback_id)
                 if action == callbacks.ADMIN:
-                    admin_panel.open_panel(self.ctx, db, chat_id, message_id, user_id)
+                    admin_panel.open_panel(self.ctx, db, chat_id, message_id, user_id, self.store)
                 else:
                     admin_panel.handle_callback(
                         self.ctx, db, chat_id, message_id, rest, user_id, person, self.store

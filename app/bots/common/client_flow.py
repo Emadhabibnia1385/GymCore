@@ -163,13 +163,18 @@ def program_detail(
 
 def _deliver_program(ctx: BotContext, assignment, chat_id: object, caption: str) -> None:
     """Send the program's file (platform file_id or uploaded file), else the caption."""
-    # 1. A platform file_id captured on THIS platform is the cheapest delivery.
+    # 1. A platform file_id captured on THIS platform is the cheapest delivery
+    #    (try as a document, then as a photo for image programs).
     if assignment.platform_file_id and assignment.file_platform == ctx.platform:
         try:
             ctx.client.send_document_id(chat_id, assignment.platform_file_id, caption)
             return
         except BotApiError:
-            logger.warning("file_id delivery failed; falling back")
+            try:
+                ctx.client.send_photo_id(chat_id, assignment.platform_file_id, caption)
+                return
+            except BotApiError:
+                logger.warning("file_id delivery failed; falling back")
     # 2. An uploaded file under the (access-controlled) upload dir.
     path = plans_service.attachment_path(assignment)
     if path is not None:
