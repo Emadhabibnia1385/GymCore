@@ -74,6 +74,30 @@ def test_order_button_is_a_plain_url_link_on_both_platforms(db):
         assert any("mahdisarmad.ir/signup" in url for url in button_urls(markup))
 
 
+def test_telegram_menu_buttons_carry_colour_styles(db):
+    disp, client = make_dispatcher(Platform.TELEGRAM)
+    disp.handle_update(message_update(1, 500, 700, "/start"))
+    styles = {
+        b["text"]: b.get("style")
+        for row in last_markup(client)["inline_keyboard"]
+        for b in row
+    }
+    assert styles[texts.BTN_REGISTER_CLASS] == "primary"  # blue
+    assert styles[texts.BTN_ORDER_PLAN] == "primary"
+    assert styles[texts.BTN_MY_CLASSES] == "success"  # green
+    assert styles[texts.BTN_MY_PLANS] == "success"
+    assert styles[texts.BTN_CONTACT] == "danger"  # red
+
+
+def test_bale_menu_buttons_have_no_style(db):
+    # Bale doesn't support the style field — must not send it (would be rejected).
+    disp, client = make_dispatcher(Platform.BALE)
+    disp.handle_update(message_update(1, 500, 700, "/start"))
+    for row in last_markup(client)["inline_keyboard"]:
+        for button in row:
+            assert "style" not in button
+
+
 def test_my_courses_empty_state(db):
     disp, client = make_dispatcher()
     disp.handle_update(callback_update(1, 500, 700, cb.COURSES))

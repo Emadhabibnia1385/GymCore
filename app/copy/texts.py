@@ -7,14 +7,15 @@ copy, empty states and error fallbacks.
 """
 
 # --- Client main-menu buttons ---
-# Telegram/Bale CANNOT colour inline buttons themselves — no Bot API supports it.
-# The closest possible is a coloured icon: 🔵 blue (register/order),
-# 🟢 green (my classes/programs), 🔴 red (contact).
-BTN_REGISTER_CLASS = "🔵 ثبت‌نام در کلاس‌ها"
-BTN_ORDER_PLAN = "🔵 سفارش برنامه"
-BTN_MY_CLASSES = "🟢 کلاس‌های من"
-BTN_MY_PLANS = "🟢 برنامه‌های من"
-BTN_CONTACT = "🔴 راه‌های ارتباطی ما"
+# Real button colours are applied via the Telegram `style` field (Bot API,
+# Feb 2026): primary=blue (register/order), success=green (my classes/programs),
+# danger=red (contact). See keyboards.main_menu. Bale ignores styling (it gets
+# plain buttons), so the labels keep their own topic emoji.
+BTN_REGISTER_CLASS = "🏋️ ثبت‌نام در کلاس‌ها"
+BTN_ORDER_PLAN = "📋 سفارش برنامه"
+BTN_MY_CLASSES = "🗓 کلاس‌های من"
+BTN_MY_PLANS = "📄 برنامه‌های من"
+BTN_CONTACT = "📞 راه‌های ارتباطی ما"
 BTN_ADMIN_PANEL = "⚙️ ورود به پنل مدیریت"
 
 # --- Navigation ---

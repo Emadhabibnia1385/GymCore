@@ -26,6 +26,9 @@ class BotContext:
     platform: Platform
     supports_web_app: bool
     supports_edit: bool
+    # Coloured inline buttons via the Telegram `style` field (Bot API, Feb 2026).
+    # Bale doesn't support it yet, so it stays False there (plain buttons).
+    supports_button_style: bool = False
 
     # --- primitives ---
 
@@ -64,9 +67,17 @@ def make_context(client: BotClient) -> BotContext:
     """Build a BotContext with the right capabilities for the client's platform."""
     if client.platform == Platform.TELEGRAM:
         return BotContext(
-            client=client, platform=Platform.TELEGRAM, supports_web_app=True, supports_edit=True
+            client=client,
+            platform=Platform.TELEGRAM,
+            supports_web_app=True,
+            supports_edit=True,
+            supports_button_style=True,
         )
     # Bale (and any other Telegram-compatible platform) — conservative defaults.
     return BotContext(
-        client=client, platform=client.platform, supports_web_app=False, supports_edit=False
+        client=client,
+        platform=client.platform,
+        supports_web_app=False,
+        supports_edit=False,
+        supports_button_style=False,
     )

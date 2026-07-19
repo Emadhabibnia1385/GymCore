@@ -9,7 +9,9 @@ capabilities — no unsupported feature is ever faked.
 | Capability | Telegram | Bale | How GymCore adapts |
 |---|---|---|---|
 | Inline "glass" keyboards | ✅ | ✅ | Same inline keyboards on both. |
-| Web App / Mini App (`web_app` button) | ✅ | ❌ | «سفارش برنامه» opens a Mini App on Telegram; on Bale it is a plain **URL button**, and the link is also included in the message text so it is copyable. |
+| Web App / Mini App (`web_app` button) | ✅ | ❌ | «سفارش برنامه» is a plain **URL button** on both (opens the signup site directly, not a Mini App). |
+| Coloured buttons (`style`: primary/success/danger) | ✅ (Bot API, Feb 2026) | ❌ not yet | `BotContext.supports_button_style` is `True` only on Telegram — the client menu buttons carry `style` (blue register/order, green my-classes/programs, red contact). Bale gets plain buttons (the field is omitted so it is never rejected). Toggle via the `button_style_enabled` setting. Old Telegram clients (pre-Feb 2026) just show buttons uncoloured. |
+| Inline-button URL schemes | http/https/tg only | http/https/tg only | `mailto:`/`tel:` are invalid as inline buttons (BUTTON_URL_INVALID) — the coach's email/phone links are rendered as copyable **text**, other links as buttons. |
 | Editing a message that carries an inline keyboard | ✅ reliable | ⚠️ unreliable | `BotContext.supports_edit` is `True` for Telegram (screens update in place) and `False` for Bale (every screen is sent as a **fresh message**). Navigation therefore always works on Bale. |
 | `answerCallbackQuery` | ✅ | ⚠️ may be absent | Callbacks are always answered, but the call is best-effort — a failure is swallowed and never blocks the handler. |
 | Sending files | by `file_id` or upload | by `file_id` or upload | Program delivery tries the stored `file_id` first (fast path on the same platform), then an uploaded file, then a text-only caption. |

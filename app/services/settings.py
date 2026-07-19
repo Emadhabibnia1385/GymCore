@@ -13,6 +13,7 @@ from app.core.config import get_settings
 from app.models import Setting
 from app.models.setting import (
     KEY_BALE_OWNER_CONTACT,
+    KEY_BUTTON_STYLE,
     KEY_CARD_NUMBER,
     KEY_COACH_NAME,
     KEY_CONTACT_INTRO,
@@ -56,6 +57,7 @@ def _defaults() -> dict[str, str]:
         KEY_TELEGRAM_OWNER_CONTACT: "https://t.me/mahdisarmadcoach",
         KEY_BALE_OWNER_CONTACT: "",
         KEY_NOTIFY_ON_ATTENDANCE: "1",
+        KEY_BUTTON_STYLE: "1",
     }
 
 

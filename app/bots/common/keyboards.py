@@ -16,12 +16,24 @@ def _inline(rows: list[list[dict]]) -> dict:
     return {"inline_keyboard": rows}
 
 
-def button(text: str, data: str) -> dict:
-    return {"text": text, "callback_data": data}
+# Telegram button styles (Bot API, Feb 2026): coloured button backgrounds.
+STYLE_PRIMARY = "primary"  # blue
+STYLE_SUCCESS = "success"  # green
+STYLE_DANGER = "danger"  # red
 
 
-def url_button(text: str, url: str) -> dict:
-    return {"text": text, "url": url}
+def button(text: str, data: str, style: str | None = None) -> dict:
+    btn = {"text": text, "callback_data": data}
+    if style:
+        btn["style"] = style
+    return btn
+
+
+def url_button(text: str, url: str, style: str | None = None) -> dict:
+    btn = {"text": text, "url": url}
+    if style:
+        btn["style"] = style
+    return btn
 
 
 # Telegram/Bale only accept these schemes for inline URL buttons; mailto:/tel:
@@ -33,21 +45,29 @@ def is_button_url(url: str) -> bool:
     return (url or "").lower().startswith(_BUTTON_URL_SCHEMES)
 
 
-def _order_button(signup_url: str) -> dict:
+def _order_button(signup_url: str, style: str | None = None) -> dict:
     """«سفارش برنامه» opens the signup as a plain link (not a Mini App).
 
     Falls back to a callback only if no signup URL is configured.
     """
     if signup_url and is_button_url(signup_url):
-        return url_button(texts.BTN_ORDER_PLAN, signup_url)
-    return button(texts.BTN_ORDER_PLAN, cb.ORDER)
+        return url_button(texts.BTN_ORDER_PLAN, signup_url, style=style)
+    return button(texts.BTN_ORDER_PLAN, cb.ORDER, style=style)
 
 
-def main_menu(is_admin: bool = False, signup_url: str = "") -> dict:
+def main_menu(is_admin: bool = False, signup_url: str = "", styled: bool = False) -> dict:
+    """Main client menu. When `styled` (Telegram), buttons carry colour styles:
+    blue = register/order, green = my classes/programs, red = contact.
+    """
+    def st(value: str) -> str | None:
+        return value if styled else None
+
     rows = [
-        [button(texts.BTN_REGISTER_CLASS, cb.REGISTER), _order_button(signup_url)],
-        [button(texts.BTN_MY_CLASSES, cb.COURSES), button(texts.BTN_MY_PLANS, cb.PROGRAMS)],
-        [button(texts.BTN_CONTACT, cb.CONTACT)],
+        [button(texts.BTN_REGISTER_CLASS, cb.REGISTER, st(STYLE_PRIMARY)),
+         _order_button(signup_url, st(STYLE_PRIMARY))],
+        [button(texts.BTN_MY_CLASSES, cb.COURSES, st(STYLE_SUCCESS)),
+         button(texts.BTN_MY_PLANS, cb.PROGRAMS, st(STYLE_SUCCESS))],
+        [button(texts.BTN_CONTACT, cb.CONTACT, st(STYLE_DANGER))],
     ]
     if is_admin:
         rows.append([button(texts.BTN_ADMIN_PANEL, cb.ADMIN)])

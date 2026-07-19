@@ -122,4 +122,5 @@ SETTINGS_LABELS = {
     "telegram_owner_contact": "تماس مربی (تلگرام)",
     "bale_owner_contact": "تماس مربی (بله)",
     "notify_on_attendance": "اعلان خودکار حضور (0/1)",
+    "button_style_enabled": "دکمه‌های رنگی تلگرام (0/1)",
 }

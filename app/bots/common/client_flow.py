@@ -19,6 +19,7 @@ from app.copy import texts
 from app.core.config import get_settings
 from app.models import Person
 from app.models.setting import (
+    KEY_BUTTON_STYLE,
     KEY_CONTACT_INTRO,
     KEY_MAIN_INTRO,
     KEY_PLAN_ORDER_TEXT,
@@ -71,7 +72,8 @@ def show_menu(
     intro = settings_service.get_value(db, KEY_MAIN_INTRO)
     body = f"{intro}\n\n{texts.MENU_PROMPT}" if greet else texts.MENU_PROMPT
     signup_url = settings_service.get_value(db, KEY_SIGNUP_URL) or get_settings().signup_url
-    ctx.show(chat_id, body, keyboards.main_menu(is_admin, signup_url), message_id)
+    styled = ctx.supports_button_style and settings_service.get_bool(db, KEY_BUTTON_STYLE, True)
+    ctx.show(chat_id, body, keyboards.main_menu(is_admin, signup_url, styled), message_id)
 
 
 def _render_contact_links(
