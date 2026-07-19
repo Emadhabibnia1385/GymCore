@@ -168,18 +168,42 @@ def test_programs_list_and_file_delivery(db):
     assert any(s.get("text") == texts.PROGRAM_SENT for s in client.sent)
 
 
-def test_contact_us_renders_links_and_keeps_tel_mailto_as_text(db):
-    disp, client = make_dispatcher()
+def _copy_values(markup: dict) -> list[str]:
+    return [
+        b["copy_text"]["text"]
+        for row in markup["inline_keyboard"] for b in row if "copy_text" in b
+    ]
+
+
+def test_contact_us_telegram_uses_copy_buttons_all_green(db):
+    disp, client = make_dispatcher(Platform.TELEGRAM)
     disp.handle_update(callback_update(1, 500, 700, cb.CONTACT))
-    # Regression: mailto:/tel: must NOT become inline buttons (they crash the
-    # message), so the message renders fine and they appear as text instead.
     assert last_text(client) != texts.ERROR
-    urls = button_urls(last_markup(client))
-    assert any("wa.me" in url for url in urls)  # https links became buttons
-    assert all("mailto:" not in url and "tel:" not in url for url in urls)
+    markup = last_markup(client)
+    # No invalid mailto:/tel: URL buttons.
+    assert all("mailto:" not in u and "tel:" not in u for u in button_urls(markup))
+    # Phone + email are tap-to-copy buttons.
+    copies = _copy_values(markup)
+    assert "mahdisarmad59@gmail.com" in copies
+    assert any("989305560950" in v for v in copies)
+    # https links stay URL buttons.
+    assert any("wa.me" in u for u in button_urls(markup))
+    # Every contact button is green.
+    assert {b.get("style") for row in markup["inline_keyboard"] for b in row} == {"success"}
+
+
+def test_contact_us_bale_keeps_tel_mailto_as_text_no_style(db):
+    disp, client = make_dispatcher(Platform.BALE)
+    disp.handle_update(callback_update(1, 500, 700, cb.CONTACT))
     body = last_text(client)
-    assert "mahdisarmad59@gmail.com" in body  # email shown as text
-    assert "989305560950" in body  # phone shown as text
+    assert "mahdisarmad59@gmail.com" in body  # email as text
+    assert "989305560950" in body  # phone as text
+    markup = last_markup(client)
+    assert not _copy_values(markup)  # Bale gets no copy buttons
+    for row in markup["inline_keyboard"]:
+        for button in row:
+            assert "style" not in button  # and no styles
+    assert any("wa.me" in u for u in button_urls(markup))  # https links still buttons
 
 
 def test_admin_callback_tampering_is_rejected(db):

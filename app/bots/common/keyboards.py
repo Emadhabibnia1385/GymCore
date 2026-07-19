@@ -36,6 +36,14 @@ def url_button(text: str, url: str, style: str | None = None) -> dict:
     return btn
 
 
+def copy_button(text: str, copy_value: str, style: str | None = None) -> dict:
+    """A tap-to-copy button (Telegram `copy_text`) — used for phone/email."""
+    btn = {"text": text, "copy_text": {"text": copy_value[:256]}}
+    if style:
+        btn["style"] = style
+    return btn
+
+
 # Telegram/Bale only accept these schemes for inline URL buttons; mailto:/tel:
 # are rejected (Bad Request: BUTTON_URL_INVALID) and would fail the whole message.
 _BUTTON_URL_SCHEMES = ("http://", "https://", "tg://")
@@ -78,18 +86,22 @@ def back_to_menu() -> dict:
     return _inline([[button(texts.BTN_BACK_TO_MENU, cb.HOME)]])
 
 
-def contact_links(links: list[ContactLink]) -> dict:
-    """URL buttons for each active contact link + a back-to-menu row.
-
-    Only links with a button-safe scheme become buttons; mailto:/tel: links are
-    shown as text by the caller (they cannot be inline buttons).
-    """
-    rows = [
-        [url_button(f"{link.icon + ' ' if link.icon else ''}{link.label}", link.url)]
-        for link in links
-        if is_button_url(link.url)
-    ]
-    rows.append([button(texts.BTN_BACK_TO_MENU, cb.HOME)])
+def contact_links(
+    links: list[ContactLink], styled: bool = False, support_copy: bool = False
+) -> dict:
+    """Contact links keyboard. Web links → URL buttons; mailto:/tel: → tap-to-copy
+    buttons when supported (Telegram), otherwise omitted (caller shows them as
+    text). When `styled`, every button is green (success)."""
+    style = STYLE_SUCCESS if styled else None
+    rows: list[list[dict]] = []
+    for link in links:
+        label = f"{link.icon + ' ' if link.icon else ''}{link.label}"
+        if is_button_url(link.url):
+            rows.append([url_button(label, link.url, style=style)])
+        elif support_copy:
+            value = link.url.split(":", 1)[1] if ":" in link.url else link.url
+            rows.append([copy_button(label, value, style=style)])
+    rows.append([button(texts.BTN_BACK_TO_MENU, cb.HOME, style=style)])
     return _inline(rows)
 
 

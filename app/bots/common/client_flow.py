@@ -86,9 +86,12 @@ def _render_contact_links(
     copyable text lines instead.
     """
     links = contact_links_service.list_active(db, ctx.platform)
-    button_links = [link for link in links if keyboards.is_button_url(link.url)]
-    text_links = [link for link in links if not keyboards.is_button_url(link.url)]
+    styled = ctx.supports_button_style and settings_service.get_bool(db, KEY_BUTTON_STYLE, True)
+    support_copy = ctx.supports_copy_text
 
+    # With copy buttons (Telegram) every link is a button; otherwise mailto:/tel:
+    # links are shown as text (they can't be inline buttons).
+    text_links = [] if support_copy else [ln for ln in links if not keyboards.is_button_url(ln.url)]
     body = intro
     if text_links:
         lines = []
@@ -97,13 +100,10 @@ def _render_contact_links(
             icon = f"{link.icon} " if link.icon else ""
             lines.append(f"{icon}{link.label}: {value}")
         body = f"{intro}\n\n" + "\n".join(lines)
+    elif not links:
+        body = f"{intro}\n\n{texts.NO_CONTACT_LINKS}"
 
-    if button_links:
-        ctx.show(chat_id, body, keyboards.contact_links(button_links), message_id)
-    else:
-        if not links:
-            body = f"{intro}\n\n{texts.NO_CONTACT_LINKS}"
-        ctx.show(chat_id, body, keyboards.back_to_menu(), message_id)
+    ctx.show(chat_id, body, keyboards.contact_links(links, styled, support_copy), message_id)
 
 
 def register_contact(
