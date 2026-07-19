@@ -22,6 +22,8 @@ def handle_callback(req: AdminReq, args: str) -> None:
         _client(req, int(rest))
     elif action == "assign" and rest.isdigit():
         _pick_type(req, int(rest))
+    elif action == "resend" and rest.isdigit():
+        _resend(req, int(rest))
     elif action == "type":
         client_id, _, type_id = rest.partition(":")
         if client_id.isdigit() and type_id.isdigit():
@@ -107,15 +109,35 @@ def _types(req: AdminReq) -> None:
 def _client(req: AdminReq, client_id: int) -> None:
     persons_service.get(req.db, client_id)
     assignments = plans_service.list_assignments(req.db, person_id=client_id)
-    lines = [A.PROGRAMS_TITLE]
-    if assignments:
-        for a in assignments[:15]:
-            note = f" — {a.coach_note}" if a.coach_note else ""
-            lines.append(f"• {a.plan_type.title} | {format_jalali(a.created_at)}{note}")
-    else:
-        lines.append(A.NOTHING)
     rows = [[common.button(A.BTN_ASSIGN_PLAN, "plans", "assign", client_id)]]
-    common.render(req, "\n".join(lines), common.with_back(rows, ("students", "view", client_id)))
+    for assignment in assignments[:10]:
+        label = (
+            f"{A.BTN_RESEND}  {assignment.plan_type.title} "
+            f"| {format_jalali(assignment.created_at)}"
+        )
+        rows.append([common.button(label, "plans", "resend", assignment.id)])
+    body = A.PROGRAMS_TITLE if assignments else f"{A.PROGRAMS_TITLE}\n{A.NOTHING}"
+    common.render(req, body, common.with_back(rows, ("students", "view", client_id)))
+
+
+def _resend(req: AdminReq, assignment_id: int) -> None:
+    """Re-deliver an existing program to the client on each linked platform."""
+    from app.bots.common import client_flow, formatting
+    from app.bots.common.client import build_client
+    from app.bots.common.context import make_context
+
+    assignment = plans_service.get_assignment(req.db, assignment_id)
+    caption = formatting.format_program_caption(assignment)
+    for identity in assignment.person.identities:
+        client = build_client(identity.platform)
+        if client is None:
+            continue
+        try:
+            ctx = make_context(client)
+            client_flow._deliver_program(ctx, assignment, identity.platform_user_id, caption)
+        finally:
+            client.close()
+    common.render(req, A.PLAN_RESENT, common.back_home("plans", "client", assignment.person_id))
 
 
 def _pick_type(req: AdminReq, client_id: int) -> None:

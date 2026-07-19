@@ -74,6 +74,8 @@ def record(
         if not already_consuming and courses_service.remaining_sessions(db, course) <= 0:
             raise ValidationError("جلسه‌ای از این دوره باقی نمانده است")
 
+    was_active = course.status == CourseStatus.ACTIVE
+
     event = AttendanceEvent(
         course_id=course_id,
         session_date=session_date,
@@ -86,6 +88,8 @@ def record(
 
     # Auto-finish once the last paid session is consumed.
     course = courses_service.finish_if_exhausted(db, course_id)
+    if was_active and course.status == CourseStatus.FINISHED:
+        _queue_course_ending(db, course)
 
     if notify and settings_service.get_bool(db, KEY_NOTIFY_ON_ATTENDANCE, True):
         remaining = courses_service.remaining_sessions(db, course)
@@ -100,6 +104,20 @@ def record(
         )
     db.refresh(event)
     return event
+
+
+def _queue_course_ending(db: Session, course) -> None:
+    """Queue a one-time course-ending notification (idempotent per course)."""
+    from app.models import NotificationKind
+    from app.notifications import service as notify_service
+
+    notify_service.queue(
+        db,
+        course.client_id,
+        NotificationKind.COURSE_ENDING,
+        f"دورهٔ «{course.class_type.title}» به پایان رسید 🟢\nبرای تمدید با مربی هماهنگ کن.",
+        idempotency_key=f"ending:{course.id}",
+    )
 
 
 def correct(

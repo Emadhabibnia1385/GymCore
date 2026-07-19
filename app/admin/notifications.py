@@ -1,4 +1,8 @@
-"""Admin section: notifications (manual broadcast, low-session reminders)."""
+"""Admin section: notifications (manual broadcast, low-session reminders).
+
+Both actions go through the tracked notification service (queue → dispatch), so
+delivery is de-duplicated, retryable and auditable in the notifications table.
+"""
 
 from __future__ import annotations
 
@@ -7,18 +11,8 @@ from sqlalchemy import select
 from app.admin import common
 from app.admin.common import AdminReq
 from app.copy import admin_texts as A
-from app.models import (
-    CourseStatus,
-    Notification,
-    NotificationKind,
-    NotificationStatus,
-    Person,
-    Role,
-)
-from app.models.setting import KEY_LOW_SESSION_THRESHOLD
-from app.services import courses as courses_service
-from app.services import notifications as notify_service
-from app.services import settings as settings_service
+from app.models import Person, Role
+from app.notifications import service as notify_service
 
 
 def handle_callback(req: AdminReq, args: str) -> None:
@@ -39,10 +33,10 @@ def handle_message(req: AdminReq, message: dict, substep: str, state) -> None:
         if not text:
             common.prompt(req, A.ASK_BROADCAST, "notify:broadcast", {})
             return
-        recipients = _active_clients(req.db)
+        recipients = _active_client_count(req.db)
         common.prompt(
             req,
-            A.BROADCAST_CONFIRM.format(count=len(recipients)),
+            A.BROADCAST_CONFIRM.format(count=recipients),
             "notify:confirm",
             {"text": text},
             keyboard=common.confirm_keyboard(("notify", "send"), ("notify", "menu")),
@@ -59,12 +53,11 @@ def _menu(req: AdminReq) -> None:
     common.render(req, A.NOTIFY_TITLE, common.with_back(rows))
 
 
-def _active_clients(db) -> list[Person]:
-    return list(
-        db.scalars(
-            select(Person).where(Person.role == Role.CLIENT, Person.is_active.is_(True))
-        )
-    )
+def _active_client_count(db) -> int:
+    clients = db.scalars(
+        select(Person).where(Person.role == Role.CLIENT, Person.is_active.is_(True))
+    ).all()
+    return sum(1 for c in clients if c.identities)
 
 
 def _send_broadcast(req: AdminReq) -> None:
@@ -72,36 +65,13 @@ def _send_broadcast(req: AdminReq) -> None:
     if state is None or not state.data.get("text"):
         _menu(req)
         return
-    text = state.data["text"]
-    count = 0
-    for client in _active_clients(req.db):
-        if notify_service.person_targets(client):
-            notify_service.notify_person(req.db, client, text)
-            count += 1
-    req.db.add(
-        Notification(
-            kind=NotificationKind.BROADCAST,
-            body=text,
-            status=NotificationStatus.SENT,
-            created_by=req.user_id,
-        )
-    )
-    req.db.commit()
+    count = notify_service.broadcast(req.db, state.data["text"], created_by=req.user_id)
+    notify_service.dispatch_due(req.db)
     common.clear(req)
     common.render(req, A.BROADCAST_QUEUED.format(count=count), common.with_back([]))
 
 
 def _low_sessions(req: AdminReq) -> None:
-    threshold = settings_service.get_int(req.db, KEY_LOW_SESSION_THRESHOLD, 2)
-    count = 0
-    for course in courses_service.list_courses(req.db, status=CourseStatus.ACTIVE):
-        remaining = courses_service.remaining_sessions(req.db, course)
-        if remaining <= threshold:
-            notify_service.notify_person(
-                req.db,
-                course.client,
-                f"⚠️ فقط {remaining} جلسه از دوره‌ات باقی مانده است.\n"
-                "برای تمدید با مربی هماهنگ کن 🟢",
-            )
-            count += 1
+    count = notify_service.generate_reminders(req.db)
+    notify_service.dispatch_due(req.db)
     common.render(req, A.LOW_SESSIONS_DONE.format(count=count), common.with_back([]))
