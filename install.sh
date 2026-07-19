@@ -114,6 +114,12 @@ for svc in "${SERVICES[@]}"; do
   systemctl restart "$svc"
 done
 
+# --- management command: `sudo gymcore` opens the menu anytime ---
+if [[ -f "$SRC_DIR/gymcore.sh" ]]; then
+  install -m 0755 "$SRC_DIR/gymcore.sh" /usr/local/bin/gymcore
+  green "==> Installed the 'gymcore' command — run 'sudo gymcore' for the menu."
+fi
+
 # --- 9. summary ---
 green ""
 green "==> GymCore is installed and running."
