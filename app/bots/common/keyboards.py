@@ -24,22 +24,28 @@ def url_button(text: str, url: str) -> dict:
     return {"text": text, "url": url}
 
 
-def _order_button(signup_url: str, supports_web_app: bool) -> dict:
-    """«سفارش برنامه» opens the signup directly — Mini App on Telegram, URL on Bale.
+# Telegram/Bale only accept these schemes for inline URL buttons; mailto:/tel:
+# are rejected (Bad Request: BUTTON_URL_INVALID) and would fail the whole message.
+_BUTTON_URL_SCHEMES = ("http://", "https://", "tg://")
+
+
+def is_button_url(url: str) -> bool:
+    return (url or "").lower().startswith(_BUTTON_URL_SCHEMES)
+
+
+def _order_button(signup_url: str) -> dict:
+    """«سفارش برنامه» opens the signup as a plain link (not a Mini App).
 
     Falls back to a callback only if no signup URL is configured.
     """
-    if signup_url:
-        if supports_web_app:
-            return {"text": texts.BTN_ORDER_PLAN, "web_app": {"url": signup_url}}
+    if signup_url and is_button_url(signup_url):
         return url_button(texts.BTN_ORDER_PLAN, signup_url)
     return button(texts.BTN_ORDER_PLAN, cb.ORDER)
 
 
-def main_menu(is_admin: bool = False, signup_url: str = "", supports_web_app: bool = False) -> dict:
+def main_menu(is_admin: bool = False, signup_url: str = "") -> dict:
     rows = [
-        [button(texts.BTN_REGISTER_CLASS, cb.REGISTER),
-         _order_button(signup_url, supports_web_app)],
+        [button(texts.BTN_REGISTER_CLASS, cb.REGISTER), _order_button(signup_url)],
         [button(texts.BTN_MY_CLASSES, cb.COURSES), button(texts.BTN_MY_PLANS, cb.PROGRAMS)],
         [button(texts.BTN_CONTACT, cb.CONTACT)],
     ]
@@ -53,22 +59,25 @@ def back_to_menu() -> dict:
 
 
 def contact_links(links: list[ContactLink]) -> dict:
-    """URL buttons for each active contact link + a back-to-menu row."""
+    """URL buttons for each active contact link + a back-to-menu row.
+
+    Only links with a button-safe scheme become buttons; mailto:/tel: links are
+    shown as text by the caller (they cannot be inline buttons).
+    """
     rows = [
         [url_button(f"{link.icon + ' ' if link.icon else ''}{link.label}", link.url)]
         for link in links
+        if is_button_url(link.url)
     ]
     rows.append([button(texts.BTN_BACK_TO_MENU, cb.HOME)])
     return _inline(rows)
 
 
-def plan_signup(url: str, supports_web_app: bool) -> dict:
-    """The plan-order signup button (Mini App on Telegram, URL button on Bale)."""
-    if supports_web_app:
-        signup = {"text": texts.BTN_PLAN_SIGNUP, "web_app": {"url": url}}
-    else:
-        signup = url_button(texts.BTN_PLAN_SIGNUP, url)
-    return _inline([[signup], [button(texts.BTN_BACK_TO_MENU, cb.HOME)]])
+def plan_signup(url: str) -> dict:
+    """The plan-order signup button — a plain URL link (opens the website)."""
+    return _inline(
+        [[url_button(texts.BTN_PLAN_SIGNUP, url)], [button(texts.BTN_BACK_TO_MENU, cb.HOME)]]
+    )
 
 
 def course_list(items: list[tuple[int, str, int]]) -> dict:

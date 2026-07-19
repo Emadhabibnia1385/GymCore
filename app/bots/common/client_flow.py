@@ -71,32 +71,54 @@ def show_menu(
     intro = settings_service.get_value(db, KEY_MAIN_INTRO)
     body = f"{intro}\n\n{texts.MENU_PROMPT}" if greet else texts.MENU_PROMPT
     signup_url = settings_service.get_value(db, KEY_SIGNUP_URL) or get_settings().signup_url
-    keyboard = keyboards.main_menu(is_admin, signup_url, ctx.supports_web_app)
-    ctx.show(chat_id, body, keyboard, message_id)
+    ctx.show(chat_id, body, keyboards.main_menu(is_admin, signup_url), message_id)
+
+
+def _render_contact_links(
+    ctx: BotContext, db: Session, chat_id: object, intro: str, message_id: int | None
+) -> None:
+    """Show contact links: button-safe URLs as buttons, mailto:/tel: as text.
+
+    Telegram/Bale reject mailto:/tel: in inline buttons (BUTTON_URL_INVALID),
+    which previously failed the whole message — so those are rendered as
+    copyable text lines instead.
+    """
+    links = contact_links_service.list_active(db, ctx.platform)
+    button_links = [link for link in links if keyboards.is_button_url(link.url)]
+    text_links = [link for link in links if not keyboards.is_button_url(link.url)]
+
+    body = intro
+    if text_links:
+        lines = []
+        for link in text_links:
+            value = link.url.split(":", 1)[1] if ":" in link.url else link.url
+            icon = f"{link.icon} " if link.icon else ""
+            lines.append(f"{icon}{link.label}: {value}")
+        body = f"{intro}\n\n" + "\n".join(lines)
+
+    if button_links:
+        ctx.show(chat_id, body, keyboards.contact_links(button_links), message_id)
+    else:
+        if not links:
+            body = f"{intro}\n\n{texts.NO_CONTACT_LINKS}"
+        ctx.show(chat_id, body, keyboards.back_to_menu(), message_id)
 
 
 def register_contact(
     ctx: BotContext, db: Session, chat_id: object, person: Person, message_id: int | None
 ) -> None:
     """«ثبت‌نام در کلاس‌ها» → contact methods (NO form, NO request, NO phone)."""
-    body = settings_service.get_value(db, KEY_REGISTER_CONTACT_TEXT)
-    links = contact_links_service.list_active(db, ctx.platform)
-    if links:
-        ctx.show(chat_id, body, keyboards.contact_links(links), message_id)
-    else:
-        body = f"{body}\n\n{texts.NO_CONTACT_LINKS}"
-        ctx.show(chat_id, body, keyboards.back_to_menu(), message_id)
+    intro = settings_service.get_value(db, KEY_REGISTER_CONTACT_TEXT)
+    _render_contact_links(ctx, db, chat_id, intro, message_id)
 
 
 def order_plan(
     ctx: BotContext, db: Session, chat_id: object, person: Person, message_id: int | None
 ) -> None:
-    """«سفارش برنامه» → opens the signup URL (Mini App on Telegram)."""
+    """«سفارش برنامه» fallback screen (only when the menu URL button isn't used)."""
     url = settings_service.get_value(db, KEY_SIGNUP_URL) or get_settings().signup_url
     body = settings_service.get_value(db, KEY_PLAN_ORDER_TEXT)
-    if not ctx.supports_web_app:
-        body = f"{body}\n\n{url}"  # Bale: keep a copyable link in the text
-    ctx.show(chat_id, body, keyboards.plan_signup(url, ctx.supports_web_app), message_id)
+    ctx.show(chat_id, body, keyboards.plan_signup(url), message_id)
 
 
 def my_courses(
@@ -233,10 +255,5 @@ def route(
 def contact_us(
     ctx: BotContext, db: Session, chat_id: object, person: Person, message_id: int | None
 ) -> None:
-    body = settings_service.get_value(db, KEY_CONTACT_INTRO)
-    links = contact_links_service.list_active(db, ctx.platform)
-    if links:
-        ctx.show(chat_id, body, keyboards.contact_links(links), message_id)
-    else:
-        body = f"{body}\n\n{texts.NO_CONTACT_LINKS}"
-        ctx.show(chat_id, body, keyboards.back_to_menu(), message_id)
+    intro = settings_service.get_value(db, KEY_CONTACT_INTRO)
+    _render_contact_links(ctx, db, chat_id, intro, message_id)

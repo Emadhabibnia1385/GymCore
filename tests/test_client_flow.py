@@ -65,20 +65,13 @@ def test_register_shows_contact_links_not_a_form(db):
     assert any(u.startswith("https://t.me/") for u in urls)
 
 
-def test_order_button_opens_webapp_directly_on_telegram(db):
-    disp, client = make_dispatcher(Platform.TELEGRAM)
-    disp.handle_update(message_update(1, 500, 700, "/start"))
-    # The main-menu order button IS a Web App button — one tap, no middle screen.
-    urls = web_app_urls(last_markup(client))
-    assert any("mahdisarmad.ir/signup" in u for u in urls)
-
-
-def test_order_button_is_url_on_bale_main_menu(db):
-    disp, client = make_dispatcher(Platform.BALE)
-    disp.handle_update(message_update(1, 500, 700, "/start"))
-    markup = last_markup(client)
-    assert not web_app_urls(markup)  # Bale has no Mini App
-    assert any("signup" in url for url in button_urls(markup))
+def test_order_button_is_a_plain_url_link_on_both_platforms(db):
+    for platform in (Platform.TELEGRAM, Platform.BALE):
+        disp, client = make_dispatcher(platform)
+        disp.handle_update(message_update(1, 500, 700, "/start"))
+        markup = last_markup(client)
+        assert not web_app_urls(markup)  # a plain link — never a Mini App
+        assert any("mahdisarmad.ir/signup" in url for url in button_urls(markup))
 
 
 def test_my_courses_empty_state(db):
@@ -151,10 +144,18 @@ def test_programs_list_and_file_delivery(db):
     assert any(s.get("text") == texts.PROGRAM_SENT for s in client.sent)
 
 
-def test_contact_us_lists_all_active_links(db):
+def test_contact_us_renders_links_and_keeps_tel_mailto_as_text(db):
     disp, client = make_dispatcher()
     disp.handle_update(callback_update(1, 500, 700, cb.CONTACT))
-    assert len(button_urls(last_markup(client))) >= 7
+    # Regression: mailto:/tel: must NOT become inline buttons (they crash the
+    # message), so the message renders fine and they appear as text instead.
+    assert last_text(client) != texts.ERROR
+    urls = button_urls(last_markup(client))
+    assert any("wa.me" in url for url in urls)  # https links became buttons
+    assert all("mailto:" not in url and "tel:" not in url for url in urls)
+    body = last_text(client)
+    assert "mahdisarmad59@gmail.com" in body  # email shown as text
+    assert "989305560950" in body  # phone shown as text
 
 
 def test_admin_callback_tampering_is_rejected(db):
