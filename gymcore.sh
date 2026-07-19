@@ -3,7 +3,7 @@
 # GymCore management menu.
 #
 # Run it directly on the server (no clone needed):
-#   sudo bash <(curl -fsSL https://raw.githubusercontent.com/Emadhabibnia1385/GymCore/main/gymcore.sh)
+#   curl -fsSL https://raw.githubusercontent.com/Emadhabibnia1385/GymCore/main/gymcore.sh -o gymcore.sh && sudo bash gymcore.sh
 #
 # After installing once, just type:  sudo gymcore
 #

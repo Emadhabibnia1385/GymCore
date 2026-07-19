@@ -74,13 +74,19 @@ read_env() { grep -E "^$1=" "$APP_DIR/.env" 2>/dev/null | cut -d= -f2- || true; 
 APP_HOST=$(read_env APP_HOST); APP_HOST=${APP_HOST:-127.0.0.1}
 APP_PORT=$(read_env APP_PORT); APP_PORT=${APP_PORT:-$DEFAULT_PORT}
 if ss -tulpn 2>/dev/null | grep -q ":${APP_PORT} "; then
-  err ""
-  err "!! Port ${APP_PORT} is already in use by another service on this server."
-  err "   Set a free APP_PORT in $APP_DIR/.env and run install.sh again."
-  err "   Installation stopped — nothing else on this server was changed."
-  exit 1
+  # If OUR own api service holds the port, this is a re-install/update — fine.
+  if systemctl is-active --quiet gymcore-api 2>/dev/null; then
+    green "==> Port ${APP_PORT} is held by GymCore's own api service (re-install) — OK."
+  else
+    err ""
+    err "!! Port ${APP_PORT} is already in use by another service on this server."
+    err "   Set a free APP_PORT in $APP_DIR/.env and run install.sh again."
+    err "   Installation stopped — nothing else on this server was changed."
+    exit 1
+  fi
+else
+  green "==> Port ${APP_PORT} on ${APP_HOST} is free."
 fi
-green "==> Port ${APP_PORT} on ${APP_HOST} is free."
 
 # --- 7. database migrations ---
 green "==> Applying database migrations (alembic upgrade head)..."

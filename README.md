@@ -84,15 +84,18 @@ On SQLite the schema is auto-created from the models. Lint and test:
 
 ## Server installation (Debian/Ubuntu)
 
-**One-liner management menu** (install, edit tokens, update, start/stop/restart,
-logs, uninstall) — no clone needed:
+**Management menu** (install, edit tokens, update, start/stop/restart, logs,
+uninstall) — download then run (robust under `sudo`):
 
 ```bash
-sudo bash <(curl -fsSL https://raw.githubusercontent.com/Emadhabibnia1385/GymCore/main/gymcore.sh)
+curl -fsSL https://raw.githubusercontent.com/Emadhabibnia1385/GymCore/main/gymcore.sh -o gymcore.sh && sudo bash gymcore.sh
 ```
 
 Pick **1) Install** the first time. Afterwards the `gymcore` command is installed,
 so you can just run `sudo gymcore` to reopen the menu.
+
+> Avoid `sudo bash <(curl …)` — `sudo` closes the process-substitution file
+> descriptor and it fails with `/dev/fd/63: No such file or directory`.
 
 Or install directly:
 
