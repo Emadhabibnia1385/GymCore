@@ -65,20 +65,20 @@ def test_register_shows_contact_links_not_a_form(db):
     assert any(u.startswith("https://t.me/") for u in urls)
 
 
-def test_order_plan_opens_webapp_on_telegram(db):
+def test_order_button_opens_webapp_directly_on_telegram(db):
     disp, client = make_dispatcher(Platform.TELEGRAM)
-    disp.handle_update(callback_update(1, 500, 700, cb.ORDER))
+    disp.handle_update(message_update(1, 500, 700, "/start"))
+    # The main-menu order button IS a Web App button — one tap, no middle screen.
     urls = web_app_urls(last_markup(client))
     assert any("mahdisarmad.ir/signup" in u for u in urls)
 
 
-def test_order_plan_uses_url_button_on_bale(db):
+def test_order_button_is_url_on_bale_main_menu(db):
     disp, client = make_dispatcher(Platform.BALE)
-    disp.handle_update(callback_update(1, 500, 700, cb.ORDER))
+    disp.handle_update(message_update(1, 500, 700, "/start"))
     markup = last_markup(client)
     assert not web_app_urls(markup)  # Bale has no Mini App
-    assert any("signup" in u for u in button_urls(markup))
-    assert "signup" in last_text(client)  # copyable link in the text too
+    assert any("signup" in url for url in button_urls(markup))
 
 
 def test_my_courses_empty_state(db):

@@ -6,12 +6,15 @@ code change. This module holds the fixed scaffolding: button labels, navigation
 copy, empty states and error fallbacks.
 """
 
-# --- Client main-menu buttons (exact per product spec) ---
-BTN_REGISTER_CLASS = "🏋️ ثبت‌نام در کلاس‌ها"
-BTN_ORDER_PLAN = "📋 سفارش برنامه"
-BTN_MY_CLASSES = "🗓 کلاس‌های من"
-BTN_MY_PLANS = "📄 برنامه‌های من"
-BTN_CONTACT = "📞 راه‌های ارتباطی ما"
+# --- Client main-menu buttons ---
+# Telegram/Bale cannot colour inline buttons, so a leading colour dot conveys
+# the intended colour: 🔵 blue (register/order), 🟢 green (my classes/programs),
+# 🔴 red (contact).
+BTN_REGISTER_CLASS = "🔵 🏋️ ثبت‌نام در کلاس‌ها"
+BTN_ORDER_PLAN = "🔵 📋 سفارش برنامه"
+BTN_MY_CLASSES = "🟢 🗓 کلاس‌های من"
+BTN_MY_PLANS = "🟢 📄 برنامه‌های من"
+BTN_CONTACT = "🔴 📞 راه‌های ارتباطی ما"
 BTN_ADMIN_PANEL = "⚙️ ورود به پنل مدیریت"
 
 # --- Navigation ---

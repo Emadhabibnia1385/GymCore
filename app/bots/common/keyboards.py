@@ -24,9 +24,22 @@ def url_button(text: str, url: str) -> dict:
     return {"text": text, "url": url}
 
 
-def main_menu(is_admin: bool = False) -> dict:
+def _order_button(signup_url: str, supports_web_app: bool) -> dict:
+    """«سفارش برنامه» opens the signup directly — Mini App on Telegram, URL on Bale.
+
+    Falls back to a callback only if no signup URL is configured.
+    """
+    if signup_url:
+        if supports_web_app:
+            return {"text": texts.BTN_ORDER_PLAN, "web_app": {"url": signup_url}}
+        return url_button(texts.BTN_ORDER_PLAN, signup_url)
+    return button(texts.BTN_ORDER_PLAN, cb.ORDER)
+
+
+def main_menu(is_admin: bool = False, signup_url: str = "", supports_web_app: bool = False) -> dict:
     rows = [
-        [button(texts.BTN_REGISTER_CLASS, cb.REGISTER), button(texts.BTN_ORDER_PLAN, cb.ORDER)],
+        [button(texts.BTN_REGISTER_CLASS, cb.REGISTER),
+         _order_button(signup_url, supports_web_app)],
         [button(texts.BTN_MY_CLASSES, cb.COURSES), button(texts.BTN_MY_PLANS, cb.PROGRAMS)],
         [button(texts.BTN_CONTACT, cb.CONTACT)],
     ]

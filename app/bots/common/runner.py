@@ -40,6 +40,12 @@ def run_bot(platform: Platform) -> None:
     me = client.call("getMe")
     logger.info("%s bot started as @%s", platform.value, (me or {}).get("username"))
 
+    # Register the /start command so it appears in the bot's command menu.
+    try:
+        client.set_my_commands([{"command": "start", "description": "شروع و منوی اصلی"}])
+    except Exception:
+        logger.debug("setMyCommands failed (non-fatal)")
+
     offset: int | None = None
     while True:
         try:

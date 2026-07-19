@@ -70,7 +70,9 @@ def show_menu(
     is_admin = auth.is_admin(db, ctx.platform, user_id)
     intro = settings_service.get_value(db, KEY_MAIN_INTRO)
     body = f"{intro}\n\n{texts.MENU_PROMPT}" if greet else texts.MENU_PROMPT
-    ctx.show(chat_id, body, keyboards.main_menu(is_admin), message_id)
+    signup_url = settings_service.get_value(db, KEY_SIGNUP_URL) or get_settings().signup_url
+    keyboard = keyboards.main_menu(is_admin, signup_url, ctx.supports_web_app)
+    ctx.show(chat_id, body, keyboard, message_id)
 
 
 def register_contact(

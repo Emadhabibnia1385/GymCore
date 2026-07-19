@@ -166,6 +166,10 @@ class BotClient:
             "sendPhoto", {"chat_id": chat_id, "photo": file_id, "caption": caption}
         )
 
+    def set_my_commands(self, commands: list[dict]) -> Any:
+        """Register the bot's command list (e.g. /start) shown in the UI menu."""
+        return self._request("setMyCommands", {"commands": commands})
+
     def get_file(self, file_id: str) -> dict:
         return self._request("getFile", {"file_id": file_id})
 
