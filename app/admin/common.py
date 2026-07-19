@@ -58,12 +58,22 @@ def clear(req: AdminReq) -> None:
 # --- keyboards ---
 
 
-def button(text: str, *parts: object) -> dict:
-    return {"text": text, "callback_data": cb.admin(*parts)}
+_STYLE_DANGER = "danger"  # red — for back/home navigation buttons (stripped on Bale)
+
+
+def button(text: str, *parts: object, style: str | None = None) -> dict:
+    btn = {"text": text, "callback_data": cb.admin(*parts)}
+    if style:
+        btn["style"] = style
+    return btn
 
 
 def home_button() -> dict:
-    return {"text": A.BACK, "callback_data": cb.admin("home")}
+    return button(A.BACK, "home", style=_STYLE_DANGER)
+
+
+def _back_button(back_parts: tuple) -> dict:
+    return button(A.BACK, *back_parts, style=_STYLE_DANGER)
 
 
 def inline(rows: list[list[dict]]) -> dict:
@@ -71,14 +81,14 @@ def inline(rows: list[list[dict]]) -> dict:
 
 
 def with_back(rows: list[list[dict]], back_parts: tuple | None = None) -> dict:
-    back = button(A.BACK, *back_parts) if back_parts else home_button()
+    back = _back_button(back_parts) if back_parts else home_button()
     return inline([*rows, [back]])
 
 
 def back_home(*back_parts: object) -> dict:
     """A two-row nav keyboard: a contextual back button + the admin-home button."""
     if back_parts:
-        return inline([[button(A.BACK, *back_parts)], [home_button()]])
+        return inline([[_back_button(back_parts)], [home_button()]])
     return inline([[home_button()]])
 
 
@@ -98,7 +108,7 @@ def pager(
     all_rows = list(rows)
     if nav:
         all_rows.append(nav)
-    back = button(A.BACK, *back_parts) if back_parts else home_button()
+    back = _back_button(back_parts) if back_parts else home_button()
     all_rows.append([back])
     return inline(all_rows)
 

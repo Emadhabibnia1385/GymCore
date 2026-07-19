@@ -102,6 +102,8 @@ def test_my_courses_empty_state(db):
     disp, client = make_dispatcher()
     disp.handle_update(callback_update(1, 500, 700, cb.COURSES))
     assert last_text(client) == texts.NO_COURSES
+    # The back-to-menu button is red.
+    assert last_markup(client)["inline_keyboard"][-1][0]["style"] == "danger"
 
 
 def test_my_courses_list_and_detail_derive_remaining(db):
@@ -175,7 +177,7 @@ def _copy_values(markup: dict) -> list[str]:
     ]
 
 
-def test_contact_us_telegram_uses_copy_buttons_all_green(db):
+def test_contact_us_telegram_copy_buttons_green_links_red_back(db):
     disp, client = make_dispatcher(Platform.TELEGRAM)
     disp.handle_update(callback_update(1, 500, 700, cb.CONTACT))
     assert last_text(client) != texts.ERROR
@@ -188,8 +190,10 @@ def test_contact_us_telegram_uses_copy_buttons_all_green(db):
     assert any("989305560950" in v for v in copies)
     # https links stay URL buttons.
     assert any("wa.me" in u for u in button_urls(markup))
-    # Every contact button is green.
-    assert {b.get("style") for row in markup["inline_keyboard"] for b in row} == {"success"}
+    # Link/copy buttons are green; the back button is red.
+    rows = markup["inline_keyboard"]
+    assert rows[-1][0]["style"] == "danger"  # back button
+    assert {b.get("style") for row in rows[:-1] for b in row} == {"success"}
 
 
 def test_contact_us_bale_keeps_tel_mailto_as_text_no_style(db):

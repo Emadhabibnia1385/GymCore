@@ -31,4 +31,3 @@ KEY_LOW_SESSION_THRESHOLD = "low_session_threshold"
 KEY_TELEGRAM_OWNER_CONTACT = "telegram_owner_contact"
 KEY_BALE_OWNER_CONTACT = "bale_owner_contact"
 KEY_NOTIFY_ON_ATTENDANCE = "notify_on_attendance"
-KEY_BUTTON_STYLE = "button_style_enabled"  # colour the Telegram menu buttons

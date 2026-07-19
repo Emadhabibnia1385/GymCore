@@ -34,8 +34,18 @@ class BotContext:
 
     # --- primitives ---
 
+    def _prep(self, keyboard: dict | None) -> dict | None:
+        """Strip `style` fields on platforms that don't support them (Bale) — the
+        buttons stay valid, just uncoloured, instead of being rejected."""
+        if keyboard is None or self.supports_button_style:
+            return keyboard
+        for row in keyboard.get("inline_keyboard", []):
+            for btn in row:
+                btn.pop("style", None)
+        return keyboard
+
     def send(self, chat_id: int | str, text: str, keyboard: dict | None = None) -> dict:
-        return self.client.send_message(chat_id, text, reply_markup=keyboard)
+        return self.client.send_message(chat_id, text, reply_markup=self._prep(keyboard))
 
     def answer(self, callback_query_id: str, text: str | None = None, alert: bool = False) -> None:
         try:
@@ -55,6 +65,7 @@ class BotContext:
         Falling back to a fresh send keeps navigation working on Bale and when
         the original message can't be edited (e.g. it was a document).
         """
+        keyboard = self._prep(keyboard)
         if message_id is not None and self.supports_edit:
             try:
                 return self.client.edit_message_text(
