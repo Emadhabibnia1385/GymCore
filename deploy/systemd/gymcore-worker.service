@@ -1,0 +1,20 @@
+[Unit]
+Description=GymCore notification worker (reminders + scheduled delivery)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=gymcore
+Group=gymcore
+WorkingDirectory=/opt/gymcore
+EnvironmentFile=/opt/gymcore/.env
+ExecStart=/opt/gymcore/.venv/bin/python -m app.notifications.worker
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

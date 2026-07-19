@@ -1,0 +1,20 @@
+[Unit]
+Description=GymCore Bale bot (long polling)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=gymcore
+Group=gymcore
+WorkingDirectory=/opt/gymcore
+EnvironmentFile=/opt/gymcore/.env
+ExecStart=/opt/gymcore/.venv/bin/python -m app.bots.bale.main
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

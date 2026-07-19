@@ -1,0 +1,70 @@
+# Optional Docker deployment for GymCore.
+#
+# Project-scoped names/volumes so it never clashes with other projects on the
+# host. The API is published to LOOPBACK only (127.0.0.1) on a configurable
+# port — never 80/443. Bots use long polling and expose no ports.
+#
+#   cp .env.example .env   # fill tokens; set DATABASE_URL to the db service
+#   docker compose up -d --build
+name: gymcore
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-gymcore}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gymcore}
+      POSTGRES_DB: ${POSTGRES_DB:-gymcore}
+    volumes:
+      - gymcore_pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  migrate:
+    build: .
+    command: alembic upgrade head
+    env_file: .env
+    depends_on:
+      - db
+    restart: "no"
+
+  api:
+    build: .
+    command: uvicorn app.api.main:app --host 0.0.0.0 --port 8815
+    env_file: .env
+    # Host-side loopback bind only; change the left side deliberately to expose.
+    ports:
+      - "127.0.0.1:${APP_PORT:-8815}:8815"
+    depends_on:
+      - db
+      - migrate
+    restart: unless-stopped
+
+  telegram:
+    build: .
+    command: python -m app.bots.telegram.main
+    env_file: .env
+    depends_on:
+      - db
+      - migrate
+    restart: unless-stopped
+
+  bale:
+    build: .
+    command: python -m app.bots.bale.main
+    env_file: .env
+    depends_on:
+      - db
+      - migrate
+    restart: unless-stopped
+
+  worker:
+    build: .
+    command: python -m app.notifications.worker
+    env_file: .env
+    depends_on:
+      - db
+      - migrate
+    restart: unless-stopped
+
+volumes:
+  gymcore_pgdata:

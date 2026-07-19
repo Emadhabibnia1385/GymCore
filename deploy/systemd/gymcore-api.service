@@ -1,0 +1,21 @@
+[Unit]
+Description=GymCore internal API (health + optional webhook)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=gymcore
+Group=gymcore
+WorkingDirectory=/opt/gymcore
+EnvironmentFile=/opt/gymcore/.env
+# Binds to APP_HOST/APP_PORT from .env (default 127.0.0.1:8815 — loopback only).
+ExecStart=/opt/gymcore/.venv/bin/uvicorn app.api.main:app --host ${APP_HOST} --port ${APP_PORT}
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
