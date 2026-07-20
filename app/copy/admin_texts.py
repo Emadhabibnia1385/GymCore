@@ -29,6 +29,12 @@ BTN_ATTENDANCE = "✅ حضور و غیاب"
 BTN_PAYMENTS = "💳 پرداخت‌ها"
 BTN_PAUSE = "⏸ غیرفعال‌سازی"
 BTN_ACTIVATE = "🟢 فعال‌سازی"
+BTN_DELETE_STUDENT = "🗑 حذف شاگرد"
+BTN_YES_DELETE = "🗑 بله، حذف کن"
+CONFIRM_DELETE_STUDENT = (
+    "⚠️ «{name}» حذف شود؟\n"
+    "همهٔ دوره‌ها، پرداخت‌ها و برنامه‌های او هم حذف می‌شوند و بازگشت‌پذیر نیست."
+)
 LABEL_PHONE = "شماره"
 LABEL_STATUS = "وضعیت"
 LABEL_ACTIVE = "فعال"

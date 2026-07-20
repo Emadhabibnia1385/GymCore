@@ -27,12 +27,19 @@ def handle_callback(req: AdminReq, args: str) -> None:
     elif action == "new_phone_skip":
         state = req.store.get(req.ctx.platform, req.chat_id)
         _create(req, (state.data.get("name") if state else None), None)
-    elif action == "pause" and rest.isdigit():
-        persons_service.set_active(req.db, int(rest), False)
-        _profile(req, int(rest))
-    elif action == "activate" and rest.isdigit():
-        persons_service.set_active(req.db, int(rest), True)
-        _profile(req, int(rest))
+    elif action == "del_confirm" and rest.isdigit():
+        person = persons_service.get(req.db, int(rest))
+        common.render(
+            req,
+            A.CONFIRM_DELETE_STUDENT.format(name=person.name),
+            common.inline([[
+                common.button(A.BTN_YES_DELETE, "students", "del", person.id),
+                common.button(A.CANCEL, "students", "view", person.id),
+            ]]),
+        )
+    elif action == "del" and rest.isdigit():
+        persons_service.delete(req.db, int(rest))
+        _list(req)
     else:
         _list(req)
 
@@ -86,23 +93,13 @@ def _list(req: AdminReq, page: int = 1, query: str | None = None) -> None:
 
 def _profile(req: AdminReq, person_id: int) -> None:
     person = persons_service.get(req.db, person_id)
-    status = f"🟢 {A.LABEL_ACTIVE}" if person.is_active else f"⏸ {A.LABEL_INACTIVE}"
-    body = (
-        f"👤 {person.name}\n"
-        f"{A.LABEL_PHONE}: {person.phone or '-'}\n"
-        f"{A.LABEL_STATUS}: {status}"
-    )
-    toggle = (
-        common.button(A.BTN_PAUSE, "students", "pause", person.id)
-        if person.is_active
-        else common.button(A.BTN_ACTIVATE, "students", "activate", person.id)
-    )
+    body = f"👤 {person.name}\n{A.LABEL_PHONE}: {person.phone or '-'}"
     rows = [
         [common.button(A.BTN_COURSES, "courses", "client", person.id),
          common.button(A.BTN_PROGRAMS, "plans", "client", person.id)],
         [common.button(A.BTN_ATTENDANCE, "attend", "client", person.id),
          common.button(A.BTN_PAYMENTS, "pay", "client", person.id)],
-        [toggle],
+        [common.button(A.BTN_DELETE_STUDENT, "students", "del_confirm", person.id)],
         [common.button(A.BACK, "students")],
     ]
     common.render(req, body, common.inline(rows))

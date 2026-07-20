@@ -4,11 +4,22 @@ numeric platform ID (see services.auth)."""
 from __future__ import annotations
 
 from sqlalchemy import Select, or_, select
+from sqlalchemy import delete as sa_delete
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.core.phone import is_valid_phone, normalize_phone
-from app.models import ChannelIdentity, Person, Platform, Role
+from app.models import (
+    AttendanceEvent,
+    ChannelIdentity,
+    Course,
+    Notification,
+    Payment,
+    Person,
+    PlanAssignment,
+    Platform,
+    Role,
+)
 
 
 def get(db: Session, person_id: int) -> Person:
@@ -124,3 +135,22 @@ def update(
 def set_active(db: Session, person_id: int, is_active: bool) -> Person:
     """Pause (is_active=False) or reactivate a client."""
     return update(db, person_id, is_active=is_active)
+
+
+def delete(db: Session, person_id: int) -> None:
+    """Permanently remove a client and ALL their data (irreversible).
+
+    Deletes dependents in FK-safe order: attendance → payments → programs →
+    courses → notifications → identities → the person.
+    """
+    person = get(db, person_id)
+    course_ids = list(db.scalars(select(Course.id).where(Course.client_id == person_id)))
+    if course_ids:
+        db.execute(sa_delete(AttendanceEvent).where(AttendanceEvent.course_id.in_(course_ids)))
+    db.execute(sa_delete(Payment).where(Payment.person_id == person_id))
+    db.execute(sa_delete(PlanAssignment).where(PlanAssignment.person_id == person_id))
+    db.execute(sa_delete(Course).where(Course.client_id == person_id))
+    db.execute(sa_delete(Notification).where(Notification.person_id == person_id))
+    db.execute(sa_delete(ChannelIdentity).where(ChannelIdentity.person_id == person_id))
+    db.delete(person)
+    db.commit()

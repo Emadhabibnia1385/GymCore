@@ -4,12 +4,14 @@ Owner id 111 (Telegram) is configured in conftest. Every step is a real update
 (callback or message); state persists in the Dispatcher's StateStore.
 """
 
-from sqlalchemy import select
+from datetime import date
+
+from sqlalchemy import func, select
 
 from app.bots.common import callbacks as cb
 from app.copy import admin_texts as A
 from app.copy import texts
-from app.models import Notification, Person, Platform, Role
+from app.models import Course, Notification, Payment, PaymentKind, Person, Platform, Role
 from app.models.setting import KEY_CARD_NUMBER, KEY_MAIN_INTRO
 from app.services import classes as classes_service
 from app.services import courses as courses_service
@@ -154,6 +156,27 @@ def test_admin_set_start_poster(db):
     db.expire_all()
     key = settings_service.start_poster_key(Platform.TELEGRAM)
     assert settings_service.get_value(db, key) == "POSTER123"
+
+
+def test_admin_delete_student_cascades(db):
+    disp, client = make_dispatcher()
+    student = persons_service.create(db, name="شاگرد حذفی", role=Role.CLIENT)
+    sid = student.id
+    class_type = classes_service.list_class_types(db, only_active=True)[0]
+    course = courses_service.create(
+        db, client_id=sid, class_type_id=class_type.id, sessions_total=4
+    )
+    payments_service.record(
+        db, person_id=sid, amount=100_000, kind=PaymentKind.TUITION,
+        paid_at=date(2026, 7, 1), course_id=course.id, notify=False,
+    )
+    # Delete via admin: confirmation, then confirm.
+    disp.handle_update(callback_update(1, CHAT, OWNER, f"a:students:del_confirm:{sid}"))
+    disp.handle_update(callback_update(2, CHAT, OWNER, f"a:students:del:{sid}"))
+    db.expire_all()
+    assert db.get(Person, sid) is None
+    assert db.scalar(select(func.count()).select_from(Course).where(Course.client_id == sid)) == 0
+    assert db.scalar(select(func.count()).select_from(Payment).where(Payment.person_id == sid)) == 0
 
 
 def test_non_owner_message_never_enters_admin(db):
