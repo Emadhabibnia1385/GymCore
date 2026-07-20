@@ -14,6 +14,7 @@ class FakeBotClient:
         self.platform = platform
         self.sent: list[dict] = []
         self.answered: list[dict] = []
+        self.deleted: list[int] = []
         self._mid = 100
 
     def _next_mid(self) -> int:
@@ -46,7 +47,7 @@ class FakeBotClient:
         self.answered.append({"id": callback_query_id, "text": text, "show_alert": show_alert})
 
     def delete_message(self, chat_id, message_id):
-        self.sent.append({"method": "delete_message", "chat_id": chat_id, "message_id": message_id})
+        self.deleted.append(message_id)
 
     def send_document_id(self, chat_id, file_id, caption=""):
         self.sent.append(

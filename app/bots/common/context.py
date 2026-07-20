@@ -12,7 +12,7 @@ capabilities and quirks:
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from app.bots.common.client import BotApiError, BotClient
 from app.models import Platform
@@ -31,6 +31,9 @@ class BotContext:
     supports_button_style: bool = False
     # `copy_text` inline buttons (tap to copy). Telegram supports it; Bale not.
     supports_copy_text: bool = False
+    # Single-message UX: the id of the one "screen" message currently shown per
+    # chat. Showing a new screen deletes the previous one, so the chat stays clean.
+    _screen: dict = field(default_factory=dict)
 
     # --- primitives ---
 
@@ -44,8 +47,34 @@ class BotContext:
                 btn.pop("style", None)
         return keyboard
 
-    def send(self, chat_id: int | str, text: str, keyboard: dict | None = None) -> dict:
-        return self.client.send_message(chat_id, text, reply_markup=self._prep(keyboard))
+    def _delete_screen(self, chat_id: int | str) -> None:
+        message_id = self._screen.pop(str(chat_id), None)
+        if message_id is not None:
+            try:
+                self.client.delete_message(chat_id, message_id)
+            except BotApiError:
+                pass
+
+    def _track(self, chat_id: int | str, result: object) -> None:
+        if isinstance(result, dict) and result.get("message_id"):
+            self._screen[str(chat_id)] = result["message_id"]
+
+    def delete(self, chat_id: int | str, message_id: int) -> None:
+        """Best-effort delete of any message (e.g. the user's own message)."""
+        try:
+            self.client.delete_message(chat_id, message_id)
+        except BotApiError:
+            pass
+
+    def send(
+        self, chat_id: int | str, text: str, keyboard: dict | None = None, track: bool = True
+    ) -> dict:
+        if track:
+            self._delete_screen(chat_id)
+        result = self.client.send_message(chat_id, text, reply_markup=self._prep(keyboard))
+        if track:
+            self._track(chat_id, result)
+        return result
 
     def send_photo(
         self,
@@ -55,19 +84,13 @@ class BotContext:
         keyboard: dict | None = None,
         replace_message_id: int | None = None,
     ) -> dict:
-        """Send a photo with caption + keyboard (used for the start-menu poster).
-
-        Photo messages can't be edited from/into text, so the previous screen is
-        deleted (best-effort) and a fresh photo is sent.
-        """
-        if replace_message_id is not None:
-            try:
-                self.client.delete_message(chat_id, replace_message_id)
-            except BotApiError:
-                pass
-        return self.client.send_photo_id(
+        """Send the start-menu poster as a fresh photo, replacing the current screen."""
+        self._delete_screen(chat_id)
+        result = self.client.send_photo_id(
             chat_id, photo_id, caption=caption[:1024], reply_markup=self._prep(keyboard)
         )
+        self._track(chat_id, result)
+        return result
 
     def answer(self, callback_query_id: str, text: str | None = None, alert: bool = False) -> None:
         try:
@@ -82,20 +105,25 @@ class BotContext:
         keyboard: dict | None = None,
         message_id: int | None = None,
     ) -> dict:
-        """Render a screen: edit in place where reliable, else send fresh.
-
-        Falling back to a fresh send keeps navigation working on Bale and when
-        the original message can't be edited (e.g. it was a document).
+        """Render the single screen: edit the tracked message in place when reliable,
+        otherwise delete it and send a fresh one — so only one message ever remains.
         """
         keyboard = self._prep(keyboard)
-        if message_id is not None and self.supports_edit:
+        key = str(chat_id)
+        tracked = self._screen.get(key)
+        if message_id is not None and self.supports_edit and tracked in (None, message_id):
             try:
-                return self.client.edit_message_text(
+                result = self.client.edit_message_text(
                     chat_id, message_id, text, reply_markup=keyboard
                 )
+                self._screen[key] = message_id
+                return result
             except BotApiError:
                 pass
-        return self.send(chat_id, text, keyboard)
+        self._delete_screen(chat_id)
+        result = self.client.send_message(chat_id, text, reply_markup=keyboard)
+        self._track(chat_id, result)
+        return result
 
 
 def make_context(client: BotClient) -> BotContext:

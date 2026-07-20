@@ -262,6 +262,35 @@ def test_admin_callback_tampering_is_rejected(db):
     assert not any(texts.ADMIN_TITLE in (s.get("text") or "") for s in client.sent)
 
 
+def test_user_message_is_deleted_for_single_message_ux(db):
+    disp, client = make_dispatcher(Platform.TELEGRAM)
+    register(disp, 500, 700)
+    client.deleted.clear()
+    disp.handle_update(message_update(77, 500, 700, "چیزی"))
+    assert 10 in client.deleted  # the user's message (message_id=10) was removed
+
+
+def test_bale_navigation_replaces_previous_screen(db):
+    disp, client = make_dispatcher(Platform.BALE)
+    register(disp, 500, 900)  # menu shown (fresh)
+    menu_id = client.sent[-1]["message_id"]
+    client.deleted.clear()
+    disp.handle_update(callback_update(1, 500, 900, cb.CONTACT))
+    assert menu_id in client.deleted  # previous screen deleted → single message
+
+
+def test_telegram_navigation_edits_in_place(db):
+    disp, client = make_dispatcher(Platform.TELEGRAM)
+    register(disp, 500, 700)
+    menu_id = client.sent[-1]["message_id"]
+    client.sent.clear()
+    client.deleted.clear()
+    disp.handle_update(callback_update(1, 500, 700, cb.CONTACT, message_id=menu_id))
+    assert client.sent[-1]["method"] == "edit_message_text"  # same message reused
+    assert client.sent[-1]["message_id"] == menu_id
+    assert not client.deleted
+
+
 def test_admin_entry_opens_panel_for_owner(db):
     disp, client = make_dispatcher(Platform.TELEGRAM)
     disp.handle_update(callback_update(1, 500, 111, cb.ADMIN))  # 111 is an owner
