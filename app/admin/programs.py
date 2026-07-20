@@ -5,6 +5,7 @@ from __future__ import annotations
 from app.admin import common
 from app.admin.common import AdminReq
 from app.copy import admin_texts as A
+from app.core.exceptions import DomainError
 from app.core.jalali import format_jalali
 from app.services import persons as persons_service
 from app.services import plans as plans_service
@@ -17,6 +18,18 @@ def handle_callback(req: AdminReq, args: str) -> None:
     elif action == "toggle_type" and rest.isdigit():
         plan_type = plans_service.get_type(req.db, int(rest))
         plans_service.update_type(req.db, plan_type.id, active=not plan_type.active)
+        _types(req)
+    elif action == "edit_type" and rest.isdigit():
+        plan_type = plans_service.get_type(req.db, int(rest))
+        common.prompt(
+            req, f"عنوان فعلی: {plan_type.title}\n\n{A.ASK_PLAN_TYPE_TITLE}",
+            f"plans:edit_type:{plan_type.id}", {},
+        )
+    elif action == "delete_type" and rest.isdigit():
+        try:
+            plans_service.delete_type(req.db, int(rest))
+        except DomainError as exc:
+            common.send(req, str(exc))
         _types(req)
     elif action == "client" and rest.isdigit():
         _client(req, int(rest))
@@ -51,6 +64,15 @@ def handle_message(req: AdminReq, message: dict, substep: str, state) -> None:
             common.prompt(req, A.ASK_PLAN_TYPE_TITLE, "plans:new_type", {})
             return
         plans_service.create_type(req.db, title=text)
+        common.clear(req)
+        _types(req)
+    elif substep.startswith("edit_type:"):
+        _, _, id_str = substep.partition(":")
+        if not text:
+            common.prompt(req, A.ASK_PLAN_TYPE_TITLE, substep, {})
+            return
+        if id_str.isdigit():
+            plans_service.update_type(req.db, int(id_str), title=text)
         common.clear(req)
         _types(req)
     elif substep == "note":
@@ -98,12 +120,14 @@ def _assign(req: AdminReq, file_id: str | None, file_name: str | None) -> None:
 
 def _types(req: AdminReq) -> None:
     types = plans_service.list_types(req.db)
-    rows = [
-        [common.button(f"{'🟢' if t.active else '⚪'} {t.title}", "plans", "toggle_type", t.id)]
-        for t in types
-    ]
-    rows.insert(0, [common.button(A.BTN_NEW_PLAN_TYPE, "plans", "new_type")])
-    common.render(req, A.PROGRAMS_TITLE, common.with_back(rows))
+    rows = [[common.button(A.BTN_NEW_PLAN_TYPE, "plans", "new_type")]]
+    for t in types:
+        rows.append([
+            common.button(f"{'🟢' if t.active else '⚪'} {t.title}", "plans", "toggle_type", t.id),
+            common.button("✏️", "plans", "edit_type", t.id),
+            common.button("🗑", "plans", "delete_type", t.id),
+        ])
+    common.render(req, f"{A.PROGRAMS_TITLE}\n{A.PROGRAMS_HINT}", common.with_back(rows))
 
 
 def _client(req: AdminReq, client_id: int) -> None:

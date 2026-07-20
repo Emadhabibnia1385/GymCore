@@ -71,6 +71,7 @@ ATTEND_CONFIRM = "ثبت شود؟"
 
 # --- programs ---
 PROGRAMS_TITLE = "📄 مدیریت برنامه‌ها"
+PROGRAMS_HINT = "روی عنوان بزن تا فعال/غیرفعال شود · ✏️ ویرایش · 🗑 حذف"
 BTN_NEW_PLAN_TYPE = "➕ نوع برنامه جدید"
 BTN_ASSIGN_PLAN = "📎 ارسال برنامه به شاگرد"
 ASK_PLAN_TYPE = "نوع برنامه را انتخاب کن:"

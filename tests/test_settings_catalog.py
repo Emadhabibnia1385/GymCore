@@ -40,15 +40,22 @@ def test_contact_links_crud_and_reorder(db):
         contact_links_service.create(db, key="x", label="", url="")
 
 
-def test_plan_types_seeded_and_assignment(db):
-    keys = {t.key for t in plans_service.list_types(db)}
-    assert {"nutrition", "training", "specialized"} <= keys
+def test_plan_types_no_defaults_create_assign_delete(db):
+    # No default plan types are seeded now — the coach creates their own.
+    plans_service.seed_defaults(db)
+    assert plans_service.list_types(db) == []
+    training = plans_service.create_type(db, title="برنامه تمرینی", key="tr")
     client = persons_service.create(db, name="کاربر")
-    training = plans_service.get_type_by_key(db, "training")
     plans_service.create_assignment(
         db, person_id=client.id, plan_type_id=training.id, title="برنامه من", notify=False
     )
     assert len(plans_service.list_assignments(db, person_id=client.id)) == 1
+    # A referenced type can't be deleted; an unused one can.
+    with pytest.raises(ValidationError):
+        plans_service.delete_type(db, training.id)
+    diet = plans_service.create_type(db, title="تغذیه", key="dt")
+    plans_service.delete_type(db, diet.id)
+    assert plans_service.get_type_by_key(db, "dt") is None
 
 
 def test_plan_attachment_validation(db):

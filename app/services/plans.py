@@ -10,7 +10,7 @@ from __future__ import annotations
 import uuid
 from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -18,12 +18,6 @@ from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.models import PlanAssignment, PlanType, Platform
 from app.services import notifications
 from app.services import persons as persons_service
-
-_DEFAULT_PLAN_TYPES = [
-    {"key": "nutrition", "title": "برنامه تغذیه اصولی", "sort_order": 1},
-    {"key": "training", "title": "برنامه تمرینی اصولی", "sort_order": 2},
-    {"key": "specialized", "title": "برنامه تمرینی تخصصی", "sort_order": 3},
-]
 
 _ALLOWED_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".webp", ".txt", ".docx", ".xlsx"}
 
@@ -89,15 +83,23 @@ def update_type(
     return plan_type
 
 
+def delete_type(db: Session, plan_type_id: int) -> None:
+    """Delete a plan type — refused if any assignment references it (deactivate instead)."""
+    plan_type = get_type(db, plan_type_id)
+    used = db.scalar(
+        select(func.count()).select_from(PlanAssignment).where(
+            PlanAssignment.plan_type_id == plan_type_id
+        )
+    )
+    if used:
+        raise ValidationError("این نوع برنامه در برنامه‌های شاگردان استفاده شده؛ غیرفعالش کن.")
+    db.delete(plan_type)
+    db.commit()
+
+
 def seed_defaults(db: Session) -> None:
-    """Seed the default plan types if missing (idempotent by key)."""
-    changed = False
-    for row in _DEFAULT_PLAN_TYPES:
-        if get_type_by_key(db, row["key"]) is None:
-            db.add(PlanType(**row))
-            changed = True
-    if changed:
-        db.commit()
+    """No default plan types — the coach creates their own."""
+    return None
 
 
 # --- Assignments (deliveries) ---
