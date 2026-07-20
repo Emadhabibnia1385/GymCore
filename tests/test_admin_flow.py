@@ -24,6 +24,7 @@ from tests.fakes import (
     make_dispatcher,
     message_update,
     photo_message_update,
+    register,
 )
 
 OWNER = 111
@@ -158,6 +159,7 @@ def test_admin_set_start_poster(db):
 def test_non_owner_message_never_enters_admin(db):
     # A non-owner cannot open admin, so their text just gets the client menu.
     disp, client = make_dispatcher()
+    register(disp, 901, 702)
     disp.handle_update(message_update(1, 901, 702, "hello"))
     labels = button_texts(last_markup(client))
     assert texts.BTN_ADMIN_PANEL not in labels

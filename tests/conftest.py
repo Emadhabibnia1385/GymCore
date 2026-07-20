@@ -36,6 +36,10 @@ def db():
     Base.metadata.create_all(bind=engine)
     session = SessionLocal()
     bootstrap.seed_all(session)
+    # There are no default class types anymore; tests that need one use this.
+    from app.services import classes as classes_service
+
+    classes_service.create(session, title="کلاس نمونه", key="sample")
     try:
         yield session
     finally:

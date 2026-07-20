@@ -43,7 +43,10 @@ class Dispatcher:
         user_id = str(from_user.get("id"))
         text = (message.get("text") or "").strip()
         with session_scope() as db:
-            person = client_flow.provision(self.ctx, db, from_user)
+            # Registration gate: collect a phone on first contact (owners bypass).
+            person = client_flow.resolve_registered(self.ctx, db, chat_id, from_user, message)
+            if person is None:
+                return  # awaiting phone
             state = self.store.get(self.ctx.platform, chat_id)
             if state is not None and state.flow == "admin":
                 if auth.is_admin(db, self.ctx.platform, user_id):
@@ -70,7 +73,10 @@ class Dispatcher:
         action, rest = callbacks.parse(data)
 
         with session_scope() as db:
-            person = client_flow.provision(self.ctx, db, from_user)
+            person = client_flow.provision_for_callback(self.ctx, db, from_user)
+            if person is None:  # not registered yet — must /start and share a phone
+                self.ctx.answer(callback_id, texts.NEED_PHONE, alert=True)
+                return
 
             if action in (callbacks.ADMIN_PREFIX, callbacks.ADMIN):
                 if not auth.is_admin(db, self.ctx.platform, user_id):

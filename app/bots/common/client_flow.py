@@ -16,7 +16,9 @@ from app.bots.common import keyboards
 from app.bots.common.client import BotApiError
 from app.bots.common.context import BotContext
 from app.copy import texts
+from app.core.admin_auth import is_owner
 from app.core.config import get_settings
+from app.core.phone import is_valid_phone, normalize_phone
 from app.models import Person
 from app.models.setting import (
     KEY_CONTACT_INTRO,
@@ -41,18 +43,62 @@ def display_name(from_user: dict) -> str:
     return name or (from_user.get("username") or "").strip()
 
 
-def provision(ctx: BotContext, db: Session, from_user: dict) -> Person:
-    """Resolve (auto-creating on first contact) the Person for this account."""
+def _provision_owner(ctx: BotContext, db: Session, from_user: dict) -> Person:
     user_id = str(from_user.get("id"))
     person = identities_service.get_or_create_person(
-        db,
-        ctx.platform,
-        user_id,
-        display_name(from_user),
-        username=from_user.get("username"),
+        db, ctx.platform, user_id, display_name(from_user), username=from_user.get("username")
     )
     auth.sync_owner_role(db, ctx.platform, user_id, person)
     return person
+
+
+def provision_for_callback(ctx: BotContext, db: Session, from_user: dict) -> Person | None:
+    """Return the registered Person for a callback, or None if not registered."""
+    user_id = str(from_user.get("id"))
+    if is_owner(ctx.platform, user_id):
+        return _provision_owner(ctx, db, from_user)
+    identity = identities_service.find_identity(db, ctx.platform, user_id)
+    if identity is not None and identity.person.phone:
+        return identity.person
+    return None
+
+
+def resolve_registered(
+    ctx: BotContext, db: Session, chat_id: object, from_user: dict, message: dict
+) -> Person | None:
+    """Resolve the Person for a message, collecting a phone on first contact.
+
+    Everyone (except owners) shares their phone once, so their Telegram and Bale
+    accounts map to the SAME Person and see the same courses/programs. Returns
+    None when we've just prompted for (or rejected) a phone.
+    """
+    user_id = str(from_user.get("id"))
+    if is_owner(ctx.platform, user_id):
+        return _provision_owner(ctx, db, from_user)
+
+    identity = identities_service.find_identity(db, ctx.platform, user_id)
+    if identity is not None and identity.person.phone:
+        return identity.person
+
+    # A shared contact or a typed phone number completes registration.
+    raw = (message.get("contact") or {}).get("phone_number")
+    if not raw:
+        text = (message.get("text") or "").strip()
+        if text and is_valid_phone(normalize_phone(text)):
+            raw = text
+    if raw:
+        if not is_valid_phone(normalize_phone(raw)):
+            ctx.send(chat_id, texts.INVALID_PHONE, keyboards.share_phone())
+            return None
+        person = identities_service.link_by_phone(
+            db, ctx.platform, user_id, raw, display_name(from_user),
+            username=from_user.get("username"),
+        )
+        ctx.send(chat_id, texts.REGISTERED, keyboards.remove_keyboard())
+        return person
+
+    ctx.send(chat_id, texts.ASK_PHONE, keyboards.share_phone())
+    return None
 
 
 # --- screens ---

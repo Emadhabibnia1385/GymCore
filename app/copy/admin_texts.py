@@ -37,6 +37,7 @@ NO_STUDENTS = "هنوز شاگردی ثبت نشده است."
 
 # --- classes ---
 CLASSES_TITLE = "🏋️ مدیریت کلاس‌ها"
+CLASSES_HINT = "روی عنوان بزن تا فعال/غیرفعال شود · ✏️ ویرایش · 🗑 حذف"
 BTN_NEW_CLASS = "➕ کلاس جدید"
 ASK_CLASS_TITLE = "عنوان کلاس را بفرست:"
 BTN_ENABLE = "🟢 فعال"

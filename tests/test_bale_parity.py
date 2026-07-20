@@ -16,6 +16,7 @@ from tests.fakes import (
     last_markup,
     make_dispatcher,
     message_update,
+    register,
     web_app_urls,
 )
 
@@ -26,7 +27,7 @@ CHAT = 800
 def test_bale_navigation_sends_fresh_messages_not_edits(db):
     """Bale editing of keyboard messages is unreliable → always send fresh."""
     disp, client = make_dispatcher(Platform.BALE)
-    disp.handle_update(message_update(1, CHAT, 700, "/start"))
+    register(disp, CHAT, 700)
     client.sent.clear()
     disp.handle_update(callback_update(2, CHAT, 700, cb.CONTACT))
     assert client.sent[-1]["method"] == "send_message"
@@ -35,7 +36,7 @@ def test_bale_navigation_sends_fresh_messages_not_edits(db):
 
 def test_bale_order_uses_url_button_not_webapp(db):
     disp, client = make_dispatcher(Platform.BALE)
-    disp.handle_update(callback_update(1, CHAT, 700, cb.ORDER))
+    register(disp, CHAT, 700)
     markup = last_markup(client)
     assert not web_app_urls(markup)
     assert any("signup" in url for url in button_urls(markup))

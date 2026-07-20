@@ -26,16 +26,16 @@ def test_settings_seed_and_override(db):
 
 def test_contact_links_seed_and_platform_feature(db):
     active = contact_links_service.list_active(db)
-    assert len(active) == 7
+    assert len(active) == 8  # phone, telegram, instagram, bale, whatsapp, linkedin, email, website
     featured = contact_links_service.list_active(db, Platform.TELEGRAM)
     assert featured[0].key == "telegram"
 
 
 def test_contact_links_crud_and_reorder(db):
     link = contact_links_service.create(db, key="eitaa", label="ایتا", url="https://eitaa.com/x")
-    assert link.sort_order == 8
+    assert link.sort_order == 9  # after the 8 seeded links
     contact_links_service.set_active(db, link.id, False)
-    assert len(contact_links_service.list_active(db)) == 7
+    assert len(contact_links_service.list_active(db)) == 8
     with pytest.raises(ValidationError):
         contact_links_service.create(db, key="x", label="", url="")
 
@@ -56,9 +56,12 @@ def test_plan_attachment_validation(db):
         plans_service.save_attachment("malware.exe", b"x")
 
 
-def test_class_types_seeded_and_create(db):
-    assert len(classes_service.list_class_types(db, only_active=True)) == 3
+def test_class_types_no_defaults_create_and_delete(db):
+    # No default class types are seeded (see services.classes.seed_defaults).
+    classes_service.seed_defaults(db)
+    before = len(classes_service.list_class_types(db))
     yoga = classes_service.create(db, title="یوگا")
     assert yoga.key  # auto-generated
-    classes_service.set_active(db, yoga.id, False)
-    assert len(classes_service.list_class_types(db, only_active=True)) == 3
+    assert len(classes_service.list_class_types(db)) == before + 1
+    classes_service.delete(db, yoga.id)  # unused → deletable
+    assert len(classes_service.list_class_types(db)) == before

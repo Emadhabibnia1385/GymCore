@@ -5,17 +5,11 @@ Catalog rows referenced by historical courses are deactivated, never deleted.
 
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
-from app.models import ClassType
-
-_DEFAULT_CLASS_TYPES = [
-    {"key": "bodybuilding", "title": "بدنسازی", "sort_order": 1},
-    {"key": "functional", "title": "تمرین فانکشنال", "sort_order": 2},
-    {"key": "private", "title": "تمرین خصوصی", "sort_order": 3},
-]
+from app.models import ClassType, Course
 
 
 def get(db: Session, class_type_id: int) -> ClassType:
@@ -106,12 +100,18 @@ def set_active(db: Session, class_type_id: int, active: bool) -> ClassType:
     return update(db, class_type_id, active=active)
 
 
+def delete(db: Session, class_type_id: int) -> None:
+    """Delete a class type — refused if any course references it (deactivate instead)."""
+    class_type = get(db, class_type_id)
+    used = db.scalar(
+        select(func.count()).select_from(Course).where(Course.class_type_id == class_type_id)
+    )
+    if used:
+        raise ValidationError("این کلاس در دوره‌ها استفاده شده؛ به‌جای حذف، غیرفعالش کن.")
+    db.delete(class_type)
+    db.commit()
+
+
 def seed_defaults(db: Session) -> None:
-    """Seed a few starter class types if none exist (idempotent by key)."""
-    changed = False
-    for row in _DEFAULT_CLASS_TYPES:
-        if get_by_key(db, row["key"]) is None:
-            db.add(ClassType(**row))
-            changed = True
-    if changed:
-        db.commit()
+    """No default class types — the coach creates their own."""
+    return None

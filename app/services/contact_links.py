@@ -13,21 +13,25 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.models import ContactLink, Platform
 
+# Order + labels-with-values per the coach's request. Phone/email are tap-to-copy
+# on Telegram; the rest are link buttons. Colours alternate blue/green in the UI.
 _DEFAULT_LINKS = [
-    {"key": "email", "label": "ایمیل", "icon": "📧",
-     "url": "mailto:mahdisarmad59@gmail.com", "sort_order": 1},
-    {"key": "phone", "label": "تلفن", "icon": "📞",
-     "url": "tel:+989305560950", "sort_order": 2},
-    {"key": "whatsapp", "label": "واتساپ", "icon": "💬",
-     "url": "https://wa.me/message/Y5RUNKX4CVP5H1", "sort_order": 3},
-    {"key": "telegram", "label": "تلگرام", "icon": "✈️",
-     "url": "https://t.me/mahdisarmadcoach", "sort_order": 4, "platform": Platform.TELEGRAM},
-    {"key": "instagram", "label": "اینستاگرام", "icon": "📷",
-     "url": "https://www.instagram.com/mahdisarmad", "sort_order": 5},
-    {"key": "linkedin", "label": "لینکدین", "icon": "💼",
-     "url": "https://www.linkedin.com/in/mahdisarmad", "sort_order": 6},
-    {"key": "website", "label": "وب‌سایت", "icon": "🌐",
-     "url": "https://mahdisarmad.ir/", "sort_order": 7},
+    {"key": "phone", "label": "تلفن: 09305560950", "icon": "📞",
+     "url": "tel:09305560950", "sort_order": 1},
+    {"key": "telegram", "label": "تلگرام: @MahdiSarmad1", "icon": "✈️",
+     "url": "https://t.me/MahdiSarmad1", "sort_order": 2, "platform": Platform.TELEGRAM},
+    {"key": "instagram", "label": "اینستاگرام: @mahdisarmad", "icon": "📸",
+     "url": "https://instagram.com/mahdisarmad", "sort_order": 3},
+    {"key": "bale", "label": "بله: @mahdisarmad", "icon": "💬",
+     "url": "https://ble.ir/mahdisarmad", "sort_order": 4, "platform": Platform.BALE},
+    {"key": "whatsapp", "label": "واتساپ: 09305560950", "icon": "🟢",
+     "url": "https://wa.me/989305560950", "sort_order": 5},
+    {"key": "linkedin", "label": "لینکدین: mahdisarmad", "icon": "💼",
+     "url": "https://linkedin.com/in/mahdisarmad", "sort_order": 6},
+    {"key": "email", "label": "ایمیل: mahdisarmad59@gmail.com", "icon": "📧",
+     "url": "mailto:mahdisarmad59@gmail.com", "sort_order": 7},
+    {"key": "website", "label": "وب‌سایت: mahdisarmad.ir", "icon": "🌐",
+     "url": "https://mahdisarmad.ir/", "sort_order": 8},
 ]
 
 

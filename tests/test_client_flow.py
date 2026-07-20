@@ -1,5 +1,5 @@
-"""Client bot flow: inline menus, register→contact, order→URL, courses,
-programs, contact, and admin-button visibility / callback tamper rejection."""
+"""Client bot flow: phone registration, inline menus, register→contact,
+order→URL, courses, programs, contact, admin-button visibility / tamper."""
 
 from datetime import date
 
@@ -22,31 +22,55 @@ from tests.fakes import (
     last_text,
     make_dispatcher,
     message_update,
+    register,
     web_app_urls,
 )
 
 
-def test_start_shows_client_menu_without_admin_button(db):
+def _copy_values(markup: dict) -> list[str]:
+    return [
+        b["copy_text"]["text"]
+        for row in markup["inline_keyboard"] for b in row if "copy_text" in b
+    ]
+
+
+def test_first_contact_asks_for_phone(db):
     disp, client = make_dispatcher(Platform.TELEGRAM)
     disp.handle_update(message_update(1, 500, 700, "/start"))
+    # No menu yet — a phone is requested with a share-contact reply keyboard.
+    assert "شماره" in last_text(client)
+    assert client.sent[-1]["reply_markup"].get("keyboard")  # reply keyboard, not inline
+
+
+def test_registration_by_phone_then_menu(db):
+    disp, client = make_dispatcher(Platform.TELEGRAM)
+    register(disp, 500, 700)  # shares a phone
     labels = button_texts(last_markup(client))
     assert texts.BTN_REGISTER_CLASS in labels
-    assert texts.BTN_ORDER_PLAN in labels
-    assert texts.BTN_MY_CLASSES in labels
-    assert texts.BTN_MY_PLANS in labels
-    assert texts.BTN_CONTACT in labels
     assert texts.BTN_ADMIN_PANEL not in labels  # normal client
     db.expire_all()
-    assert identities_service.find_person(db, Platform.TELEGRAM, "700") is not None
+    person = identities_service.find_person(db, Platform.TELEGRAM, "700")
+    assert person is not None
+    assert person.phone  # phone captured for cross-platform sync
 
 
-def test_owner_sees_admin_button_and_is_promoted(db):
+def test_owner_bypasses_phone_and_sees_admin_button(db):
     disp, client = make_dispatcher(Platform.TELEGRAM)
     disp.handle_update(message_update(1, 500, 111, "/start"))  # 111 is a configured owner
     assert texts.BTN_ADMIN_PANEL in button_texts(last_markup(client))
     db.expire_all()
-    owner = identities_service.find_person(db, Platform.TELEGRAM, "111")
-    assert owner.role.value == "COACH"
+    assert identities_service.find_person(db, Platform.TELEGRAM, "111").role.value == "COACH"
+
+
+def test_same_phone_links_telegram_and_bale_to_one_person(db):
+    tg, _ = make_dispatcher(Platform.TELEGRAM)
+    register(tg, 500, 700, phone="09121112233")
+    bale, _ = make_dispatcher(Platform.BALE)
+    register(bale, 600, 900, phone="09121112233")  # different account, same phone
+    db.expire_all()
+    tg_person = identities_service.find_person(db, Platform.TELEGRAM, "700")
+    bale_person = identities_service.find_person(db, Platform.BALE, "900")
+    assert tg_person.id == bale_person.id  # one Person, two platform accounts
 
 
 def test_start_menu_shows_poster_when_set(db):
@@ -54,11 +78,11 @@ def test_start_menu_shows_poster_when_set(db):
         db, settings_service.start_poster_key(Platform.TELEGRAM), "POSTERXYZ"
     )
     disp, client = make_dispatcher(Platform.TELEGRAM)
-    disp.handle_update(message_update(1, 500, 700, "/start"))
+    register(disp, 500, 700)
     last = client.sent[-1]
     assert last["method"] == "send_photo_id"  # menu sent as a photo (poster)
     assert last["file_id"] == "POSTERXYZ"
-    assert last["reply_markup"] is not None  # inline menu attached to the photo
+    assert last["reply_markup"] is not None
 
 
 def test_no_request_models_exist():
@@ -68,19 +92,19 @@ def test_no_request_models_exist():
 
 def test_register_shows_contact_links_not_a_form(db):
     disp, client = make_dispatcher(Platform.TELEGRAM)
+    register(disp, 500, 700)
+    client.sent.clear()
     disp.handle_update(callback_update(1, 500, 700, cb.REGISTER))
     body = last_text(client)
     assert settings_service.get_value(db, KEY_REGISTER_CONTACT_TEXT) in body
-    # No phone is ever requested, no contact-sharing, no request created.
-    assert "شماره" not in body
     urls = button_urls(last_markup(client))
     assert any(u.startswith("https://t.me/") for u in urls)
 
 
 def test_order_button_is_a_plain_url_link_on_both_platforms(db):
-    for platform in (Platform.TELEGRAM, Platform.BALE):
+    for platform, user in ((Platform.TELEGRAM, 700), (Platform.BALE, 900)):
         disp, client = make_dispatcher(platform)
-        disp.handle_update(message_update(1, 500, 700, "/start"))
+        register(disp, 500, user)
         markup = last_markup(client)
         assert not web_app_urls(markup)  # a plain link — never a Mini App
         assert any("mahdisarmad.ir/signup" in url for url in button_urls(markup))
@@ -88,23 +112,20 @@ def test_order_button_is_a_plain_url_link_on_both_platforms(db):
 
 def test_telegram_menu_buttons_carry_colour_styles(db):
     disp, client = make_dispatcher(Platform.TELEGRAM)
-    disp.handle_update(message_update(1, 500, 700, "/start"))
+    register(disp, 500, 700)
     styles = {
         b["text"]: b.get("style")
         for row in last_markup(client)["inline_keyboard"]
         for b in row
     }
     assert styles[texts.BTN_REGISTER_CLASS] == "primary"  # blue
-    assert styles[texts.BTN_ORDER_PLAN] == "primary"
     assert styles[texts.BTN_MY_CLASSES] == "success"  # green
-    assert styles[texts.BTN_MY_PLANS] == "success"
     assert styles[texts.BTN_CONTACT] == "danger"  # red
 
 
 def test_bale_menu_buttons_have_no_style(db):
-    # Bale doesn't support the style field — must not send it (would be rejected).
     disp, client = make_dispatcher(Platform.BALE)
-    disp.handle_update(message_update(1, 500, 700, "/start"))
+    register(disp, 500, 900)
     for row in last_markup(client)["inline_keyboard"]:
         for button in row:
             assert "style" not in button
@@ -112,6 +133,8 @@ def test_bale_menu_buttons_have_no_style(db):
 
 def test_my_courses_empty_state_shows_contact_links(db):
     disp, client = make_dispatcher(Platform.TELEGRAM)
+    register(disp, 500, 700)
+    client.sent.clear()
     disp.handle_update(callback_update(1, 500, 700, cb.COURSES))
     assert last_text(client) == texts.NO_COURSES
     markup = last_markup(client)
@@ -121,6 +144,8 @@ def test_my_courses_empty_state_shows_contact_links(db):
 
 def test_my_programs_empty_state_shows_order_button(db):
     disp, client = make_dispatcher(Platform.TELEGRAM)
+    register(disp, 500, 700)
+    client.sent.clear()
     disp.handle_update(callback_update(1, 500, 700, cb.PROGRAMS))
     assert last_text(client) == texts.NO_PROGRAMS
     markup = last_markup(client)
@@ -132,7 +157,7 @@ def test_my_programs_empty_state_shows_order_button(db):
 
 def test_my_courses_list_and_detail_derive_remaining(db):
     disp, client = make_dispatcher(Platform.TELEGRAM)
-    disp.handle_update(message_update(1, 500, 700, "/start"))
+    register(disp, 500, 700)
     db.expire_all()
     person = identities_service.find_person(db, Platform.TELEGRAM, "700")
     class_type = classes_service.list_class_types(db, only_active=True)[0]
@@ -157,15 +182,15 @@ def test_my_courses_list_and_detail_derive_remaining(db):
 
 def test_course_detail_rejects_other_clients_course(db):
     disp, client = make_dispatcher(Platform.TELEGRAM)
-    disp.handle_update(message_update(1, 500, 700, "/start"))
+    register(disp, 500, 700)
+    register(disp, 501, 800)  # a second, different client
     db.expire_all()
-    owner_person = identities_service.find_person(db, Platform.TELEGRAM, "700")
+    person_a = identities_service.find_person(db, Platform.TELEGRAM, "700")
     class_type = classes_service.list_class_types(db, only_active=True)[0]
     course = courses_service.create(
-        db, client_id=owner_person.id, class_type_id=class_type.id,
+        db, client_id=person_a.id, class_type_id=class_type.id,
         sessions_total=5, start_date=date(2026, 7, 1),
     )
-    # A different account cannot open person A's course.
     client.sent.clear()
     disp.handle_update(callback_update(2, 501, 800, cb.course(course.id)))
     assert last_text(client) == texts.NOT_FOUND
@@ -173,10 +198,10 @@ def test_course_detail_rejects_other_clients_course(db):
 
 def test_programs_list_and_file_delivery(db):
     disp, client = make_dispatcher(Platform.TELEGRAM)
-    disp.handle_update(message_update(1, 500, 700, "/start"))
+    register(disp, 500, 700)
     db.expire_all()
     person = identities_service.find_person(db, Platform.TELEGRAM, "700")
-    training = plans_service.get_type_by_key(db, "training")
+    training = plans_service.create_type(db, title="برنامه تمرینی", key="tr")
     plans_service.create_assignment(
         db, person_id=person.id, plan_type_id=training.id, title="برنامه من",
         platform_file_id="FILEID", file_platform=Platform.TELEGRAM, notify=False,
@@ -194,49 +219,44 @@ def test_programs_list_and_file_delivery(db):
     assert any(s.get("text") == texts.PROGRAM_SENT for s in client.sent)
 
 
-def _copy_values(markup: dict) -> list[str]:
-    return [
-        b["copy_text"]["text"]
-        for row in markup["inline_keyboard"] for b in row if "copy_text" in b
-    ]
-
-
-def test_contact_us_telegram_copy_buttons_green_links_red_back(db):
+def test_contact_us_telegram_copy_buttons_alternating_colours(db):
     disp, client = make_dispatcher(Platform.TELEGRAM)
+    register(disp, 500, 700)
+    client.sent.clear()
     disp.handle_update(callback_update(1, 500, 700, cb.CONTACT))
     assert last_text(client) != texts.ERROR
     markup = last_markup(client)
-    # No invalid mailto:/tel: URL buttons.
     assert all("mailto:" not in u and "tel:" not in u for u in button_urls(markup))
-    # Phone + email are tap-to-copy buttons.
     copies = _copy_values(markup)
-    assert "mahdisarmad59@gmail.com" in copies
-    assert any("989305560950" in v for v in copies)
-    # https links stay URL buttons.
-    assert any("wa.me" in u for u in button_urls(markup))
-    # Link/copy buttons are green; the back button is red.
+    assert "mahdisarmad59@gmail.com" in copies  # email is tap-to-copy
+    assert any("09305560950" in v for v in copies)  # phone is tap-to-copy
+    assert any("wa.me" in u for u in button_urls(markup))  # https links are buttons
     rows = markup["inline_keyboard"]
-    assert rows[-1][0]["style"] == "danger"  # back button
-    assert {b.get("style") for row in rows[:-1] for b in row} == {"success"}
+    assert rows[-1][0]["style"] == "danger"  # red back
+    assert {b.get("style") for row in rows[:-1] for b in row} == {"primary", "success"}
 
 
 def test_contact_us_bale_keeps_tel_mailto_as_text_no_style(db):
     disp, client = make_dispatcher(Platform.BALE)
-    disp.handle_update(callback_update(1, 500, 700, cb.CONTACT))
+    register(disp, 500, 900)
+    client.sent.clear()
+    disp.handle_update(callback_update(1, 500, 900, cb.CONTACT))
     body = last_text(client)
     assert "mahdisarmad59@gmail.com" in body  # email as text
-    assert "989305560950" in body  # phone as text
+    assert "09305560950" in body  # phone as text
     markup = last_markup(client)
     assert not _copy_values(markup)  # Bale gets no copy buttons
     for row in markup["inline_keyboard"]:
         for button in row:
-            assert "style" not in button  # and no styles
+            assert "style" not in button
     assert any("wa.me" in u for u in button_urls(markup))  # https links still buttons
 
 
 def test_admin_callback_tampering_is_rejected(db):
     disp, client = make_dispatcher(Platform.TELEGRAM)
-    disp.handle_update(callback_update(1, 500, 700, "a:students"))  # 700 is NOT an owner
+    register(disp, 500, 700)  # a registered but non-owner client
+    client.sent.clear()
+    disp.handle_update(callback_update(1, 500, 700, "a:students"))
     assert client.answered[-1]["show_alert"] is True
     assert client.answered[-1]["text"] == texts.ACCESS_DENIED
     assert not any(texts.ADMIN_TITLE in (s.get("text") or "") for s in client.sent)

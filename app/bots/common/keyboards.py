@@ -83,18 +83,35 @@ def back_to_menu() -> dict:
     return _inline([[_back_home()]])
 
 
+def share_phone() -> dict:
+    """Reply keyboard with a share-contact button (phone registration)."""
+    return {
+        "keyboard": [[{"text": texts.BTN_SHARE_PHONE, "request_contact": True}]],
+        "resize_keyboard": True,
+        "one_time_keyboard": True,
+    }
+
+
+def remove_keyboard() -> dict:
+    return {"remove_keyboard": True}
+
+
 def contact_links(links: list[ContactLink], support_copy: bool = False) -> dict:
-    """Contact links keyboard. Web links → green URL buttons; mailto:/tel: → green
-    tap-to-copy buttons when supported (Telegram), else omitted (caller shows them
-    as text). The back button is red."""
+    """Contact links keyboard. Web links → URL buttons; mailto:/tel: → tap-to-copy
+    buttons when supported (Telegram), else omitted (caller shows them as text).
+    Rendered buttons alternate blue/green; the back button is red."""
     rows: list[list[dict]] = []
+    idx = 0
     for link in links:
         label = f"{link.icon + ' ' if link.icon else ''}{link.label}"
+        style = STYLE_PRIMARY if idx % 2 == 0 else STYLE_SUCCESS
         if is_button_url(link.url):
-            rows.append([url_button(label, link.url, STYLE_SUCCESS)])
+            rows.append([url_button(label, link.url, style)])
+            idx += 1
         elif support_copy:
             value = link.url.split(":", 1)[1] if ":" in link.url else link.url
-            rows.append([copy_button(label, value, STYLE_SUCCESS)])
+            rows.append([copy_button(label, value, style)])
+            idx += 1
     rows.append([_back_home()])
     return _inline(rows)
 

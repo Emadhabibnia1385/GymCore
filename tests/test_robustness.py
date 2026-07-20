@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 from app.bots.common import callbacks as cb
 from app.copy import texts
 from app.models import Course, Notification, Payment, PlanAssignment
-from tests.fakes import button_texts, callback_update, last_markup, make_dispatcher
+from tests.fakes import button_texts, callback_update, last_markup, make_dispatcher, register
 
 
 def test_parse_int_rejects_tampered_values():
@@ -19,12 +19,14 @@ def test_parse_int_rejects_tampered_values():
 
 def test_garbage_callback_falls_back_to_menu(db):
     disp, client = make_dispatcher()
+    register(disp, 500, 700)
     disp.handle_update(callback_update(1, 500, 700, "💥garbage💥"))
     assert texts.BTN_REGISTER_CLASS in button_texts(last_markup(client))
 
 
 def test_empty_callback_does_not_crash(db):
     disp, client = make_dispatcher()
+    register(disp, 500, 700)
     disp.handle_update(callback_update(1, 500, 700, ""))
     assert texts.BTN_REGISTER_CLASS in button_texts(last_markup(client))
 

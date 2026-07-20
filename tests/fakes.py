@@ -108,6 +108,24 @@ def photo_message_update(update_id, chat_id, user_id, file_id="PHOTOID"):
     }
 
 
+def contact_update(update_id, chat_id, user_id, phone=None):
+    phone = phone or f"09{int(user_id):09d}"  # unique valid phone per user
+    return {
+        "update_id": update_id,
+        "message": {
+            "message_id": 10,
+            "chat": {"id": chat_id},
+            "from": {"id": user_id, "first_name": "کاربر"},
+            "contact": {"phone_number": phone},
+        },
+    }
+
+
+def register(disp, chat_id, user_id, phone=None):
+    """Register a non-owner test user by sharing a unique phone (phone gate)."""
+    disp.handle_update(contact_update(9000 + int(user_id) % 1000, chat_id, user_id, phone))
+
+
 def callback_update(update_id, chat_id, user_id, data, message_id=10):
     return {
         "update_id": update_id,

@@ -11,8 +11,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
+from app.core.phone import is_valid_phone, normalize_phone
 from app.models import ChannelIdentity, Person, Platform, Role
 from app.services import persons as persons_service
+
+_PLACEHOLDER_NAMES = {None, "", "کاربر", "کاربر تازه"}
 
 
 def find_identity(
@@ -83,6 +86,43 @@ def get_or_create_person(
         return person
     name = (display_name or "").strip() or "کاربر تازه"
     person = persons_service.create(db, name=name, role=Role.CLIENT)
+    link_identity(db, person.id, platform, platform_user_id, username=username)
+    return person
+
+
+def link_by_phone(
+    db: Session,
+    platform: Platform,
+    platform_user_id: str,
+    raw_phone: str,
+    display_name: str,
+    username: str | None = None,
+) -> Person | None:
+    """Register/link this account by phone so Telegram + Bale share one Person.
+
+    Matches an existing Person by phone (e.g. one the coach created), otherwise
+    reuses the account's current phone-less Person or creates a new one. Returns
+    None if the phone is invalid.
+    """
+    phone = normalize_phone(raw_phone)
+    if not is_valid_phone(phone):
+        return None
+
+    target = persons_service.get_by_phone(db, phone)
+    identity = find_identity(db, platform, platform_user_id)
+    if target is not None:
+        person = target
+    elif identity is not None and identity.person.phone is None:
+        # Reuse the lightweight Person auto-created on an earlier contact.
+        person = identity.person
+        person.phone = phone
+        if display_name and person.name in _PLACEHOLDER_NAMES:
+            person.name = display_name.strip()
+        db.commit()
+    else:
+        person = persons_service.create(
+            db, name=(display_name or "").strip() or "کاربر", phone=phone, role=Role.CLIENT
+        )
     link_identity(db, person.id, platform, platform_user_id, username=username)
     return person
 
