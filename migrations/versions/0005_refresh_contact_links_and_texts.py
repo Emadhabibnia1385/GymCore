@@ -70,6 +70,14 @@ def upgrade() -> None:
     settings_tbl = sa.table("settings", sa.column("key", sa.String), sa.column("value", sa.Text))
     op.bulk_insert(settings_tbl, [{"key": "registration_contact_message", "value": _REGISTER_TEXT}])
 
+    # Remove the old seeded default class types if no course uses them
+    # (the coach now creates their own).
+    op.execute(
+        "DELETE FROM class_types "
+        "WHERE key IN ('bodybuilding', 'functional', 'private') "
+        "AND id NOT IN (SELECT class_type_id FROM courses)"
+    )
+
 
 def downgrade() -> None:
     # Content refresh — no meaningful reverse (app re-seeds defaults on startup).
