@@ -161,10 +161,13 @@ class BotClient:
             "sendDocument", {"chat_id": chat_id, "document": file_id, "caption": caption}
         )
 
-    def send_photo_id(self, chat_id: int | str, file_id: str, caption: str = "") -> dict:
-        return self._request(
-            "sendPhoto", {"chat_id": chat_id, "photo": file_id, "caption": caption}
-        )
+    def send_photo_id(
+        self, chat_id: int | str, file_id: str, caption: str = "", reply_markup: dict | None = None
+    ) -> dict:
+        payload: dict[str, Any] = {"chat_id": chat_id, "photo": file_id, "caption": caption}
+        if reply_markup is not None:
+            payload["reply_markup"] = reply_markup
+        return self._request("sendPhoto", payload)
 
     def set_my_commands(self, commands: list[dict]) -> Any:
         """Register the bot's command list (e.g. /start) shown in the UI menu."""

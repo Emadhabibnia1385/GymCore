@@ -49,6 +49,18 @@ def test_owner_sees_admin_button_and_is_promoted(db):
     assert owner.role.value == "COACH"
 
 
+def test_start_menu_shows_poster_when_set(db):
+    settings_service.set_value(
+        db, settings_service.start_poster_key(Platform.TELEGRAM), "POSTERXYZ"
+    )
+    disp, client = make_dispatcher(Platform.TELEGRAM)
+    disp.handle_update(message_update(1, 500, 700, "/start"))
+    last = client.sent[-1]
+    assert last["method"] == "send_photo_id"  # menu sent as a photo (poster)
+    assert last["file_id"] == "POSTERXYZ"
+    assert last["reply_markup"] is not None  # inline menu attached to the photo
+
+
 def test_no_request_models_exist():
     for name in ("ClassRequest", "PlanRequest", "ClassRegistrationRequest", "RequestStatus"):
         assert not hasattr(models, name)

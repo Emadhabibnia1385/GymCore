@@ -10,7 +10,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.models import Setting
+from app.models import Platform, Setting
 from app.models.setting import (
     KEY_BALE_OWNER_CONTACT,
     KEY_CARD_NUMBER,
@@ -57,6 +57,11 @@ def _defaults() -> dict[str, str]:
         KEY_BALE_OWNER_CONTACT: "",
         KEY_NOTIFY_ON_ATTENDANCE: "1",
     }
+
+
+def start_poster_key(platform: Platform) -> str:
+    """Per-platform setting key holding the start-menu poster's file_id."""
+    return f"start_poster_{platform.value.lower()}"
 
 
 def get_value(db: Session, key: str, default: str = "") -> str:

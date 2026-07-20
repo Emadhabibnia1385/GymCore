@@ -10,14 +10,21 @@ from app.bots.common import callbacks as cb
 from app.copy import admin_texts as A
 from app.copy import texts
 from app.models import Notification, Person, Platform, Role
-from app.models.setting import KEY_CARD_NUMBER
+from app.models.setting import KEY_CARD_NUMBER, KEY_MAIN_INTRO
 from app.services import classes as classes_service
 from app.services import courses as courses_service
 from app.services import identities as identities_service
 from app.services import payments as payments_service
 from app.services import persons as persons_service
 from app.services import settings as settings_service
-from tests.fakes import button_texts, callback_update, last_markup, make_dispatcher, message_update
+from tests.fakes import (
+    button_texts,
+    callback_update,
+    last_markup,
+    make_dispatcher,
+    message_update,
+    photo_message_update,
+)
 
 OWNER = 111
 CHAT = 900
@@ -34,7 +41,7 @@ def test_admin_panel_lists_all_sections(db):
     for expected in (
         texts.BTN_ADMIN_STUDENTS, texts.BTN_ADMIN_CLASSES, texts.BTN_ADMIN_COURSES,
         texts.BTN_ADMIN_ATTENDANCE, texts.BTN_ADMIN_PLANS, texts.BTN_ADMIN_PAYMENTS,
-        texts.BTN_ADMIN_NOTIFY, texts.BTN_ADMIN_SETTINGS,
+        texts.BTN_ADMIN_NOTIFY, texts.BTN_ADMIN_SETTINGS, texts.BTN_ADMIN_START,
     ):
         assert expected in labels
 
@@ -129,6 +136,23 @@ def test_admin_broadcast_records_notification(db):
     disp.handle_update(callback_update(3, CHAT, OWNER, "a:notify:send"))
     db.expire_all()
     assert db.scalar(select(Notification)) is not None
+
+
+def test_admin_set_start_text(db):
+    disp, client = make_dispatcher()
+    disp.handle_update(callback_update(1, CHAT, OWNER, "a:start:text"))
+    disp.handle_update(message_update(2, CHAT, OWNER, "به باشگاه ما خوش آمدی 🟢"))
+    db.expire_all()
+    assert settings_service.get_value(db, KEY_MAIN_INTRO) == "به باشگاه ما خوش آمدی 🟢"
+
+
+def test_admin_set_start_poster(db):
+    disp, client = make_dispatcher(Platform.TELEGRAM)
+    disp.handle_update(callback_update(1, CHAT, OWNER, "a:start:poster"))
+    disp.handle_update(photo_message_update(2, CHAT, OWNER, file_id="POSTER123"))
+    db.expire_all()
+    key = settings_service.start_poster_key(Platform.TELEGRAM)
+    assert settings_service.get_value(db, key) == "POSTER123"
 
 
 def test_non_owner_message_never_enters_admin(db):

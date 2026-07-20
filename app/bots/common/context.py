@@ -47,6 +47,28 @@ class BotContext:
     def send(self, chat_id: int | str, text: str, keyboard: dict | None = None) -> dict:
         return self.client.send_message(chat_id, text, reply_markup=self._prep(keyboard))
 
+    def send_photo(
+        self,
+        chat_id: int | str,
+        photo_id: str,
+        caption: str = "",
+        keyboard: dict | None = None,
+        replace_message_id: int | None = None,
+    ) -> dict:
+        """Send a photo with caption + keyboard (used for the start-menu poster).
+
+        Photo messages can't be edited from/into text, so the previous screen is
+        deleted (best-effort) and a fresh photo is sent.
+        """
+        if replace_message_id is not None:
+            try:
+                self.client.delete_message(chat_id, replace_message_id)
+            except BotApiError:
+                pass
+        return self.client.send_photo_id(
+            chat_id, photo_id, caption=caption[:1024], reply_markup=self._prep(keyboard)
+        )
+
     def answer(self, callback_query_id: str, text: str | None = None, alert: bool = False) -> None:
         try:
             self.client.answer_callback_query(callback_query_id, text=text, show_alert=alert)

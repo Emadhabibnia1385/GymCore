@@ -68,10 +68,17 @@ def show_menu(
     greet: bool = False,
 ) -> None:
     is_admin = auth.is_admin(db, ctx.platform, user_id)
+    # The start screen is identical everywhere (so «بازگشت به منوی اصلی» === /start).
     intro = settings_service.get_value(db, KEY_MAIN_INTRO)
-    body = f"{intro}\n\n{texts.MENU_PROMPT}" if greet else texts.MENU_PROMPT
+    body = f"{intro}\n\n{texts.MENU_PROMPT}"
     signup_url = settings_service.get_value(db, KEY_SIGNUP_URL) or get_settings().signup_url
-    ctx.show(chat_id, body, keyboards.main_menu(is_admin, signup_url), message_id)
+    keyboard = keyboards.main_menu(is_admin, signup_url)
+    poster_id = settings_service.get_value(db, settings_service.start_poster_key(ctx.platform))
+    if poster_id:
+        ctx.send_photo(chat_id, poster_id, caption=body, keyboard=keyboard,
+                       replace_message_id=message_id)
+    else:
+        ctx.show(chat_id, body, keyboard, message_id)
 
 
 def _render_contact_links(

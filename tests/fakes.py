@@ -62,10 +62,12 @@ class FakeBotClient:
         )
         return {"message_id": self._next_mid()}
 
-    def send_photo_id(self, chat_id, file_id, caption=""):
+    def send_photo_id(self, chat_id, file_id, caption="", reply_markup=None):
         self.sent.append(
-            {"method": "send_photo_id", "chat_id": chat_id, "file_id": file_id, "caption": caption}
+            {"method": "send_photo_id", "chat_id": chat_id, "file_id": file_id,
+             "caption": caption, "reply_markup": reply_markup, "message_id": self._next_mid()}
         )
+        return {"message_id": self._mid}
 
     def call(self, method, payload=None):
         return {"username": "testbot"}
@@ -90,6 +92,18 @@ def message_update(update_id, chat_id, user_id, text, first_name="کاربر", u
             "chat": {"id": chat_id},
             "from": {"id": user_id, "first_name": first_name, "username": username},
             "text": text,
+        },
+    }
+
+
+def photo_message_update(update_id, chat_id, user_id, file_id="PHOTOID"):
+    return {
+        "update_id": update_id,
+        "message": {
+            "message_id": 10,
+            "chat": {"id": chat_id},
+            "from": {"id": user_id, "first_name": "کاربر"},
+            "photo": [{"file_id": f"{file_id}_s"}, {"file_id": file_id}],
         },
     }
 
