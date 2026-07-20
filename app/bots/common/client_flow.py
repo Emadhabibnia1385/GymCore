@@ -125,7 +125,8 @@ def my_courses(
 ) -> None:
     courses = courses_service.list_courses(db, client_id=person.id)
     if not courses:
-        ctx.show(chat_id, texts.NO_COURSES, keyboards.back_to_menu(), message_id)
+        # Empty state: invite the client to contact the coach to register.
+        _render_contact_links(ctx, db, chat_id, texts.NO_COURSES, message_id)
         return
     items = [
         (course.id, course.class_type.title, courses_service.remaining_sessions(db, course))
@@ -159,7 +160,9 @@ def my_programs(
 
     assignments = plans_service.list_assignments(db, person_id=person.id, only_active=True)
     if not assignments:
-        ctx.show(chat_id, texts.NO_PROGRAMS, keyboards.back_to_menu(), message_id)
+        # Empty state: the same blue «سفارش برنامه» button to order a program.
+        url = settings_service.get_value(db, KEY_SIGNUP_URL) or get_settings().signup_url
+        ctx.show(chat_id, texts.NO_PROGRAMS, keyboards.order_prompt(url), message_id)
         return
     items = [(a.id, formatting.program_label(a)) for a in assignments]
     ctx.show(chat_id, texts.TITLE_MY_PROGRAMS, keyboards.program_list(items), message_id)

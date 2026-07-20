@@ -104,6 +104,11 @@ def plan_signup(url: str) -> dict:
     return _inline([[url_button(texts.BTN_PLAN_SIGNUP, url)], [_back_home()]])
 
 
+def order_prompt(signup_url: str) -> dict:
+    """Empty «برنامه‌های من» state: the same blue «سفارش برنامه» button + red back."""
+    return _inline([[_order_button(signup_url)], [_back_home()]])
+
+
 def course_list(items: list[tuple[int, str, int]]) -> dict:
     """items: (course_id, class_title, remaining_sessions)."""
     rows = [

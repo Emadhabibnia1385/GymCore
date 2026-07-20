@@ -98,12 +98,24 @@ def test_bale_menu_buttons_have_no_style(db):
             assert "style" not in button
 
 
-def test_my_courses_empty_state(db):
-    disp, client = make_dispatcher()
+def test_my_courses_empty_state_shows_contact_links(db):
+    disp, client = make_dispatcher(Platform.TELEGRAM)
     disp.handle_update(callback_update(1, 500, 700, cb.COURSES))
     assert last_text(client) == texts.NO_COURSES
-    # The back-to-menu button is red.
-    assert last_markup(client)["inline_keyboard"][-1][0]["style"] == "danger"
+    markup = last_markup(client)
+    assert any("wa.me" in u for u in button_urls(markup))  # contact links shown
+    assert markup["inline_keyboard"][-1][0]["style"] == "danger"  # red back
+
+
+def test_my_programs_empty_state_shows_order_button(db):
+    disp, client = make_dispatcher(Platform.TELEGRAM)
+    disp.handle_update(callback_update(1, 500, 700, cb.PROGRAMS))
+    assert last_text(client) == texts.NO_PROGRAMS
+    markup = last_markup(client)
+    order = markup["inline_keyboard"][0][0]  # blue «سفارش برنامه» button
+    assert order["style"] == "primary"
+    assert "mahdisarmad.ir/signup" in order["url"]
+    assert markup["inline_keyboard"][-1][0]["style"] == "danger"  # red back
 
 
 def test_my_courses_list_and_detail_derive_remaining(db):
