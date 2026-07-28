@@ -17,21 +17,58 @@ Brand — Mahdi Sarmad · primary green `#B2F828` · black `#000000` · white `#
 |---|---|
 | 🏋️ ثبت‌نام در کلاس‌ها | Shows the coach's contact links to arrange a class (no form, no phone prompt) |
 | 📋 سفارش برنامه | Opens the signup form (Telegram Mini App / Bale URL) |
-| 🗓 کلاس‌های من | Courses with **remaining sessions derived from attendance**, Jalali history, financials |
+| 🗓 کلاس‌های من | Courses with **remaining sessions derived from attendance**, Jalali history, financials, and the read-only **📋 جدول جلسات** |
 | 📄 برنامه‌های من | Delivered training/nutrition programs (file or text) |
 | 📞 راه‌های ارتباطی ما | All active contact links |
 
 The **⚙️ ورود به پنل مدیریت** row appears **only** for configured owners.
 
-**Coach / admin** (in-bot panel, same on both platforms): students · classes ·
-courses · attendance · programs · payments · notifications · settings.
+**Coach / admin** (in-bot panel, same on both platforms). The menu leads with
+the two catalogs, then شاگردان — the hub every per-student action hangs off:
+
+```
+🏋️ مدیریت کلاس‌ها      📄 مدیریت برنامه‌ها
+            👥 مدیریت شاگردان
+📚 مدیریت دوره‌ها       ✅ ثبت حضور و غیاب
+💳 مدیریت پرداخت‌ها     🔔 اعلان‌ها
+⚙️ تنظیمات             🖼 متن و پوستر استارت
+        🏠 خروج از پنل مدیریت
+```
+
+Opening a student shows **that student's own menu**: their active course, its
+weekly pattern, session progress, and one tap into the session grid.
+
+### 📋 The session grid
+
+The coach's paper attendance table, rendered as inline buttons — three cells per
+row, one row per session:
+
+```
+شنبه     │ 25 تیر  │ ✅ جلسه 1
+دوشنبه   │ 27 تیر  │ 🟡 غیبت مجاز
+چهارشنبه │ 29 تیر  │ ✅ جلسه 2
+شنبه     │ 1 مرداد │ ⏳ در انتظار
+```
+
+Tapping anywhere on a row opens that session's outcome picker — ✅ حاضر /
+🔴 غیبت / 🟡 مجاز, plus 🔵 لغو مربی and ⚪ تعطیلی — with an optional note that
+can be typed before choosing. The client sees the same grid, read-only.
+
+Dates come from the course's weekly pattern (`Course.weekdays`, e.g.
+شنبه/دوشنبه/چهارشنبه) walking forward from the start date; off-schedule make-up
+sessions are merged in by date.
 
 ## Business rules baked in
 
 - **Remaining sessions are never stored** — always derived from attendance
   history; only `PRESENT` and `ABSENT_UNAUTHORIZED` consume a session.
+- **The grid is derived too** — it always holds exactly `sessions_total`
+  consuming slots, so every 🟡 غیبت مجاز / 🔵 لغو مربی / ⚪ تعطیلی pushes one
+  extra row onto the end and the client gets that session back.
+- **Session numbers count consuming slots only**, in date order (جلسه ۱، جلسه ۲…).
 - **Attendance is append-only** — corrections are appended (latest event per
-  session date wins); nothing is ever overwritten.
+  session date wins); nothing is ever overwritten, so re-tapping a recorded row
+  is a correction, not an edit.
 - **Payments are immutable** — corrections are new rows with negative amounts.
 - **Money is integer Toman**; catalog changes never rewrite historical course terms.
 - **Admin auth is a numeric owner-ID whitelist** — usernames are never trusted.
@@ -40,10 +77,10 @@ courses · attendance · programs · payments · notifications · settings.
 
 ```
  Telegram bot ┐                       ┌ services/ (all business logic)
- Bale bot     ┤─ bots/common (router, ┤  courses · attendance · payments · plans
- (long poll)  │   inline keyboards,   │  persons · identities · classes · settings
-              │   BotContext adapter) │  contact_links · auth (owner whitelist)
- admin/ (8 shared sections) ──────────┤
+ Bale bot     ┤─ bots/common (router, ┤  courses · attendance · schedule · payments
+ (long poll)  │   inline keyboards,   │  plans · persons · identities · classes
+              │   grid, BotContext)   │  settings · contact_links · auth (whitelist)
+ admin/ (9 shared sections) ──────────┤
  notifications/ (queue + worker) ─────┤─ models/ (SQLAlchemy 2.0) ─ Alembic ─ PostgreSQL
  api/ (health + optional webhook) ────┘                                      (SQLite for dev)
 ```
@@ -168,6 +205,9 @@ alembic downgrade -1                                   # roll back one
 ```
 
 Migrations are forward-only and data-preserving — the schema is never reset.
+The latest revision is `0007` (adds `courses.weekdays`, the weekly training
+pattern behind the session grid; nullable, so existing courses fall back to
+their start date's weekday).
 
 ## Backups
 
@@ -191,9 +231,10 @@ no public API docs · no debug in production · no default passwords.
 
 `pytest` with fakes for Telegram/Bale — tests never touch the network or send
 real messages. Coverage includes identity linking, admin authorization + callback
-tampering, menu generation, register/order flows, session derivation, attendance
-outcomes, Jalali dates, payment balances, both platforms, settings, and
-notification dedup/retry.
+tampering, menu generation, register/order flows, session derivation, the
+session grid (weekly pattern, numbering, extra-row rule, pagination, tamper-safe
+callbacks), attendance outcomes, Jalali dates, payment balances, both platforms,
+settings, and notification dedup/retry.
 
 ## License
 

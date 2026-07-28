@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from sqlalchemy import select
+from sqlalchemy import Select, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.exceptions import NotFoundError, ValidationError
@@ -25,6 +25,7 @@ from app.models import (
 )
 from app.services import classes as classes_service
 from app.services import persons as persons_service
+from app.services import schedule
 
 
 def get(db: Session, course_id: int) -> Course:
@@ -38,11 +39,11 @@ def get(db: Session, course_id: int) -> Course:
     return course
 
 
-def list_courses(
-    db: Session,
+def list_stmt(
     client_id: int | None = None,
     status: CourseStatus | None = None,
-) -> list[Course]:
+) -> Select:
+    """Select for a course list — also feeds the paginated admin pickers."""
     stmt = (
         select(Course)
         .options(selectinload(Course.client), selectinload(Course.class_type))
@@ -52,7 +53,20 @@ def list_courses(
         stmt = stmt.where(Course.client_id == client_id)
     if status is not None:
         stmt = stmt.where(Course.status == status)
-    return list(db.scalars(stmt))
+    return stmt
+
+
+def list_courses(
+    db: Session,
+    client_id: int | None = None,
+    status: CourseStatus | None = None,
+) -> list[Course]:
+    return list(db.scalars(list_stmt(client_id, status)))
+
+
+def active_course(db: Session, client_id: int) -> Course | None:
+    """The client's current course — what the student hub opens onto."""
+    return db.scalar(list_stmt(client_id, CourseStatus.ACTIVE).limit(1))
 
 
 def effective_status_map(db: Session, course_id: int) -> dict[date, AttendanceStatus]:
@@ -97,6 +111,7 @@ def create(
     gym_fee: int = 0,
     allowed_absence: int = 0,
     start_date: date | None = None,
+    weekdays: str | None = None,
     travel_declared: bool = False,
     note: str | None = None,
     _carried_credit: int = 0,
@@ -118,11 +133,21 @@ def create(
         allowed_absence=allowed_absence,
         travel_declared=travel_declared,
         start_date=start_date or date.today(),
+        weekdays=schedule.format_weekdays(schedule.parse_weekdays(weekdays)) or None,
         note=note,
     )
     db.add(course)
     db.commit()
     return get(db, course.id)
+
+
+def set_weekdays(db: Session, course_id: int, weekdays: str | None) -> Course:
+    """Change the weekly training pattern (reshapes the derived grid only)."""
+    course = get(db, course_id)
+    course.weekdays = schedule.format_weekdays(schedule.parse_weekdays(weekdays)) or None
+    db.commit()
+    db.refresh(course)
+    return course
 
 
 def set_status(db: Session, course_id: int, status: CourseStatus) -> Course:
@@ -151,6 +176,7 @@ def renew(
     gym_fee: int = 0,
     allowed_absence: int | None = None,
     start_date: date | None = None,
+    weekdays: str | None = None,
     carry_credit: bool = True,
     note: str | None = None,
 ) -> Course:
@@ -172,6 +198,7 @@ def renew(
         gym_fee=gym_fee,
         allowed_absence=allowed_absence,
         start_date=start_date,
+        weekdays=weekdays if weekdays is not None else old.weekdays,
         note=note,
         _carried_credit=carried,
     )

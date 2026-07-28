@@ -10,6 +10,7 @@ from app.models import Course, CourseStatus, PlanAssignment
 from app.services import attendance as attendance_service
 from app.services import courses as courses_service
 from app.services import payments as payments_service
+from app.services import schedule as schedule_service
 
 
 def money(amount: int) -> str:
@@ -30,6 +31,7 @@ def format_course_detail(db: Session, course: Course) -> str:
         f"🏷 {course.class_type.title}",
         f"{texts.LABEL_STATUS}: {course_status_label(course.status)}",
         f"{texts.LABEL_START}: {format_jalali(course.start_date)}",
+        f"{texts.LABEL_TRAINING_DAYS}: {schedule_service.weekdays_label(course.weekdays)}",
         f"{texts.LABEL_TOTAL}: {course.sessions_total}",
         f"{texts.LABEL_CONSUMED}: {consumed}",
         f"{texts.LABEL_REMAINING}: 🟢 {remaining}",

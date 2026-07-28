@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 from app.admin import common
 from app.admin.common import AdminReq
 from app.bots.common import formatting
@@ -10,6 +12,7 @@ from app.models import CourseStatus
 from app.services import classes as classes_service
 from app.services import courses as courses_service
 from app.services import persons as persons_service
+from app.services import schedule as schedule_service
 
 
 def handle_callback(req: AdminReq, args: str) -> None:
@@ -34,6 +37,16 @@ def handle_callback(req: AdminReq, args: str) -> None:
             _view(req, int(course_id))
     elif action == "renew" and rest.isdigit():
         common.prompt(req, A.ASK_RENEW_SESSIONS, "courses:renew", {"course_id": int(rest)})
+    elif action == "wd" and rest.isdigit():
+        _toggle_weekday(req, int(rest))
+    elif action == "wd_done":
+        _finish_weekdays(req)
+    elif action == "wdedit" and rest.isdigit():
+        course = courses_service.get(req.db, int(rest))
+        _ask_weekdays(
+            req,
+            {"course_id": course.id, "days": schedule_service.parse_weekdays(course.weekdays)},
+        )
     else:
         common.render(req, A.COURSES_TITLE, common.with_back([]))
 
@@ -82,19 +95,11 @@ def handle_message(req: AdminReq, message: dict, substep: str, state) -> None:
         if start is None:
             common.prompt(req, A.INVALID_DATE, "courses:start", data)
             return
-        course = courses_service.create(
-            req.db,
-            client_id=data["client_id"],
-            class_type_id=data["class_type_id"],
-            sessions_total=data["sessions_total"],
-            tuition=data["tuition"],
-            gym_fee=data["gym_fee"],
-            allowed_absence=data["allowed_absence"],
-            start_date=start,
-        )
-        common.clear(req)
-        common.send(req, A.COURSE_CREATED)
-        _view(req, course.id)
+        data["start_date"] = start.isoformat()
+        # Last step: the weekly pattern the session grid is generated from,
+        # pre-selected with the start date's own weekday.
+        data["days"] = [schedule_service.persian_weekday(start)]
+        _ask_weekdays(req, data)
     elif substep == "renew":
         count = common.parse_count(text)
         if not count:
@@ -102,10 +107,79 @@ def handle_message(req: AdminReq, message: dict, substep: str, state) -> None:
             return
         new_course = courses_service.renew(req.db, data["course_id"], sessions_total=count)
         common.clear(req)
-        common.send(req, A.RENEWED)
-        _view(req, new_course.id)
+        _view(req, new_course.id, flash=A.RENEWED)
+    elif substep == "weekdays":
+        _ask_weekdays(req, data)  # stray text mid-selection: just re-show the picker
     else:
         common.clear(req)
+
+
+# --- weekly training pattern (drives the session grid) ---
+
+_WEEKDAY_STEP = "courses:weekdays"
+
+
+def _ask_weekdays(req: AdminReq, data: dict) -> None:
+    """Multi-select day picker; taps re-render in place until «تأیید»."""
+    selected = set(data.get("days") or [])
+    cells = [
+        common.button(
+            f"{'🟢' if index in selected else '⚪'} {name}", "courses", "wd", index
+        )
+        for index, name in enumerate(schedule_service.WEEKDAY_NAMES)
+    ]
+    rows = [cells[:4], cells[4:], [common.button(A.BTN_WEEKDAYS_DONE, "courses", "wd_done")]]
+    body = (
+        f"{A.ASK_COURSE_WEEKDAYS}\n\n"
+        f"🗓 {schedule_service.weekdays_label(schedule_service.format_weekdays(selected))}"
+    )
+    common.prompt_show(req, body, _WEEKDAY_STEP, data, keyboard=common.inline(rows))
+
+
+def _toggle_weekday(req: AdminReq, index: int) -> None:
+    state = req.store.get(req.ctx.platform, req.chat_id)
+    if state is None or state.step != _WEEKDAY_STEP:
+        common.render(req, A.COURSES_TITLE, common.with_back([]))
+        return
+    days = set(state.data.get("days") or [])
+    days.symmetric_difference_update({index})
+    state.data["days"] = sorted(days)
+    _ask_weekdays(req, state.data)
+
+
+def _finish_weekdays(req: AdminReq) -> None:
+    """«تأیید» — create the pending course, or save the edited pattern."""
+    state = req.store.get(req.ctx.platform, req.chat_id)
+    if state is None or state.step != _WEEKDAY_STEP:
+        common.render(req, A.COURSES_TITLE, common.with_back([]))
+        return
+    data = state.data
+    if not data.get("days"):
+        common.send(req, A.NO_WEEKDAYS)
+        _ask_weekdays(req, data)
+        return
+    weekdays = schedule_service.format_weekdays(data["days"])
+
+    if "course_id" in data:  # editing an existing course
+        course_id = data["course_id"]
+        courses_service.set_weekdays(req.db, course_id, weekdays)
+        common.clear(req)
+        _view(req, course_id)
+        return
+
+    course = courses_service.create(
+        req.db,
+        client_id=data["client_id"],
+        class_type_id=data["class_type_id"],
+        sessions_total=data["sessions_total"],
+        tuition=data["tuition"],
+        gym_fee=data["gym_fee"],
+        allowed_absence=data["allowed_absence"],
+        start_date=date.fromisoformat(data["start_date"]),
+        weekdays=weekdays,
+    )
+    common.clear(req)
+    _view(req, course.id, flash=A.COURSE_CREATED)
 
 
 def _list_for_client(req: AdminReq, client_id: int) -> None:
@@ -129,10 +203,15 @@ def _pick_class(req: AdminReq, client_id: int) -> None:
     common.render(req, A.ASK_COURSE_CLASS, common.with_back(rows, ("courses", "client", client_id)))
 
 
-def _view(req: AdminReq, course_id: int) -> None:
+def _view(req: AdminReq, course_id: int, flash: str | None = None) -> None:
     course = courses_service.get(req.db, course_id)
     body = formatting.format_course_detail(req.db, course)
-    rows: list[list[dict]] = []
+    if flash:
+        body = f"{flash}\n\n{body}"
+    rows: list[list[dict]] = [[
+        common.button(A.BTN_STUDENT_GRID, "attend", "course", course.id),
+        common.button(A.BTN_EDIT_WEEKDAYS, "courses", "wdedit", course.id),
+    ]]
     if course.status == CourseStatus.ACTIVE:
         rows.append([
             common.button(A.BTN_PAUSE_COURSE, "courses", "status", course.id, "PAUSED"),
@@ -143,9 +222,8 @@ def _view(req: AdminReq, course_id: int) -> None:
             common.button(A.BTN_RESUME_COURSE, "courses", "status", course.id, "ACTIVE"),
             common.button(A.BTN_FINISH_COURSE, "courses", "status", course.id, "FINISHED"),
         ])
-    rows.append([common.button(A.BTN_RENEW_COURSE, "courses", "renew", course.id)])
     rows.append([
-        common.button(A.BTN_ATTENDANCE, "attend", "course", course.id),
+        common.button(A.BTN_RENEW_COURSE, "courses", "renew", course.id),
         common.button(A.BTN_PAYMENTS, "pay", "course", course.id),
     ])
     common.render(req, body, common.with_back(rows, ("courses", "client", course.client_id)))

@@ -2,14 +2,18 @@
 interaction adaptations (fresh messages instead of edits, URL instead of Web App,
 per-platform owner IDs)."""
 
+from datetime import date
+
 from sqlalchemy import select
 
 from app.bots.common import callbacks as cb
+from app.bots.common import grid
 from app.copy import texts
 from app.models import Person, Platform, Role
 from app.services import classes as classes_service
 from app.services import courses as courses_service
 from app.services import persons as persons_service
+from app.services import schedule as schedule_service
 from tests.fakes import (
     button_urls,
     callback_update,
@@ -53,16 +57,21 @@ def test_bale_admin_create_student_parity(db):
 
 
 def test_bale_admin_attendance_parity(db):
+    """The session grid records outcomes identically on Bale (no editing quirks)."""
     disp, client = make_dispatcher(Platform.BALE)
     student = persons_service.create(db, name="شاگرد بله ۲", role=Role.CLIENT)
     class_type = classes_service.list_class_types(db, only_active=True)[0]
     course = courses_service.create(
-        db, client_id=student.id, class_type_id=class_type.id, sessions_total=5
+        db, client_id=student.id, class_type_id=class_type.id, sessions_total=5,
+        start_date=date(2026, 7, 25), weekdays="0,2,4",
     )
     disp.handle_update(callback_update(1, CHAT, BALE_OWNER, f"a:attend:course:{course.id}"))
-    disp.handle_update(message_update(2, CHAT, BALE_OWNER, "1405/05/01"))
-    disp.handle_update(callback_update(3, CHAT, BALE_OWNER, "a:attend:outcome:PRESENT"))
-    disp.handle_update(callback_update(4, CHAT, BALE_OWNER, "a:attend:note_skip"))
+    first = schedule_service.build(db, course)[0]
+    token = grid.date_token(first.date)
+    disp.handle_update(callback_update(2, CHAT, BALE_OWNER, f"a:attend:slot:{course.id}:{token}"))
+    disp.handle_update(
+        callback_update(3, CHAT, BALE_OWNER, f"a:attend:set:{course.id}:{token}:P")
+    )
     db.expire_all()
     assert courses_service.consumed_sessions(db, course.id) == 1
 

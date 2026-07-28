@@ -136,11 +136,28 @@ def course_list(items: list[tuple[int, str, int]]) -> dict:
     return _inline(rows)
 
 
-def course_detail_nav() -> dict:
-    return _inline([
-        [button(texts.BTN_BACK, cb.COURSES, STYLE_DANGER)],
-        [_back_home(texts.BTN_HOME, cb.HOME)],
-    ])
+def course_detail_nav(course_id: int | None = None) -> dict:
+    rows = []
+    if course_id is not None:
+        rows.append([button(texts.BTN_SCHEDULE, cb.schedule(course_id), STYLE_SUCCESS)])
+    rows.append([button(texts.BTN_BACK, cb.COURSES, STYLE_DANGER)])
+    rows.append([_back_home(texts.BTN_HOME, cb.HOME)])
+    return _inline(rows)
+
+
+def session_grid(grid_rows: list[list[dict]], course_id: int, page: int, pages: int) -> dict:
+    """The client's read-only grid: inert three-cell rows + paging + navigation."""
+    rows = list(grid_rows)
+    nav: list[dict] = []
+    if page > 1:
+        nav.append(button("◀️", cb.schedule(course_id, page - 1)))
+    if page < pages:
+        nav.append(button("▶️", cb.schedule(course_id, page + 1)))
+    if nav:
+        rows.append(nav)
+    rows.append([button(texts.BTN_BACK, cb.course(course_id), STYLE_DANGER)])
+    rows.append([_back_home(texts.BTN_HOME, cb.HOME)])
+    return _inline(rows)
 
 
 def program_list(items: list[tuple[int, str]]) -> dict:
@@ -158,18 +175,22 @@ def program_detail_nav() -> dict:
 
 
 def admin_menu() -> dict:
-    """The admin panel main menu (shown only to authorized owners)."""
+    """The admin panel main menu (shown only to authorized owners).
+
+    Layout follows the coach's own priority: the two catalogs side by side on
+    top, then شاگردان — the hub every day-to-day task is reached through.
+    """
     return _inline(
         [
-            [button(texts.BTN_ADMIN_STUDENTS, cb.admin("students"))],
-            [button(texts.BTN_ADMIN_CLASSES, cb.admin("classes")),
-             button(texts.BTN_ADMIN_COURSES, cb.admin("courses"))],
-            [button(texts.BTN_ADMIN_ATTENDANCE, cb.admin("attend"))],
-            [button(texts.BTN_ADMIN_PLANS, cb.admin("plans")),
-             button(texts.BTN_ADMIN_PAYMENTS, cb.admin("pay"))],
-            [button(texts.BTN_ADMIN_NOTIFY, cb.admin("notify")),
-             button(texts.BTN_ADMIN_SETTINGS, cb.admin("settings"))],
-            [button(texts.BTN_ADMIN_START, cb.admin("start"))],
+            [button(texts.BTN_ADMIN_CLASSES, cb.admin("classes"), STYLE_PRIMARY),
+             button(texts.BTN_ADMIN_PLANS, cb.admin("plans"), STYLE_PRIMARY)],
+            [button(texts.BTN_ADMIN_STUDENTS, cb.admin("students"), STYLE_SUCCESS)],
+            [button(texts.BTN_ADMIN_COURSES, cb.admin("courses")),
+             button(texts.BTN_ADMIN_ATTENDANCE, cb.admin("attend"))],
+            [button(texts.BTN_ADMIN_PAYMENTS, cb.admin("pay")),
+             button(texts.BTN_ADMIN_NOTIFY, cb.admin("notify"))],
+            [button(texts.BTN_ADMIN_SETTINGS, cb.admin("settings")),
+             button(texts.BTN_ADMIN_START, cb.admin("start"))],
             [button(texts.BTN_ADMIN_EXIT, cb.HOME, STYLE_DANGER)],
         ]
     )

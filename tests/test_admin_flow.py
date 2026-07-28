@@ -9,6 +9,7 @@ from datetime import date
 from sqlalchemy import func, select
 
 from app.bots.common import callbacks as cb
+from app.bots.common import grid
 from app.copy import admin_texts as A
 from app.copy import texts
 from app.models import Course, Notification, Payment, PaymentKind, Person, Platform, Role
@@ -18,6 +19,7 @@ from app.services import courses as courses_service
 from app.services import identities as identities_service
 from app.services import payments as payments_service
 from app.services import persons as persons_service
+from app.services import schedule as schedule_service
 from app.services import settings as settings_service
 from tests.fakes import (
     button_texts,
@@ -85,18 +87,23 @@ def test_admin_create_course_then_record_attendance(db):
     disp.handle_update(message_update(5, CHAT, OWNER, "0"))          # gym fee
     disp.handle_update(message_update(6, CHAT, OWNER, "2"))          # allowed absence
     disp.handle_update(message_update(7, CHAT, OWNER, "1405/04/28"))  # start (Jalali)
+    # Weekly pattern: pre-selected with the start date's weekday, plus چهارشنبه.
+    disp.handle_update(callback_update(8, CHAT, OWNER, "a:courses:wd:4"))
+    disp.handle_update(callback_update(9, CHAT, OWNER, "a:courses:wd_done"))
     db.expire_all()
 
     course = courses_service.list_courses(db, client_id=student.id)[0]
     assert course.sessions_total == 8
     assert course.tuition == 1_000_000
     assert course.allowed_absence == 2
+    assert 4 in schedule_service.parse_weekdays(course.weekdays)
 
-    # Attendance: course → date → outcome PRESENT → skip note.
-    disp.handle_update(callback_update(8, CHAT, OWNER, f"a:attend:course:{course.id}"))
-    disp.handle_update(message_update(9, CHAT, OWNER, "1405/04/29"))
-    disp.handle_update(callback_update(10, CHAT, OWNER, "a:attend:outcome:PRESENT"))
-    disp.handle_update(callback_update(11, CHAT, OWNER, "a:attend:note_skip"))
+    # Attendance via the session grid: open the grid, tap a row, pick ✅ حاضر.
+    disp.handle_update(callback_update(10, CHAT, OWNER, f"a:attend:course:{course.id}"))
+    first = schedule_service.build(db, course)[0]
+    token = grid.date_token(first.date)
+    disp.handle_update(callback_update(11, CHAT, OWNER, f"a:attend:slot:{course.id}:{token}"))
+    disp.handle_update(callback_update(12, CHAT, OWNER, f"a:attend:set:{course.id}:{token}:P"))
     db.expire_all()
 
     assert courses_service.consumed_sessions(db, course.id) == 1

@@ -51,6 +51,15 @@ def prompt(req: AdminReq, text: str, step: str, data: dict | None = None,
     req.ctx.send(req.chat_id, text, keyboard)
 
 
+def prompt_show(req: AdminReq, text: str, step: str, data: dict | None = None,
+                keyboard: dict | None = None) -> None:
+    """Like :func:`prompt`, but render in place — for keyboards the admin keeps
+    tapping (multi-select), so the screen updates instead of piling up."""
+    state = ChatState(flow="admin", step=step, data=data or {})
+    req.store.set(req.ctx.platform, req.chat_id, state)
+    req.ctx.show(req.chat_id, text, keyboard, req.message_id)
+
+
 def clear(req: AdminReq) -> None:
     req.store.clear(req.ctx.platform, req.chat_id)
 
@@ -61,8 +70,13 @@ def clear(req: AdminReq) -> None:
 _STYLE_DANGER = "danger"  # red — for back/home navigation buttons (stripped on Bale)
 
 
+def cb_data(*parts: object) -> str:
+    """The raw admin callback string, for keyboards built outside this module."""
+    return cb.admin(*parts)
+
+
 def button(text: str, *parts: object, style: str | None = None) -> dict:
-    btn = {"text": text, "callback_data": cb.admin(*parts)}
+    btn = {"text": text, "callback_data": cb_data(*parts)}
     if style:
         btn["style"] = style
     return btn

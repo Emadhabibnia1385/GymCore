@@ -37,6 +37,10 @@ class Course(Base):
     # Client declared upcoming travel/leave (affects coach planning, not billing).
     travel_declared: Mapped[bool] = mapped_column(default=False)
     start_date: Mapped[date] = mapped_column(Date)
+    # Weekly training pattern as Persian weekday indexes, e.g. "0,2,4" =
+    # شنبه/دوشنبه/چهارشنبه. Drives the derived session grid (services/schedule.py);
+    # empty falls back to the start date's weekday.
+    weekdays: Mapped[str | None] = mapped_column(String(20))
     status: Mapped[CourseStatus] = mapped_column(
         Enum(CourseStatus), default=CourseStatus.ACTIVE, index=True
     )

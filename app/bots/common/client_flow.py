@@ -32,6 +32,7 @@ from app.services import contact_links as contact_links_service
 from app.services import courses as courses_service
 from app.services import identities as identities_service
 from app.services import plans as plans_service
+from app.services import schedule as schedule_service
 from app.services import settings as settings_service
 
 logger = logging.getLogger(__name__)
@@ -203,7 +204,36 @@ def course_detail(
         ctx.show(chat_id, texts.NOT_FOUND, keyboards.back_to_menu(), message_id)
         return
     body = formatting.format_course_detail(db, course)
-    ctx.show(chat_id, body, keyboards.course_detail_nav(), message_id)
+    ctx.show(chat_id, body, keyboards.course_detail_nav(course.id), message_id)
+
+
+def course_schedule(
+    ctx: BotContext,
+    db: Session,
+    chat_id: object,
+    person: Person,
+    course_id: int,
+    page: int,
+    message_id: int | None,
+) -> None:
+    """«جدول جلسات» — the same grid the coach uses, read-only for the client."""
+    from app.bots.common import grid
+
+    course = courses_service.get(db, course_id)
+    if course.client_id != person.id:  # authorization: clients see only their own
+        ctx.show(chat_id, texts.NOT_FOUND, keyboards.back_to_menu(), message_id)
+        return
+    slots = schedule_service.build(db, course)
+    if not slots:
+        ctx.show(chat_id, texts.GRID_EMPTY, keyboards.course_detail_nav(course.id), message_id)
+        return
+    visible, page, pages = grid.page_slice(slots, page)
+    body = (
+        f"{grid.header(db, course, page, pages, for_admin=False)}"
+        f"\n\n{texts.GRID_HINT_CLIENT}"
+    )
+    keyboard = keyboards.session_grid(grid.client_rows(visible), course.id, page, pages)
+    ctx.show(chat_id, body, keyboard, message_id)
 
 
 def my_programs(
@@ -295,6 +325,12 @@ def route(
             course_detail(ctx, db, chat_id, person, course_id, message_id)
         else:
             my_courses(ctx, db, chat_id, person, message_id)
+    elif action == cb.SCHEDULE:
+        course_id, page = cb.parse_pair(rest)
+        if course_id is None:
+            my_courses(ctx, db, chat_id, person, message_id)
+        else:
+            course_schedule(ctx, db, chat_id, person, course_id, page, message_id)
     elif action == cb.PROGRAMS:
         assignment_id = cb.parse_int(rest)
         if assignment_id is not None:

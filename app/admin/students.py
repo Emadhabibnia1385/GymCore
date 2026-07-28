@@ -5,11 +5,15 @@ from __future__ import annotations
 from app.admin import common
 from app.admin.common import AdminReq
 from app.copy import admin_texts as A
+from app.copy import texts
 from app.models import Role
 from app.repositories.pagination import paginate
+from app.services import courses as courses_service
 from app.services import persons as persons_service
+from app.services import schedule as schedule_service
 
 _PER_PAGE = 6
+_PLATFORM_LABELS = {"TELEGRAM": "تلگرام", "BALE": "بله"}
 
 
 def handle_callback(req: AdminReq, args: str) -> None:
@@ -37,6 +41,10 @@ def handle_callback(req: AdminReq, args: str) -> None:
                 common.button(A.CANCEL, "students", "view", person.id),
             ]]),
         )
+    elif action == "toggle" and rest.isdigit():
+        person = persons_service.get(req.db, int(rest))
+        persons_service.set_active(req.db, person.id, not person.is_active)
+        _profile(req, person.id)
     elif action == "del" and rest.isdigit():
         persons_service.delete(req.db, int(rest))
         _list(req)
@@ -92,14 +100,55 @@ def _list(req: AdminReq, page: int = 1, query: str | None = None) -> None:
 
 
 def _profile(req: AdminReq, person_id: int) -> None:
+    """That student's own menu — the hub every per-student action hangs off.
+
+    The primary action is always on top: the session grid when the student has
+    an active course, otherwise «دوره جدید» to give them one.
+    """
     person = persons_service.get(req.db, person_id)
-    body = f"👤 {person.name}\n{A.LABEL_PHONE}: {person.phone or '-'}"
-    rows = [
-        [common.button(A.BTN_COURSES, "courses", "client", person.id),
-         common.button(A.BTN_PROGRAMS, "plans", "client", person.id)],
-        [common.button(A.BTN_ATTENDANCE, "attend", "client", person.id),
-         common.button(A.BTN_PAYMENTS, "pay", "client", person.id)],
-        [common.button(A.BTN_DELETE_STUDENT, "students", "del_confirm", person.id)],
-        [common.button(A.BACK, "students")],
+    active = courses_service.active_course(req.db, person.id)
+
+    lines = [
+        f"👤 {person.name}",
+        f"{A.LABEL_PHONE}: {person.phone or '-'}",
+        f"{A.LABEL_STATUS}: {A.LABEL_ACTIVE if person.is_active else A.LABEL_INACTIVE}",
     ]
-    common.render(req, body, common.inline(rows))
+    platforms = sorted({identity.platform.value for identity in person.identities})
+    if platforms:
+        linked = "، ".join(_PLATFORM_LABELS.get(p, p) for p in platforms)
+        lines.append(f"{A.LABEL_LINKED}: {linked}")
+    lines.append("")
+    if active is not None:
+        consumed = courses_service.consumed_sessions(req.db, active.id)
+        lines.append(f"📚 {A.LABEL_ACTIVE_COURSE}: {active.class_type.title}")
+        lines.append(f"🟢 {A.LABEL_SESSIONS}: {consumed}/{active.sessions_total}")
+        lines.append(
+            f"🗓 {texts.LABEL_TRAINING_DAYS}: {schedule_service.weekdays_label(active.weekdays)}"
+        )
+    else:
+        lines.append(f"📚 {A.NO_ACTIVE_COURSE}")
+    lines.append("")
+    lines.append(A.STUDENT_MENU_HINT)
+
+    rows: list[list[dict]] = []
+    if active is not None:
+        rows.append([common.button(A.BTN_STUDENT_GRID, "attend", "course", active.id)])
+    else:
+        rows.append([common.button(A.BTN_NEW_COURSE_FOR, "courses", "new", person.id)])
+    rows.append([
+        common.button(A.BTN_COURSES, "courses", "client", person.id),
+        common.button(A.BTN_PROGRAMS, "plans", "client", person.id),
+    ])
+    rows.append([
+        common.button(A.BTN_PAYMENTS, "pay", "client", person.id),
+        common.button(A.BTN_ATTENDANCE, "attend", "client", person.id),
+    ])
+    rows.append([
+        common.button(
+            A.BTN_PAUSE if person.is_active else A.BTN_ACTIVATE,
+            "students", "toggle", person.id,
+        ),
+        common.button(A.BTN_DELETE_STUDENT, "students", "del_confirm", person.id),
+    ])
+    rows.append([common.button(A.BACK, "students")])
+    common.render(req, "\n".join(lines), common.inline(rows))

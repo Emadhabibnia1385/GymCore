@@ -39,10 +39,6 @@ def status_label(status: AttendanceStatus) -> str:
     return _STATUS_LABELS[status]
 
 
-def all_statuses() -> list[AttendanceStatus]:
-    return list(_STATUS_LABELS)
-
-
 def list_for_course(db: Session, course_id: int) -> list[AttendanceEvent]:
     return list(
         db.scalars(

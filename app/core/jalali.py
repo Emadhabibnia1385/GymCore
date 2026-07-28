@@ -88,6 +88,22 @@ def format_jalali(value: date | datetime | None) -> str:
     return f"{jy}/{jm:02d}/{jd:02d}"
 
 
+JALALI_MONTHS = (
+    "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
+    "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند",
+)
+
+
+def format_jalali_short(value: date | datetime | None) -> str:
+    """Format a date as `28 تیر` — compact enough for a grid button cell."""
+    if value is None:
+        return "-"
+    if isinstance(value, datetime):
+        value = value.date()
+    _, jm, jd = gregorian_to_jalali(value.year, value.month, value.day)
+    return f"{jd} {JALALI_MONTHS[jm - 1]}"
+
+
 def parse_jalali(raw: str) -> date | None:
     """Parse `1404/04/28` (accepts Persian digits and `-`/`.` separators).
 

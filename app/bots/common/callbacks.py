@@ -21,11 +21,23 @@ COURSES = "crs"
 PROGRAMS = "prg"
 CONTACT = "con"
 ADMIN = "adm"
+SCHEDULE = "sch"
 NOOP = "noop"
 
 
 def course(course_id: int) -> str:
     return f"{COURSES}{SEP}{course_id}"
+
+
+def schedule(course_id: int, page: int = 1) -> str:
+    """The client's read-only session grid, e.g. 'sch:12:2'."""
+    return f"{SCHEDULE}{SEP}{course_id}{SEP}{page}"
+
+
+def parse_pair(rest: str | None) -> tuple[int | None, int]:
+    """Split `<id>[:<page>]` into a validated id and a page (default 1)."""
+    first, _, second = (rest or "").partition(SEP)
+    return parse_int(first or None), (parse_int(second or None) or 1)
 
 
 def program(assignment_id: int) -> str:

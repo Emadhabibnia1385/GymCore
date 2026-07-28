@@ -76,6 +76,15 @@ LABEL_OUTSTANDING = "باقی‌مانده"
 NO_ATTENDANCE_YET = "هنوز جلسه‌ای ثبت نشده است."
 TOMAN = "تومان"
 
+# --- Session grid (shared by the client view and the admin panel) ---
+GRID_TITLE = "📋 جدول جلسات"
+BTN_SCHEDULE = "📋 جدول جلسات"
+LABEL_TRAINING_DAYS = "روزهای کلاس"
+LABEL_UNAUTHORIZED = "غیبت غیرمجاز"
+GRID_PAGE = "صفحه {page} از {pages}"
+GRID_EMPTY = "هنوز برنامه‌ی جلسات برای این دوره تنظیم نشده است."
+GRID_HINT_CLIENT = "جلسه‌های پیشِ رو و وضعیت هر جلسه 👇"
+
 COURSE_STATUS_LABELS = {
     "ACTIVE": "🟢 فعال",
     "FINISHED": "✅ پایان‌یافته",
