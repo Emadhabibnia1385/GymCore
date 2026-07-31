@@ -243,12 +243,13 @@ def test_date_token_rejects_tampered_values():
 # --- admin panel wiring ---
 
 
-def test_admin_menu_puts_classes_and_programs_on_top_then_students(db):
+def test_admin_menu_classes_then_students_no_programs(db):
     disp, client = make_dispatcher()
     disp.handle_update(callback_update(1, CHAT, OWNER, cb.ADMIN))
-    rows = last_markup(client)["inline_keyboard"]
-    assert [b["text"] for b in rows[0]] == [texts.BTN_ADMIN_CLASSES, texts.BTN_ADMIN_PLANS]
-    assert [b["text"] for b in rows[1]] == [texts.BTN_ADMIN_STUDENTS]
+    labels = [b["text"] for row in last_markup(client)["inline_keyboard"] for b in row]
+    assert labels[0] == texts.BTN_ADMIN_CLASSES
+    assert labels[1] == texts.BTN_ADMIN_STUDENTS
+    assert texts.BTN_ADMIN_PLANS not in labels  # «مدیریت برنامه‌ها» removed from the menu
 
 
 def test_student_profile_is_that_students_menu(db):

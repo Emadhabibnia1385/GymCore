@@ -7,7 +7,6 @@ from app.admin.common import AdminReq
 from app.copy import admin_texts as A
 from app.copy import texts
 from app.models import Role
-from app.repositories.pagination import paginate
 from app.services import courses as courses_service
 from app.services import persons as persons_service
 from app.services import schedule as schedule_service
@@ -81,21 +80,37 @@ def _create(req: AdminReq, name: str | None, phone: str | None) -> None:
 
 
 def _list(req: AdminReq, page: int = 1, query: str | None = None) -> None:
-    stmt = persons_service.search_stmt(Role.CLIENT, query)
-    result = paginate(req.db, stmt, page=page, per_page=_PER_PAGE)
+    clients = list(req.db.scalars(persons_service.search_stmt(Role.CLIENT, query)))
+    # Each student carries their active course's remaining sessions; the list is
+    # sorted by that ascending (fewest first) so who needs a renewal is on top.
+    enriched = []
+    for person in clients:
+        active = courses_service.active_course(req.db, person.id)
+        remaining = courses_service.remaining_sessions(req.db, active) if active else None
+        enriched.append((person, remaining))
+    enriched.sort(key=lambda pr: (pr[1] is None, pr[1] if pr[1] is not None else 0))
+
+    pages = max((len(enriched) + _PER_PAGE - 1) // _PER_PAGE, 1)
+    page = max(min(page, pages), 1)
+    window = enriched[(page - 1) * _PER_PAGE: page * _PER_PAGE]
+
     top = [[
         common.button(A.BTN_NEW_STUDENT, "students", "new"),
         common.button(A.BTN_SEARCH, "students", "search"),
     ]]
-    item_rows = [
-        [common.button(f"{'' if p.is_active else '⏸ '}{p.name}", "students", "view", p.id)]
-        for p in result.items
-    ]
-    if result.items:
+    item_rows = []
+    for person, remaining in window:
+        name = f"{'' if person.is_active else '⏸ '}{person.name}"
+        sessions = f"🟢 {remaining} جلسه" if remaining is not None else "— بدون دوره"
+        item_rows.append([
+            common.button(name, "students", "view", person.id),
+            common.button(sessions, "students", "view", person.id),
+        ])
+    if enriched:
         body = f"{A.STUDENTS_TITLE}\n{A.STUDENTS_HINT}"
     else:
         body = f"{A.STUDENTS_TITLE}\n\n{A.NO_STUDENTS if not query else A.NOTHING}"
-    keyboard = common.pager(top + item_rows, result.page, result.pages, ("students",))
+    keyboard = common.pager(top + item_rows, page, pages, ("students",))
     common.render(req, body, keyboard)
 
 

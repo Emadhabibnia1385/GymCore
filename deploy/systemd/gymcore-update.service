@@ -1,0 +1,9 @@
+[Unit]
+Description=GymCore auto-update (pull from GitHub + reinstall if changed)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Runs as root — it invokes install.sh (systemctl restart, migrations, etc.).
+ExecStart=/opt/gymcore/autoupdate.sh

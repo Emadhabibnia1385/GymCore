@@ -16,10 +16,29 @@ APP_USER=gymcore
 APP_DIR=/opt/gymcore
 DEFAULT_PORT=8815
 SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_URL="https://github.com/Emadhabibnia1385/GymCore.git"
+SRC_REPO=/opt/gymcore-src   # source clone the auto-updater pulls into
 
 green() { printf '\033[0;32m%s\033[0m\n' "$1"; }
 warn()  { printf '\033[0;33m%s\033[0m\n' "$1"; }
 err()   { printf '\033[0;31m%s\033[0m\n' "$1" >&2; }
+
+setup_autoupdate() {
+  green "==> Enabling auto-update (checks GitHub every minute)..."
+  command -v git >/dev/null 2>&1 || apt-get install -y git
+  [ -d "$SRC_REPO/.git" ] || git clone --depth 20 "$REPO_URL" "$SRC_REPO"
+  install -m 0755 "$APP_DIR/deploy/autoupdate.sh" "$APP_DIR/autoupdate.sh"
+  install -m 0644 "$APP_DIR/deploy/systemd/gymcore-update.service" /etc/systemd/system/
+  install -m 0644 "$APP_DIR/deploy/systemd/gymcore-update.timer"   /etc/systemd/system/
+  systemctl daemon-reload
+  systemctl enable --now gymcore-update.timer
+  green "==> Auto-update ON.  status: systemctl status gymcore-update.timer"
+}
+
+disable_autoupdate() {
+  systemctl disable --now gymcore-update.timer >/dev/null 2>&1 || true
+  green "==> Auto-update OFF."
+}
 
 [[ $EUID -eq 0 ]] || { err "Run as root:  sudo bash install.sh"; exit 1; }
 command -v apt-get >/dev/null 2>&1 || { err "This installer supports Debian/Ubuntu (apt)."; exit 1; }
@@ -124,6 +143,16 @@ done
 if [[ -f "$SRC_DIR/gymcore.sh" ]]; then
   install -m 0755 "$SRC_DIR/gymcore.sh" /usr/local/bin/gymcore
   green "==> Installed the 'gymcore' command — run 'sudo gymcore' for the menu."
+fi
+
+# --- auto-update (interactive only; the auto-update run itself has no tty) ---
+if [ -t 0 ]; then
+  if systemctl is-enabled --quiet gymcore-update.timer 2>/dev/null; then
+    green "==> Auto-update is already ON."
+  else
+    read -r -p "Enable auto-update? (check GitHub every minute & apply) [y/N] " au || true
+    [[ "${au:-N}" =~ ^[Yy]$ ]] && setup_autoupdate
+  fi
 fi
 
 # --- 9. summary ---

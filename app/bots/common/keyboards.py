@@ -182,8 +182,7 @@ def admin_menu() -> dict:
     """
     return _inline(
         [
-            [button(texts.BTN_ADMIN_CLASSES, cb.admin("classes"), STYLE_PRIMARY),
-             button(texts.BTN_ADMIN_PLANS, cb.admin("plans"), STYLE_PRIMARY)],
+            [button(texts.BTN_ADMIN_CLASSES, cb.admin("classes"), STYLE_PRIMARY)],
             [button(texts.BTN_ADMIN_STUDENTS, cb.admin("students"), STYLE_SUCCESS)],
             [button(texts.BTN_ADMIN_COURSES, cb.admin("courses")),
              button(texts.BTN_ADMIN_ATTENDANCE, cb.admin("attend"))],

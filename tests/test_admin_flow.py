@@ -45,10 +45,11 @@ def test_admin_panel_lists_all_sections(db):
     labels = button_texts(last_markup(client))
     for expected in (
         texts.BTN_ADMIN_STUDENTS, texts.BTN_ADMIN_CLASSES, texts.BTN_ADMIN_COURSES,
-        texts.BTN_ADMIN_ATTENDANCE, texts.BTN_ADMIN_PLANS, texts.BTN_ADMIN_PAYMENTS,
+        texts.BTN_ADMIN_ATTENDANCE, texts.BTN_ADMIN_PAYMENTS,
         texts.BTN_ADMIN_NOTIFY, texts.BTN_ADMIN_SETTINGS, texts.BTN_ADMIN_START,
     ):
         assert expected in labels
+    assert texts.BTN_ADMIN_PLANS not in labels  # «مدیریت برنامه‌ها» removed
 
 
 def test_admin_create_student(db):
@@ -163,6 +164,23 @@ def test_admin_set_start_poster(db):
     db.expire_all()
     key = settings_service.start_poster_key(Platform.TELEGRAM)
     assert settings_service.get_value(db, key) == "POSTER123"
+
+
+def test_students_list_two_buttons_sorted_by_remaining(db):
+    disp, client = make_dispatcher()
+    class_type = classes_service.list_class_types(db, only_active=True)[0]
+    five = persons_service.create(db, name="پنج‌جلسه", role=Role.CLIENT)
+    courses_service.create(db, client_id=five.id, class_type_id=class_type.id, sessions_total=5)
+    two = persons_service.create(db, name="دوجلسه", role=Role.CLIENT)
+    courses_service.create(db, client_id=two.id, class_type_id=class_type.id, sessions_total=2)
+
+    disp.handle_update(callback_update(1, CHAT, OWNER, "a:students"))
+    rows = last_markup(client)["inline_keyboard"]
+    student_rows = [r for r in rows if len(r) == 2 and "جلسه" in r[1]["text"]]
+    names = [r[0]["text"] for r in student_rows]
+    assert names.index("دوجلسه") < names.index("پنج‌جلسه")  # fewer remaining first
+    two_row = next(r for r in student_rows if r[0]["text"] == "دوجلسه")
+    assert "2" in two_row[1]["text"]  # remaining-sessions button shows the count
 
 
 def test_admin_delete_student_cascades(db):

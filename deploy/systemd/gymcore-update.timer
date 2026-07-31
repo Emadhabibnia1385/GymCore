@@ -1,0 +1,10 @@
+[Unit]
+Description=GymCore auto-update timer (checks GitHub every minute)
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1min
+Unit=gymcore-update.service
+
+[Install]
+WantedBy=timers.target
