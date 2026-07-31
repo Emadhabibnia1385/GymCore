@@ -32,6 +32,7 @@ def format_course_detail(db: Session, course: Course) -> str:
         f"{texts.LABEL_STATUS}: {course_status_label(course.status)}",
         f"{texts.LABEL_START}: {format_jalali(course.start_date)}",
         f"{texts.LABEL_TRAINING_DAYS}: {schedule_service.weekdays_label(course.weekdays)}",
+        f"{texts.LABEL_CLASS_TIME}: {course.class_time or '-'}",
         f"{texts.LABEL_TOTAL}: {course.sessions_total}",
         f"{texts.LABEL_CONSUMED}: {consumed}",
         f"{texts.LABEL_REMAINING}: 🟢 {remaining}",

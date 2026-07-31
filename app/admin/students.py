@@ -8,6 +8,7 @@ from app.copy import admin_texts as A
 from app.copy import texts
 from app.models import Role
 from app.services import courses as courses_service
+from app.services import notifications as notify_service
 from app.services import persons as persons_service
 from app.services import schedule as schedule_service
 
@@ -40,6 +41,13 @@ def handle_callback(req: AdminReq, args: str) -> None:
                 common.button(A.CANCEL, "students", "view", person.id),
             ]]),
         )
+    elif action == "msg" and rest.isdigit():
+        person = persons_service.get(req.db, int(rest))
+        if not person.identities:
+            common.send(req, A.STUDENT_NO_ACCOUNT)
+            _profile(req, person.id)
+        else:
+            common.prompt(req, A.ASK_STUDENT_MESSAGE, f"students:msg:{person.id}", {})
     elif action == "toggle" and rest.isdigit():
         person = persons_service.get(req.db, int(rest))
         persons_service.set_active(req.db, person.id, not person.is_active)
@@ -65,6 +73,18 @@ def handle_message(req: AdminReq, message: dict, substep: str, state) -> None:
         _create(req, state.data.get("name"), text or None)
     elif substep == "search":
         _list(req, page=1, query=text)
+    elif substep.startswith("msg:"):
+        _, _, id_str = substep.partition(":")
+        if not id_str.isdigit():
+            common.clear(req)
+            _list(req)
+            return
+        if text:
+            person = persons_service.get(req.db, int(id_str))
+            notify_service.notify_person(req.db, person, f"💬 پیام از مربی:\n{text}")
+            common.send(req, A.MESSAGE_SENT)
+        common.clear(req)
+        _profile(req, int(id_str))
     else:
         common.clear(req)
         _list(req)
@@ -140,6 +160,7 @@ def _profile(req: AdminReq, person_id: int) -> None:
         lines.append(
             f"🗓 {texts.LABEL_TRAINING_DAYS}: {schedule_service.weekdays_label(active.weekdays)}"
         )
+        lines.append(f"🕐 {texts.LABEL_CLASS_TIME}: {active.class_time or '-'}")
     else:
         lines.append(f"📚 {A.NO_ACTIVE_COURSE}")
     lines.append("")
@@ -158,6 +179,7 @@ def _profile(req: AdminReq, person_id: int) -> None:
         common.button(A.BTN_PAYMENTS, "pay", "client", person.id),
         common.button(A.BTN_ATTENDANCE, "attend", "client", person.id),
     ])
+    rows.append([common.button(A.BTN_SEND_MESSAGE, "students", "msg", person.id)])
     rows.append([
         common.button(
             A.BTN_PAUSE if person.is_active else A.BTN_ACTIVATE,

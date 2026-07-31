@@ -37,6 +37,14 @@ def handle_callback(req: AdminReq, args: str) -> None:
             _view(req, int(course_id))
     elif action == "renew" and rest.isdigit():
         common.prompt(req, A.ASK_RENEW_SESSIONS, "courses:renew", {"course_id": int(rest)})
+    elif action == "time_skip":
+        state = req.store.get(req.ctx.platform, req.chat_id)
+        data = state.data if state else {}
+        data["class_time"] = None
+        if data.get("start_date"):
+            start = date.fromisoformat(data["start_date"])
+            data["days"] = [schedule_service.persian_weekday(start)]
+        _ask_weekdays(req, data)
     elif action == "wd" and rest.isdigit():
         _toggle_weekday(req, int(rest))
     elif action == "wd_done":
@@ -96,9 +104,12 @@ def handle_message(req: AdminReq, message: dict, substep: str, state) -> None:
             common.prompt(req, A.INVALID_DATE, "courses:start", data)
             return
         data["start_date"] = start.isoformat()
-        # Last step: the weekly pattern the session grid is generated from,
-        # pre-selected with the start date's own weekday.
-        data["days"] = [schedule_service.persian_weekday(start)]
+        common.prompt(req, A.ASK_COURSE_TIME, "courses:time", data,
+                      keyboard=common.skip_keyboard(("courses", "time_skip")))
+    elif substep == "time":
+        data["class_time"] = text or None
+        # Then the weekly pattern (session grid), pre-selected with the start weekday.
+        data["days"] = [schedule_service.persian_weekday(date.fromisoformat(data["start_date"]))]
         _ask_weekdays(req, data)
     elif substep == "renew":
         count = common.parse_count(text)
@@ -177,6 +188,7 @@ def _finish_weekdays(req: AdminReq) -> None:
         allowed_absence=data["allowed_absence"],
         start_date=date.fromisoformat(data["start_date"]),
         weekdays=weekdays,
+        class_time=data.get("class_time"),
     )
     common.clear(req)
     _view(req, course.id, flash=A.COURSE_CREATED)

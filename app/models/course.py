@@ -41,6 +41,8 @@ class Course(Base):
     # شنبه/دوشنبه/چهارشنبه. Drives the derived session grid (services/schedule.py);
     # empty falls back to the start date's weekday.
     weekdays: Mapped[str | None] = mapped_column(String(20))
+    # Class time as a free-text label, e.g. "18:30" or "۱۸ تا ۲۰".
+    class_time: Mapped[str | None] = mapped_column(String(30))
     status: Mapped[CourseStatus] = mapped_column(
         Enum(CourseStatus), default=CourseStatus.ACTIVE, index=True
     )

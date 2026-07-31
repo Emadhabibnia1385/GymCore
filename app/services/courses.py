@@ -112,6 +112,7 @@ def create(
     allowed_absence: int = 0,
     start_date: date | None = None,
     weekdays: str | None = None,
+    class_time: str | None = None,
     travel_declared: bool = False,
     note: str | None = None,
     _carried_credit: int = 0,
@@ -134,6 +135,7 @@ def create(
         travel_declared=travel_declared,
         start_date=start_date or date.today(),
         weekdays=schedule.format_weekdays(schedule.parse_weekdays(weekdays)) or None,
+        class_time=(class_time or "").strip() or None,
         note=note,
     )
     db.add(course)
@@ -177,6 +179,7 @@ def renew(
     allowed_absence: int | None = None,
     start_date: date | None = None,
     weekdays: str | None = None,
+    class_time: str | None = None,
     carry_credit: bool = True,
     note: str | None = None,
 ) -> Course:
@@ -199,6 +202,7 @@ def renew(
         allowed_absence=allowed_absence,
         start_date=start_date,
         weekdays=weekdays if weekdays is not None else old.weekdays,
+        class_time=class_time if class_time is not None else old.class_time,
         note=note,
         _carried_credit=carried,
     )
