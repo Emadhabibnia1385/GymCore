@@ -77,6 +77,12 @@ BTN_FINISH_COURSE = "✅ پایان دوره"
 BTN_RENEW_COURSE = "🔄 تمدید دوره"
 ASK_RENEW_SESSIONS = "تعداد جلسات دورهٔ جدید را بفرست (عدد):"
 RENEWED = "🟢 دوره تمدید شد و اعتبار باقی‌مانده منتقل شد."
+BTN_DELETE_COURSE = "🗑 حذف دوره"
+CONFIRM_DELETE_COURSE = (
+    "⚠️ دورهٔ «{title}» حذف شود؟\n"
+    "تاریخچهٔ جلسات این دوره پاک می‌شود (پرداخت‌ها حفظ می‌شوند). این کار برگشت‌پذیر نیست."
+)
+COURSE_DELETED = "🗑 دوره حذف شد."
 
 # --- attendance (session grid) ---
 ATTEND_TITLE = "✅ ثبت حضور و غیاب"

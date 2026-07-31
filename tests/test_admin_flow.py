@@ -113,6 +113,31 @@ def test_admin_create_course_then_record_attendance(db):
     assert courses_service.remaining_sessions(db, courses_service.get(db, course.id)) == 7
 
 
+def test_admin_delete_course(db):
+    disp, client = make_dispatcher()
+    student = persons_service.create(db, name="حذف دوره", role=Role.CLIENT)
+    class_type = classes_service.list_class_types(db, only_active=True)[0]
+    course = courses_service.create(
+        db, client_id=student.id, class_type_id=class_type.id, sessions_total=8,
+    )
+    payments_service.record(
+        db, person_id=student.id, amount=200_000, kind=PaymentKind.TUITION,
+        paid_at=date(2026, 7, 1), course_id=course.id, notify=False,
+    )
+    cid = course.id
+
+    # Delete via admin: open confirmation, then confirm.
+    disp.handle_update(callback_update(1, CHAT, OWNER, f"a:courses:del_confirm:{cid}"))
+    disp.handle_update(callback_update(2, CHAT, OWNER, f"a:courses:del:{cid}"))
+    db.expire_all()
+
+    assert db.get(Course, cid) is None
+    # Payment survives as a person-level record; its course link is cleared.
+    payment = db.scalar(select(Payment).where(Payment.person_id == student.id))
+    assert payment is not None
+    assert payment.course_id is None
+
+
 def test_admin_record_payment(db):
     disp, client = make_dispatcher()
     student = persons_service.create(db, name="پرداخت‌کننده", role=Role.CLIENT)

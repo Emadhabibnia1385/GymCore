@@ -13,6 +13,8 @@ from __future__ import annotations
 from datetime import date
 
 from sqlalchemy import Select, select
+from sqlalchemy import delete as sa_delete
+from sqlalchemy import update as sa_update
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.exceptions import NotFoundError, ValidationError
@@ -22,6 +24,7 @@ from app.models import (
     AttendanceStatus,
     Course,
     CourseStatus,
+    Payment,
 )
 from app.services import classes as classes_service
 from app.services import persons as persons_service
@@ -158,6 +161,22 @@ def set_status(db: Session, course_id: int, status: CourseStatus) -> Course:
     db.commit()
     db.refresh(course)
     return course
+
+
+def delete(db: Session, course_id: int) -> int:
+    """Delete a course and its session history.
+
+    Attendance events (course-scoped) are removed; payments are kept as
+    person-level records (their course link is cleared) so money history is
+    never lost. Returns the owning client's id.
+    """
+    course = get(db, course_id)
+    client_id = course.client_id
+    db.execute(sa_delete(AttendanceEvent).where(AttendanceEvent.course_id == course_id))
+    db.execute(sa_update(Payment).where(Payment.course_id == course_id).values(course_id=None))
+    db.delete(course)
+    db.commit()
+    return client_id
 
 
 def finish_if_exhausted(db: Session, course_id: int) -> Course:

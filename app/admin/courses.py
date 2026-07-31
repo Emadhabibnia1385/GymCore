@@ -37,6 +37,19 @@ def handle_callback(req: AdminReq, args: str) -> None:
             _view(req, int(course_id))
     elif action == "renew" and rest.isdigit():
         common.prompt(req, A.ASK_RENEW_SESSIONS, "courses:renew", {"course_id": int(rest)})
+    elif action == "del_confirm" and rest.isdigit():
+        course = courses_service.get(req.db, int(rest))
+        common.render(
+            req,
+            A.CONFIRM_DELETE_COURSE.format(title=course.class_type.title),
+            common.inline([[
+                common.button(A.BTN_YES_DELETE, "courses", "del", course.id),
+                common.button(A.CANCEL, "courses", "view", course.id),
+            ]]),
+        )
+    elif action == "del" and rest.isdigit():
+        client_id = courses_service.delete(req.db, int(rest))
+        _list_for_client(req, client_id, flash=A.COURSE_DELETED)
     elif action == "time_skip":
         state = req.store.get(req.ctx.platform, req.chat_id)
         data = state.data if state else {}
@@ -194,7 +207,7 @@ def _finish_weekdays(req: AdminReq) -> None:
     _view(req, course.id, flash=A.COURSE_CREATED)
 
 
-def _list_for_client(req: AdminReq, client_id: int) -> None:
+def _list_for_client(req: AdminReq, client_id: int, flash: str | None = None) -> None:
     persons_service.get(req.db, client_id)
     items = courses_service.list_courses(req.db, client_id=client_id)
     rows = [
@@ -206,7 +219,8 @@ def _list_for_client(req: AdminReq, client_id: int) -> None:
         for c in items
     ]
     rows.insert(0, [common.button(A.BTN_NEW_COURSE, "courses", "new", client_id)])
-    common.render(req, A.COURSES_TITLE, common.with_back(rows, ("students", "view", client_id)))
+    body = f"{flash}\n\n{A.COURSES_TITLE}" if flash else A.COURSES_TITLE
+    common.render(req, body, common.with_back(rows, ("students", "view", client_id)))
 
 
 def _pick_class(req: AdminReq, client_id: int) -> None:
@@ -238,4 +252,5 @@ def _view(req: AdminReq, course_id: int, flash: str | None = None) -> None:
         common.button(A.BTN_RENEW_COURSE, "courses", "renew", course.id),
         common.button(A.BTN_PAYMENTS, "pay", "course", course.id),
     ])
+    rows.append([common.button(A.BTN_DELETE_COURSE, "courses", "del_confirm", course.id)])
     common.render(req, body, common.with_back(rows, ("courses", "client", course.client_id)))
