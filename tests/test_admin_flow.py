@@ -44,12 +44,12 @@ def test_admin_panel_lists_all_sections(db):
     disp.handle_update(callback_update(1, CHAT, OWNER, cb.ADMIN))
     labels = button_texts(last_markup(client))
     for expected in (
-        texts.BTN_ADMIN_STUDENTS, texts.BTN_ADMIN_CLASSES, texts.BTN_ADMIN_COURSES,
+        texts.BTN_ADMIN_STUDENTS, texts.BTN_ADMIN_CLASSES, texts.BTN_ADMIN_PLANS,
         texts.BTN_ADMIN_ATTENDANCE, texts.BTN_ADMIN_PAYMENTS,
         texts.BTN_ADMIN_NOTIFY, texts.BTN_ADMIN_SETTINGS, texts.BTN_ADMIN_START,
     ):
         assert expected in labels
-    assert texts.BTN_ADMIN_PLANS not in labels  # «مدیریت برنامه‌ها» removed
+    assert texts.BTN_ADMIN_COURSES not in labels  # «مدیریت دوره‌ها» removed (empty)
 
 
 def test_admin_create_student(db):
