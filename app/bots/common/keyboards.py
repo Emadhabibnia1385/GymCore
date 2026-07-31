@@ -127,11 +127,19 @@ def order_prompt(signup_url: str) -> dict:
 
 
 def course_list(items: list[tuple[int, str, int]]) -> dict:
-    """items: (course_id, class_title, remaining_sessions)."""
-    rows = [
-        [button(f"🟢 {title} | {remaining} جلسه باقی‌مانده", cb.course(course_id))]
-        for course_id, title, remaining in items
-    ]
+    """items: (course_id, class_title, remaining_sessions).
+
+    Two glass buttons per course — the class name (right) and the remaining
+    sessions (left) — coloured green while sessions remain and red once the
+    course is used up, both opening the same course detail.
+    """
+    rows = []
+    for course_id, title, remaining in items:
+        style = STYLE_SUCCESS if remaining > 0 else STYLE_DANGER
+        rows.append([
+            button(title, cb.course(course_id), style),
+            button(f"{remaining} جلسه", cb.course(course_id), style),
+        ])
     rows.append([_back_home()])
     return _inline(rows)
 

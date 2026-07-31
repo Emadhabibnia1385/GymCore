@@ -231,23 +231,15 @@ def _pick_class(req: AdminReq, client_id: int) -> None:
 
 def _view(req: AdminReq, course_id: int, flash: str | None = None) -> None:
     course = courses_service.get(req.db, course_id)
-    body = formatting.format_course_detail(req.db, course)
+    # Admin has the full session grid one tap away, so the per-date history list
+    # is left out here to keep the course card compact.
+    body = formatting.format_course_detail(req.db, course, show_history=False)
     if flash:
         body = f"{flash}\n\n{body}"
     rows: list[list[dict]] = [[
         common.button(A.BTN_STUDENT_GRID, "attend", "course", course.id),
         common.button(A.BTN_EDIT_WEEKDAYS, "courses", "wdedit", course.id),
     ]]
-    if course.status == CourseStatus.ACTIVE:
-        rows.append([
-            common.button(A.BTN_PAUSE_COURSE, "courses", "status", course.id, "PAUSED"),
-            common.button(A.BTN_FINISH_COURSE, "courses", "status", course.id, "FINISHED"),
-        ])
-    elif course.status == CourseStatus.PAUSED:
-        rows.append([
-            common.button(A.BTN_RESUME_COURSE, "courses", "status", course.id, "ACTIVE"),
-            common.button(A.BTN_FINISH_COURSE, "courses", "status", course.id, "FINISHED"),
-        ])
     rows.append([
         common.button(A.BTN_RENEW_COURSE, "courses", "renew", course.id),
         common.button(A.BTN_PAYMENTS, "pay", "course", course.id),

@@ -171,7 +171,9 @@ def test_my_courses_list_and_detail_derive_remaining(db):
 
     client.sent.clear()
     disp.handle_update(callback_update(2, 500, 700, cb.COURSES))
-    assert any("جلسه باقی‌مانده" in label for label in button_texts(last_markup(client)))
+    labels = button_texts(last_markup(client))
+    assert class_type.title in labels          # class-name button (right)
+    assert "7 جلسه" in labels                  # remaining-sessions button (left), 8 − 1
 
     client.sent.clear()
     disp.handle_update(callback_update(3, 500, 700, cb.course(course.id)))

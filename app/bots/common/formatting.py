@@ -21,7 +21,7 @@ def course_status_label(status: CourseStatus) -> str:
     return texts.COURSE_STATUS_LABELS.get(status.value, status.value)
 
 
-def format_course_detail(db: Session, course: Course) -> str:
+def format_course_detail(db: Session, course: Course, show_history: bool = True) -> str:
     consumed = courses_service.consumed_sessions(db, course.id)
     remaining = courses_service.remaining_sessions(db, course)
     allowed_used = courses_service.allowed_absence_used(db, course.id)
@@ -37,18 +37,20 @@ def format_course_detail(db: Session, course: Course) -> str:
         f"{texts.LABEL_CONSUMED}: {consumed}",
         f"{texts.LABEL_REMAINING}: 🟢 {remaining}",
         f"{texts.LABEL_ALLOWED_ABSENCE}: {allowed_used}/{course.allowed_absence}",
-        "",
-        f"— {texts.LABEL_ATTENDANCE_HISTORY} —",
     ]
-    # Client view shows one line per session date with its current (effective)
-    # outcome; corrections are reflected, raw duplicates are not.
-    effective = courses_service.effective_status_map(db, course.id)
-    if effective:
-        for session_date in sorted(effective):
-            label = attendance_service.status_label(effective[session_date])
-            lines.append(f"{format_jalali(session_date)} — {label}")
-    else:
-        lines.append(texts.NO_ATTENDANCE_YET)
+    # The attendance history is one line per session date (corrections reflected,
+    # raw duplicates are not). The admin has the full session grid one tap away,
+    # so it's shown only in the client's own view.
+    if show_history:
+        lines.append("")
+        lines.append(f"— {texts.LABEL_ATTENDANCE_HISTORY} —")
+        effective = courses_service.effective_status_map(db, course.id)
+        if effective:
+            for session_date in sorted(effective):
+                label = attendance_service.status_label(effective[session_date])
+                lines.append(f"{format_jalali(session_date)} — {label}")
+        else:
+            lines.append(texts.NO_ATTENDANCE_YET)
 
     lines.append("")
     lines.append(f"— {texts.LABEL_FINANCIAL} —")
