@@ -259,8 +259,11 @@ def test_student_profile_is_that_students_menu(db):
     disp.handle_update(callback_update(1, CHAT, OWNER, f"a:students:view:{student.id}"))
     labels = button_texts(last_markup(client))
     assert A.BTN_STUDENT_GRID in labels  # active course → grid is the primary action
-    for expected in (A.BTN_COURSES, A.BTN_PROGRAMS, A.BTN_PAYMENTS, A.BTN_ATTENDANCE):
+    for expected in (A.BTN_COURSES, A.BTN_PROGRAMS, A.BTN_PAYMENTS):
         assert expected in labels
+    # «حضور و غیاب» is the same screen as «جدول جلسات» — only the grid stays.
+    assert A.BTN_ATTENDANCE not in labels
+    assert A.BTN_PAUSE not in labels  # student deactivation removed
     assert "شاگرد منو" in last_text(client)
 
 
@@ -271,17 +274,6 @@ def test_student_without_a_course_is_offered_one(db):
     labels = button_texts(last_markup(client))
     assert A.BTN_NEW_COURSE_FOR in labels
     assert A.NO_ACTIVE_COURSE in last_text(client)
-
-
-def test_admin_toggles_student_active_state(db):
-    disp, client = make_dispatcher()
-    student, _ = _course(db, name="شاگرد توقف")
-    disp.handle_update(callback_update(1, CHAT, OWNER, f"a:students:toggle:{student.id}"))
-    db.expire_all()
-    assert persons_service.get(db, student.id).is_active is False
-    disp.handle_update(callback_update(2, CHAT, OWNER, f"a:students:toggle:{student.id}"))
-    db.expire_all()
-    assert persons_service.get(db, student.id).is_active is True
 
 
 def test_admin_records_an_allowed_absence_from_the_grid(db):
@@ -336,7 +328,8 @@ def test_exhausted_course_reports_on_the_grid_instead_of_erroring(db):
     slots = schedule_service.build(db, course)
     _record(db, course.id, slots[0].date, AttendanceStatus.PRESENT)  # auto-finishes
 
-    token = grid.date_token(date(2026, 8, 5))
+    # A non-future date so the guard passes and the finished-course notice shows.
+    token = grid.date_token(date.today())
     disp.handle_update(callback_update(1, CHAT, OWNER, f"a:attend:set:{course.id}:{token}:P"))
     body = last_text(client)
     assert "⚠️" in body

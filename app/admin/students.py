@@ -48,10 +48,6 @@ def handle_callback(req: AdminReq, args: str) -> None:
             _profile(req, person.id)
         else:
             common.prompt(req, A.ASK_STUDENT_MESSAGE, f"students:msg:{person.id}", {})
-    elif action == "toggle" and rest.isdigit():
-        person = persons_service.get(req.db, int(rest))
-        persons_service.set_active(req.db, person.id, not person.is_active)
-        _profile(req, person.id)
     elif action == "del" and rest.isdigit():
         persons_service.delete(req.db, int(rest))
         _list(req)
@@ -177,15 +173,8 @@ def _profile(req: AdminReq, person_id: int) -> None:
     ])
     rows.append([
         common.button(A.BTN_PAYMENTS, "pay", "client", person.id),
-        common.button(A.BTN_ATTENDANCE, "attend", "client", person.id),
+        common.button(A.BTN_SEND_MESSAGE, "students", "msg", person.id),
     ])
-    rows.append([common.button(A.BTN_SEND_MESSAGE, "students", "msg", person.id)])
-    rows.append([
-        common.button(
-            A.BTN_PAUSE if person.is_active else A.BTN_ACTIVATE,
-            "students", "toggle", person.id,
-        ),
-        common.button(A.BTN_DELETE_STUDENT, "students", "del_confirm", person.id),
-    ])
+    rows.append([common.button(A.BTN_DELETE_STUDENT, "students", "del_confirm", person.id)])
     rows.append([common.button(A.BACK, "students")])
     common.render(req, "\n".join(lines), common.inline(rows))

@@ -12,6 +12,8 @@ append-only and a re-tap on an already-recorded row is a correction.
 
 from __future__ import annotations
 
+from datetime import date
+
 from app.admin import common
 from app.admin.common import AdminReq
 from app.bots.common import grid
@@ -180,6 +182,19 @@ def _slot(
     ]
     if slot is not None and slot.note:
         lines.append(f"{A.SLOT_NOTE}: {slot.note}")
+
+    back_to_grid = common.button(
+        A.BTN_BACK_TO_GRID, "attend", "course", course.id,
+        grid.page_of(slots, session_date),
+    )
+    # A session whose date hasn't arrived yet can't be marked — no outcome
+    # picker, just the info and a way back.
+    if session_date > date.today():
+        lines.append("")
+        lines.append(A.ATTEND_FUTURE)
+        common.render(req, "\n".join(lines), common.inline([[back_to_grid]]))
+        return
+
     if staged_note:
         lines.append("")
         lines.append(A.SLOT_STAGED_NOTE.format(note=staged_note))
@@ -191,8 +206,7 @@ def _slot(
         [_status_button(course.id, token, status) for status in grid.PRIMARY_STATUSES],
         [_status_button(course.id, token, status) for status in grid.SECONDARY_STATUSES],
         [common.button(A.BTN_ADD_NOTE, "attend", "note", course.id, token)],
-        [common.button(A.BTN_BACK_TO_GRID, "attend", "course", course.id,
-                       grid.page_of(slots, session_date))],
+        [back_to_grid],
     ]
     body = "\n".join(lines)
     if staged_note:
@@ -222,6 +236,10 @@ def _set(req: AdminReq, rest: str) -> None:
     status = grid.STATUS_CODES.get(code)
     if not course_id.isdigit() or session_date is None or status is None:
         _pick_active(req)
+        return
+    if session_date > date.today():  # future session — a stale tap can't record it
+        common.clear(req)
+        _grid(req, int(course_id), page=None, flash=A.ATTEND_FUTURE)
         return
 
     note = _staged_note(req, int(course_id), token)

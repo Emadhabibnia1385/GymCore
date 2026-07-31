@@ -4,7 +4,7 @@ Owner id 111 (Telegram) is configured in conftest. Every step is a real update
 (callback or message); state persists in the Dispatcher's StateStore.
 """
 
-from datetime import date
+from datetime import date, timedelta
 
 from sqlalchemy import func, select
 
@@ -12,7 +12,16 @@ from app.bots.common import callbacks as cb
 from app.bots.common import grid
 from app.copy import admin_texts as A
 from app.copy import texts
-from app.models import Course, Notification, Payment, PaymentKind, Person, Platform, Role
+from app.models import (
+    AttendanceStatus,
+    Course,
+    Notification,
+    Payment,
+    PaymentKind,
+    Person,
+    Platform,
+    Role,
+)
 from app.models.setting import KEY_CARD_NUMBER, KEY_MAIN_INTRO
 from app.services import classes as classes_service
 from app.services import courses as courses_service
@@ -111,6 +120,28 @@ def test_admin_create_course_then_record_attendance(db):
 
     assert courses_service.consumed_sessions(db, course.id) == 1
     assert courses_service.remaining_sessions(db, courses_service.get(db, course.id)) == 7
+
+
+def test_admin_cannot_mark_future_session(db):
+    disp, client = make_dispatcher()
+    student = persons_service.create(db, name="آیندهٔ دور", role=Role.CLIENT)
+    class_type = classes_service.list_class_types(db, only_active=True)[0]
+    course = courses_service.create(
+        db, client_id=student.id, class_type_id=class_type.id, sessions_total=8,
+    )
+    future = date.today() + timedelta(days=14)
+    token = grid.date_token(future)
+
+    # Opening a future session shows a «not yet arrived» notice, no outcome buttons.
+    disp.handle_update(callback_update(1, CHAT, OWNER, f"a:attend:slot:{course.id}:{token}"))
+    labels = button_texts(last_markup(client))
+    assert grid.PICKER_LABELS[AttendanceStatus.PRESENT] not in labels
+    assert any(A.ATTEND_FUTURE in (s.get("text") or "") for s in client.sent)
+
+    # Even a direct set callback (a stale tap) records nothing.
+    disp.handle_update(callback_update(2, CHAT, OWNER, f"a:attend:set:{course.id}:{token}:P"))
+    db.expire_all()
+    assert courses_service.consumed_sessions(db, course.id) == 0
 
 
 def test_admin_delete_course(db):
