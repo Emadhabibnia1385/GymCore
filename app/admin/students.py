@@ -116,10 +116,9 @@ def _list(req: AdminReq, page: int = 1, query: str | None = None) -> None:
     ]]
     item_rows = []
     for person, remaining in window:
-        name = f"{'' if person.is_active else '⏸ '}{person.name}"
         sessions = f"🟢 {remaining} جلسه" if remaining is not None else "— بدون دوره"
         item_rows.append([
-            common.button(name, "students", "view", person.id),
+            common.button(person.name, "students", "view", person.id),
             common.button(sessions, "students", "view", person.id),
         ])
     if enriched:
@@ -142,7 +141,6 @@ def _profile(req: AdminReq, person_id: int) -> None:
     lines = [
         f"👤 {person.name}",
         f"{A.LABEL_PHONE}: {person.phone or '-'}",
-        f"{A.LABEL_STATUS}: {A.LABEL_ACTIVE if person.is_active else A.LABEL_INACTIVE}",
     ]
     platforms = sorted({identity.platform.value for identity in person.identities})
     if platforms:
