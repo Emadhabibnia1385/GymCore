@@ -79,6 +79,48 @@ def weekdays_label(raw: str | None) -> str:
     return "، ".join(WEEKDAY_NAMES[d] for d in days) if days else "—"
 
 
+# --- per-day class times stored on Course.class_times ("0@20:00,2@18:30") ---
+
+
+def parse_day_times(raw: str | None) -> dict[int, str]:
+    """Weekday index → time label, for the days that have a time set."""
+    times: dict[int, str] = {}
+    for part in (raw or "").split(","):
+        day, _, time = part.strip().partition("@")
+        day = day.strip()
+        time = time.strip()
+        if day.isdigit() and 0 <= int(day) <= 6 and time:
+            times[int(day)] = time
+    return times
+
+
+def format_day_times(times: dict[int, str]) -> str:
+    """Serialize a weekday→time map back to the stored form (sorted, non-empty)."""
+    return ",".join(
+        f"{day}@{times[day].strip()}"
+        for day in sorted(times)
+        if (times.get(day) or "").strip()
+    )
+
+
+def class_schedule_label(course: Course) -> str:
+    """Training days with each day's time, e.g. «شنبه ۲۰:۰۰، دوشنبه ۱۸:۳۰».
+
+    Falls back to the single ``class_time`` for older courses, and shows a bare
+    weekday when a day has no time yet.
+    """
+    days = parse_weekdays(course.weekdays)
+    if not days:
+        return "—"
+    times = parse_day_times(getattr(course, "class_times", None))
+    fallback = (getattr(course, "class_time", None) or "").strip()
+    parts = []
+    for day in days:
+        time = (times.get(day) or fallback).strip()
+        parts.append(f"{WEEKDAY_NAMES[day]} {time}".strip())
+    return "، ".join(parts)
+
+
 def course_weekdays(course: Course) -> list[int]:
     """The course's training days, falling back to the start date's weekday.
 

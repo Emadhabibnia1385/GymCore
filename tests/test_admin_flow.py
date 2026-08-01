@@ -97,25 +97,28 @@ def test_admin_create_course_then_record_attendance(db):
     disp.handle_update(message_update(5, CHAT, OWNER, "0"))          # gym fee
     disp.handle_update(message_update(6, CHAT, OWNER, "2"))          # allowed absence
     disp.handle_update(message_update(7, CHAT, OWNER, "1405/04/28"))  # start (Jalali)
-    disp.handle_update(message_update(8, CHAT, OWNER, "18:30"))       # class time
     # Weekly pattern: pre-selected with the start date's weekday, plus چهارشنبه.
-    disp.handle_update(callback_update(9, CHAT, OWNER, "a:courses:wd:4"))
-    disp.handle_update(callback_update(10, CHAT, OWNER, "a:courses:wd_done"))
+    disp.handle_update(callback_update(8, CHAT, OWNER, "a:courses:wd:4"))
+    disp.handle_update(callback_update(9, CHAT, OWNER, "a:courses:wd_done"))
+    # Per-day time editor: set چهارشنبه (index 4) to 18:30, then confirm.
+    disp.handle_update(callback_update(10, CHAT, OWNER, "a:courses:time_day:4"))
+    disp.handle_update(message_update(11, CHAT, OWNER, "18:30"))
+    disp.handle_update(callback_update(12, CHAT, OWNER, "a:courses:times_done"))
     db.expire_all()
 
     course = courses_service.list_courses(db, client_id=student.id)[0]
     assert course.sessions_total == 8
     assert course.tuition == 1_000_000
     assert course.allowed_absence == 2
-    assert course.class_time == "18:30"
+    assert schedule_service.parse_day_times(course.class_times).get(4) == "18:30"
     assert 4 in schedule_service.parse_weekdays(course.weekdays)
 
     # Attendance via the session grid: open the grid, tap a row, pick ✅ حاضر.
-    disp.handle_update(callback_update(11, CHAT, OWNER, f"a:attend:course:{course.id}"))
+    disp.handle_update(callback_update(13, CHAT, OWNER, f"a:attend:course:{course.id}"))
     first = schedule_service.build(db, course)[0]
     token = grid.date_token(first.date)
-    disp.handle_update(callback_update(12, CHAT, OWNER, f"a:attend:slot:{course.id}:{token}"))
-    disp.handle_update(callback_update(13, CHAT, OWNER, f"a:attend:set:{course.id}:{token}:P"))
+    disp.handle_update(callback_update(14, CHAT, OWNER, f"a:attend:slot:{course.id}:{token}"))
+    disp.handle_update(callback_update(15, CHAT, OWNER, f"a:attend:set:{course.id}:{token}:P"))
     db.expire_all()
 
     assert courses_service.consumed_sessions(db, course.id) == 1
@@ -167,6 +170,26 @@ def test_admin_delete_course(db):
     payment = db.scalar(select(Payment).where(Payment.person_id == student.id))
     assert payment is not None
     assert payment.course_id is None
+
+
+def test_admin_edit_course_per_day_times(db):
+    disp, client = make_dispatcher()
+    student = persons_service.create(db, name="ویرایش ساعت", role=Role.CLIENT)
+    class_type = classes_service.list_class_types(db, only_active=True)[0]
+    course = courses_service.create(
+        db, client_id=student.id, class_type_id=class_type.id,
+        sessions_total=6, weekdays="0,2", start_date=date(2026, 7, 25),
+    )
+    # Edit the schedule: open the day editor, confirm days, set شنبه (0) = 20:00.
+    disp.handle_update(callback_update(1, CHAT, OWNER, f"a:courses:wdedit:{course.id}"))
+    disp.handle_update(callback_update(2, CHAT, OWNER, "a:courses:wd_done"))
+    disp.handle_update(callback_update(3, CHAT, OWNER, "a:courses:time_day:0"))
+    disp.handle_update(message_update(4, CHAT, OWNER, "20:00"))
+    disp.handle_update(callback_update(5, CHAT, OWNER, "a:courses:times_done"))
+    db.expire_all()
+
+    times = schedule_service.parse_day_times(courses_service.get(db, course.id).class_times)
+    assert times.get(0) == "20:00"
 
 
 def test_admin_record_payment(db):

@@ -152,9 +152,8 @@ def _profile(req: AdminReq, person_id: int) -> None:
         lines.append(f"📚 {A.LABEL_ACTIVE_COURSE}: {active.class_type.title}")
         lines.append(f"🟢 {A.LABEL_SESSIONS}: {consumed}/{active.sessions_total}")
         lines.append(
-            f"🗓 {texts.LABEL_TRAINING_DAYS}: {schedule_service.weekdays_label(active.weekdays)}"
+            f"🗓 {texts.LABEL_TRAINING_DAYS}: {schedule_service.class_schedule_label(active)}"
         )
-        lines.append(f"🕐 {texts.LABEL_CLASS_TIME}: {active.class_time or '-'}")
     else:
         lines.append(f"📚 {A.NO_ACTIVE_COURSE}")
     lines.append("")

@@ -116,6 +116,7 @@ def create(
     start_date: date | None = None,
     weekdays: str | None = None,
     class_time: str | None = None,
+    class_times: str | None = None,
     travel_declared: bool = False,
     note: str | None = None,
     _carried_credit: int = 0,
@@ -139,6 +140,7 @@ def create(
         start_date=start_date or date.today(),
         weekdays=schedule.format_weekdays(schedule.parse_weekdays(weekdays)) or None,
         class_time=(class_time or "").strip() or None,
+        class_times=schedule.format_day_times(schedule.parse_day_times(class_times)) or None,
         note=note,
     )
     db.add(course)
@@ -150,6 +152,15 @@ def set_weekdays(db: Session, course_id: int, weekdays: str | None) -> Course:
     """Change the weekly training pattern (reshapes the derived grid only)."""
     course = get(db, course_id)
     course.weekdays = schedule.format_weekdays(schedule.parse_weekdays(weekdays)) or None
+    db.commit()
+    db.refresh(course)
+    return course
+
+
+def set_class_times(db: Session, course_id: int, class_times: str | None) -> Course:
+    """Change the per-day class times (display only; doesn't touch the grid)."""
+    course = get(db, course_id)
+    course.class_times = schedule.format_day_times(schedule.parse_day_times(class_times)) or None
     db.commit()
     db.refresh(course)
     return course
@@ -199,6 +210,7 @@ def renew(
     start_date: date | None = None,
     weekdays: str | None = None,
     class_time: str | None = None,
+    class_times: str | None = None,
     carry_credit: bool = True,
     note: str | None = None,
 ) -> Course:
@@ -222,6 +234,7 @@ def renew(
         start_date=start_date,
         weekdays=weekdays if weekdays is not None else old.weekdays,
         class_time=class_time if class_time is not None else old.class_time,
+        class_times=class_times if class_times is not None else old.class_times,
         note=note,
         _carried_credit=carried,
     )
