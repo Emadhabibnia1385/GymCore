@@ -18,6 +18,7 @@ from datetime import date
 from sqlalchemy.orm import Session
 
 from app.bots.common import callbacks as cb
+from app.bots.common.keyboards import STYLE_DANGER, STYLE_PRIMARY, STYLE_SUCCESS
 from app.copy import texts
 from app.core.jalali import format_jalali, format_jalali_short
 from app.models import AttendanceStatus, Course
@@ -49,24 +50,36 @@ SECONDARY_STATUSES = (
     AttendanceStatus.HOLIDAY,
 )
 
-# Short labels for the grid's third cell (long ones would be truncated).
+# The row's colour carries the outcome now (see STATUS_STYLES), so the labels
+# are plain text — no coloured-circle emoji.
 _CELL_LABELS = {
-    AttendanceStatus.PRESENT: "✅ جلسه {n}",
-    AttendanceStatus.ABSENT_UNAUTHORIZED: "🔴 غایب {n}",
-    AttendanceStatus.ABSENT_ALLOWED: "🟡 غیبت مجاز",
-    AttendanceStatus.COACH_CANCELLED: "🔵 لغو مربی",
-    AttendanceStatus.HOLIDAY: "⚪ تعطیلی",
+    AttendanceStatus.PRESENT: "جلسه {n}",
+    AttendanceStatus.ABSENT_UNAUTHORIZED: "غایب {n}",
+    AttendanceStatus.ABSENT_ALLOWED: "غیبت مجاز",
+    AttendanceStatus.COACH_CANCELLED: "لغو مربی",
+    AttendanceStatus.HOLIDAY: "تعطیلی",
 }
-PENDING_CELL = "⏳ در انتظار"
+PENDING_CELL = "در انتظار"
 
 # Outcome-picker labels — short enough for three buttons in one row, and worded
 # the way the coach says them: حاضر / غیبت / مجاز.
 PICKER_LABELS = {
-    AttendanceStatus.PRESENT: "✅ حاضر",
-    AttendanceStatus.ABSENT_UNAUTHORIZED: "🔴 غیبت",
-    AttendanceStatus.ABSENT_ALLOWED: "🟡 مجاز",
-    AttendanceStatus.COACH_CANCELLED: "🔵 لغو مربی",
-    AttendanceStatus.HOLIDAY: "⚪ تعطیلی",
+    AttendanceStatus.PRESENT: "حاضر",
+    AttendanceStatus.ABSENT_UNAUTHORIZED: "غیبت",
+    AttendanceStatus.ABSENT_ALLOWED: "مجاز",
+    AttendanceStatus.COACH_CANCELLED: "لغو مربی",
+    AttendanceStatus.HOLIDAY: "تعطیلی",
+}
+
+# Row / picker colour per outcome (Telegram button style; Bale renders plain):
+# present → green, unauthorized absence → red, excused & scheduling → blue,
+# and a pending session stays the default glass colour.
+STATUS_STYLES = {
+    AttendanceStatus.PRESENT: STYLE_SUCCESS,
+    AttendanceStatus.ABSENT_UNAUTHORIZED: STYLE_DANGER,
+    AttendanceStatus.ABSENT_ALLOWED: STYLE_PRIMARY,
+    AttendanceStatus.COACH_CANCELLED: STYLE_PRIMARY,
+    AttendanceStatus.HOLIDAY: STYLE_PRIMARY,
 }
 
 
@@ -94,6 +107,11 @@ def status_cell(slot: schedule.Slot) -> str:
     if slot.status is None:
         return PENDING_CELL
     return _CELL_LABELS[slot.status].format(n=slot.session_no or "")
+
+
+def status_style(slot: schedule.Slot) -> str | None:
+    """Row colour for a slot — None (glass) while the session is pending."""
+    return STATUS_STYLES.get(slot.status) if slot.status is not None else None
 
 
 # --- paging ---
@@ -127,15 +145,22 @@ def page_slice(slots: list, page: int) -> tuple[list, int, int]:
 
 
 def rows(slots: list, callback_for) -> list[list[dict]]:
-    """Build the three-cell rows. `callback_for(slot)` returns the row's callback_data."""
+    """Build the three-cell rows. `callback_for(slot)` returns the row's callback_data.
+
+    All three cells share the row's outcome colour so a marked session reads as
+    one solid coloured bar (green present, red غایب, blue excused, glass pending).
+    """
     built = []
     for slot in slots:
         data = callback_for(slot)
-        built.append([
-            {"text": slot.weekday, "callback_data": data},
-            {"text": format_jalali_short(slot.date), "callback_data": data},
-            {"text": status_cell(slot), "callback_data": data},
-        ])
+        style = status_style(slot)
+        cells = []
+        for text in (slot.weekday, format_jalali_short(slot.date), status_cell(slot)):
+            cell = {"text": text, "callback_data": data}
+            if style:
+                cell["style"] = style
+            cells.append(cell)
+        built.append(cells)
     return built
 
 
@@ -157,12 +182,12 @@ def header(db: Session, course: Course, page: int, pages: int, *, for_admin: boo
     lines.append(f"▫️ {texts.LABEL_START}: {format_jalali(course.start_date)}")
     lines.append("")
     lines.append(
-        f"🟢 {texts.LABEL_CONSUMED}: {stats['consumed']}/{stats['total']}"
+        f"{texts.LABEL_CONSUMED}: {stats['consumed']}/{stats['total']}"
         f" · {texts.LABEL_REMAINING}: {stats['remaining']}"
     )
     lines.append(
-        f"🟡 {texts.LABEL_ALLOWED_ABSENCE}: {stats['absent_allowed']}/{course.allowed_absence}"
-        f" · 🔴 {texts.LABEL_UNAUTHORIZED}: {stats['absent_unauthorized']}"
+        f"{texts.LABEL_ALLOWED_ABSENCE}: {stats['absent_allowed']}/{course.allowed_absence}"
+        f" · {texts.LABEL_UNAUTHORIZED}: {stats['absent_unauthorized']}"
     )
     if for_admin:
         balance = payments_service.course_balance(db, course)

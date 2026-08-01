@@ -225,6 +225,7 @@ def _status_button(course_id: int, token: str, status: AttendanceStatus) -> dict
     return common.button(
         grid.PICKER_LABELS[status],
         "attend", "set", course_id, token, grid.CODE_BY_STATUS[status],
+        style=grid.STATUS_STYLES.get(status),
     )
 
 

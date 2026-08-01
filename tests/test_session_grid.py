@@ -111,9 +111,13 @@ def test_numbering_counts_only_consuming_outcomes(db):
 
     slots = schedule_service.build(db, course)
     assert [s.session_no for s in slots[:4]] == [1, None, 2, 3]
-    assert grid.status_cell(slots[0]) == "✅ جلسه 1"
-    assert grid.status_cell(slots[1]) == "🟡 غیبت مجاز"
-    assert grid.status_cell(slots[3]) == "🔴 غایب 3"
+    assert grid.status_cell(slots[0]) == "جلسه 1"
+    assert grid.status_cell(slots[1]) == "غیبت مجاز"
+    assert grid.status_cell(slots[3]) == "غایب 3"
+    # Outcome is carried by the row colour now, not an emoji.
+    assert grid.status_style(slots[0]) == "success"   # حاضر → green
+    assert grid.status_style(slots[1]) == "primary"   # غیبت مجاز → blue
+    assert grid.status_style(slots[3]) == "danger"    # غیبت غیرمجاز → red
 
 
 def test_allowed_absence_adds_an_extra_row(db):
@@ -369,7 +373,7 @@ def test_client_sees_the_same_grid_read_only(db):
     disp.handle_update(callback_update(2, 902, 707, cb.schedule(course.id)))
     body, markup = last_text(client), last_markup(client)
     assert texts.GRID_TITLE in body
-    assert "✅ جلسه 1" in button_texts(markup)
+    assert "جلسه 1" in button_texts(markup)
     assert any(cell["callback_data"] == cb.NOOP for row in markup["inline_keyboard"]
                for cell in row)
 
