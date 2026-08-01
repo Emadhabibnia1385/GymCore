@@ -367,12 +367,9 @@ def test_client_sees_the_same_grid_read_only(db):
     )
     _record(db, course.id, date(2026, 7, 25), AttendanceStatus.PRESENT)
 
+    # The client's course card embeds the read-only grid directly under the text.
     disp.handle_update(callback_update(1, 902, 707, cb.course(course.id)))
-    assert texts.BTN_SCHEDULE in button_texts(last_markup(client))
-
-    disp.handle_update(callback_update(2, 902, 707, cb.schedule(course.id)))
-    body, markup = last_text(client), last_markup(client)
-    assert texts.GRID_TITLE in body
+    markup = last_markup(client)
     assert "جلسه 1" in button_texts(markup)
     assert any(cell["callback_data"] == cb.NOOP for row in markup["inline_keyboard"]
                for cell in row)

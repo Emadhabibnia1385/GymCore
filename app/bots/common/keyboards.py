@@ -83,6 +83,11 @@ def back_to_menu() -> dict:
     return _inline([[_back_home()]])
 
 
+def home_button() -> dict:
+    """The single red «منوی اصلی» navigation button (to append under content)."""
+    return _back_home(texts.BTN_HOME, cb.HOME)
+
+
 def share_phone() -> dict:
     """Reply keyboard with a share-contact button (phone registration)."""
     return {

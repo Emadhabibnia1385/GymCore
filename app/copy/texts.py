@@ -87,9 +87,9 @@ GRID_EMPTY = "هنوز برنامه‌ی جلسات برای این دوره ت�
 GRID_HINT_CLIENT = "جلسه‌های پیشِ رو و وضعیت هر جلسه 👇"
 
 COURSE_STATUS_LABELS = {
-    "ACTIVE": "🟢 فعال",
-    "FINISHED": "✅ پایان‌یافته",
-    "PAUSED": "⏸ متوقف",
+    "ACTIVE": "فعال",
+    "FINISHED": "تمام‌شده",
+    "PAUSED": "متوقف",
 }
 
 # --- Admin panel main menu (per product spec) ---

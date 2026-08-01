@@ -197,14 +197,18 @@ def course_detail(
     course_id: int,
     message_id: int | None,
 ) -> None:
-    from app.bots.common import formatting
+    from app.bots.common import formatting, grid
 
     course = courses_service.get(db, course_id)
     if course.client_id != person.id:  # authorization: clients see only their own
         ctx.show(chat_id, texts.NOT_FOUND, keyboards.back_to_menu(), message_id)
         return
-    body = formatting.format_course_detail(db, course)
-    ctx.show(chat_id, body, keyboards.course_detail_nav(course.id), message_id)
+    # Course info (no money, no text history) followed by the colour-coded grid
+    # itself, then a single «منوی اصلی» button.
+    body = formatting.format_course_detail(db, course, show_history=False, show_financial=False)
+    rows = grid.client_rows(schedule_service.build(db, course))
+    rows.append([keyboards.home_button()])
+    ctx.show(chat_id, body, {"inline_keyboard": rows}, message_id)
 
 
 def course_schedule(

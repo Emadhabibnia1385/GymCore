@@ -150,7 +150,7 @@ def _profile(req: AdminReq, person_id: int) -> None:
     if active is not None:
         consumed = courses_service.consumed_sessions(req.db, active.id)
         lines.append(f"📚 {A.LABEL_ACTIVE_COURSE}: {active.class_type.title}")
-        lines.append(f"🟢 {A.LABEL_SESSIONS}: {consumed}/{active.sessions_total}")
+        lines.append(f"🎟 {A.LABEL_SESSIONS}: {consumed}/{active.sessions_total}")
         lines.append(
             f"🗓 {texts.LABEL_TRAINING_DAYS}: {schedule_service.class_schedule_label(active)}"
         )

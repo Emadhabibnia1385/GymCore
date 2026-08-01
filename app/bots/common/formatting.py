@@ -21,25 +21,29 @@ def course_status_label(status: CourseStatus) -> str:
     return texts.COURSE_STATUS_LABELS.get(status.value, status.value)
 
 
-def format_course_detail(db: Session, course: Course, show_history: bool = True) -> str:
+def format_course_detail(
+    db: Session,
+    course: Course,
+    show_history: bool = True,
+    show_financial: bool = True,
+) -> str:
     consumed = courses_service.consumed_sessions(db, course.id)
     remaining = courses_service.remaining_sessions(db, course)
     allowed_used = courses_service.allowed_absence_used(db, course.id)
-    balance = payments_service.course_balance(db, course)
 
     lines = [
         f"🏷 {course.class_type.title}",
-        f"{texts.LABEL_STATUS}: {course_status_label(course.status)}",
-        f"{texts.LABEL_START}: {format_jalali(course.start_date)}",
-        f"{texts.LABEL_TRAINING_DAYS}: {schedule_service.class_schedule_label(course)}",
-        f"{texts.LABEL_TOTAL}: {course.sessions_total}",
-        f"{texts.LABEL_CONSUMED}: {consumed}",
-        f"{texts.LABEL_REMAINING}: 🟢 {remaining}",
-        f"{texts.LABEL_ALLOWED_ABSENCE}: {allowed_used}/{course.allowed_absence}",
+        f"📌 {texts.LABEL_STATUS}: {course_status_label(course.status)}",
+        f"📅 {texts.LABEL_START}: {format_jalali(course.start_date)}",
+        f"🗓 {texts.LABEL_TRAINING_DAYS}: {schedule_service.class_schedule_label(course)}",
+        f"🎟 {texts.LABEL_TOTAL}: {course.sessions_total}",
+        f"✅ {texts.LABEL_CONSUMED}: {consumed}",
+        f"💪 {texts.LABEL_REMAINING}: {remaining}",
+        f"🆓 {texts.LABEL_ALLOWED_ABSENCE}: {allowed_used}/{course.allowed_absence}",
     ]
     # The attendance history is one line per session date (corrections reflected,
-    # raw duplicates are not). The admin has the full session grid one tap away,
-    # so it's shown only in the client's own view.
+    # raw duplicates are not). Both cards now show the colour-coded grid instead,
+    # so this text list is opt-in.
     if show_history:
         lines.append("")
         lines.append(f"— {texts.LABEL_ATTENDANCE_HISTORY} —")
@@ -51,13 +55,16 @@ def format_course_detail(db: Session, course: Course, show_history: bool = True)
         else:
             lines.append(texts.NO_ATTENDANCE_YET)
 
-    lines.append("")
-    lines.append(f"— {texts.LABEL_FINANCIAL} —")
-    lines.append(f"{texts.LABEL_TUITION}: {money(balance['tuition'])}")
-    if balance["gym_fee"]:
-        lines.append(f"{texts.LABEL_GYM_FEE}: {money(balance['gym_fee'])}")
-    lines.append(f"{texts.LABEL_PAID}: {money(balance['paid'])}")
-    lines.append(f"{texts.LABEL_OUTSTANDING}: 🟢 {money(balance['outstanding'])}")
+    # Money is the coach's business — shown on the admin card, hidden from clients.
+    if show_financial:
+        balance = payments_service.course_balance(db, course)
+        lines.append("")
+        lines.append(f"— {texts.LABEL_FINANCIAL} —")
+        lines.append(f"💰 {texts.LABEL_TUITION}: {money(balance['tuition'])}")
+        if balance["gym_fee"]:
+            lines.append(f"🏟 {texts.LABEL_GYM_FEE}: {money(balance['gym_fee'])}")
+        lines.append(f"💵 {texts.LABEL_PAID}: {money(balance['paid'])}")
+        lines.append(f"🧾 {texts.LABEL_OUTSTANDING}: {money(balance['outstanding'])}")
     return "\n".join(lines)
 
 
