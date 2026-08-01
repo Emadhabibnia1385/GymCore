@@ -81,6 +81,7 @@ BTN_FINISH_COURSE = "✅ پایان دوره"
 BTN_RENEW_COURSE = "🔄 تمدید دوره"
 ASK_RENEW_SESSIONS = "تعداد جلسات دورهٔ جدید را بفرست (عدد):"
 RENEWED = "🟢 دوره تمدید شد و اعتبار باقی‌مانده منتقل شد."
+CANCEL_CREDIT_APPLIED = "🎁 اعتبار جلسات لغو‌شدهٔ مربی: {amount} تومان روی این دوره اعمال شد."
 BTN_DELETE_COURSE = "🗑 حذف دوره"
 CONFIRM_DELETE_COURSE = (
     "⚠️ دورهٔ «{title}» حذف شود؟\n"

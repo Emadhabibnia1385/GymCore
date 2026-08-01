@@ -9,6 +9,7 @@ from app.models import AttendanceStatus, CourseStatus
 from app.services import attendance as attendance_service
 from app.services import classes as classes_service
 from app.services import courses as courses_service
+from app.services import payments as payments_service
 from app.services import persons as persons_service
 
 
@@ -72,6 +73,21 @@ def test_cannot_record_beyond_capacity(db):
 def test_attendance_module_has_no_mutators():
     assert not hasattr(attendance_service, "update")
     assert not hasattr(attendance_service, "delete")
+
+
+def test_coach_cancel_credits_next_course(db):
+    client = persons_service.create(db, name="اعتبار لغو")
+    class_type = classes_service.list_class_types(db, only_active=True)[0]
+    course = courses_service.create(
+        db, client_id=client.id, class_type_id=class_type.id,
+        sessions_total=10, tuition=900_000, gym_fee=100_000, start_date=date(2026, 7, 1),
+    )
+    assert courses_service.per_session_cost(course) == 100_000  # (900k + 100k) / 10
+
+    _record(db, course.id, 1, AttendanceStatus.COACH_CANCELLED)
+    new_course = courses_service.renew(db, course.id, sessions_total=10)
+    # The cancelled session's cost is credited onto the next course.
+    assert payments_service.total_paid(db, new_course.id) == 100_000
 
 
 def test_renew_carries_unused_sessions(db):

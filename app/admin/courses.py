@@ -136,9 +136,14 @@ def handle_message(req: AdminReq, message: dict, substep: str, state) -> None:
         if not count:
             common.prompt(req, f"{A.INVALID_NUMBER}\n{A.ASK_RENEW_SESSIONS}", "courses:renew", data)
             return
+        old_course = courses_service.get(req.db, data["course_id"])
+        credit = courses_service.coach_cancel_credit(req.db, old_course)
         new_course = courses_service.renew(req.db, data["course_id"], sessions_total=count)
+        flash = A.RENEWED
+        if credit > 0:
+            flash = f"{A.RENEWED}\n{A.CANCEL_CREDIT_APPLIED.format(amount=f'{credit:,}')}"
         common.clear(req)
-        _view(req, new_course.id, flash=A.RENEWED)
+        _view(req, new_course.id, flash=flash)
     elif substep == "weekdays":
         _ask_weekdays(req, data)  # stray text mid-selection: just re-show the picker
     else:

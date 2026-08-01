@@ -25,6 +25,7 @@ from app.models import (
     Course,
     CourseStatus,
     Payment,
+    PaymentKind,
 )
 from app.services import classes as classes_service
 from app.services import persons as persons_service
@@ -103,6 +104,27 @@ def allowed_absence_used(db: Session, course_id: int) -> int:
 
 def remaining_sessions(db: Session, course: Course) -> int:
     return max(course.sessions_total - consumed_sessions(db, course.id), 0)
+
+
+def per_session_cost(course: Course) -> int:
+    """The course's price for a single session: (tuition + gym fee) ÷ sessions."""
+    if course.sessions_total <= 0:
+        return 0
+    return round(((course.tuition or 0) + (course.gym_fee or 0)) / course.sessions_total)
+
+
+def coach_cancelled_count(db: Session, course_id: int) -> int:
+    """How many of the course's sessions the coach cancelled (effective outcome)."""
+    return sum(
+        1
+        for status in effective_status_map(db, course_id).values()
+        if status == AttendanceStatus.COACH_CANCELLED
+    )
+
+
+def coach_cancel_credit(db: Session, course: Course) -> int:
+    """Money owed back for coach-cancelled sessions — one session's cost each."""
+    return coach_cancelled_count(db, course.id) * per_session_cost(course)
 
 
 def create(
@@ -238,6 +260,22 @@ def renew(
         note=note,
         _carried_credit=carried,
     )
+    # Coach-cancelled sessions come back as time (carried above) AND as money:
+    # one session's cost each is credited onto the new course.
+    credit = coach_cancel_credit(db, old)
+    if credit > 0:
+        from app.services import payments as payments_service
+
+        payments_service.record(
+            db,
+            person_id=old.client_id,
+            amount=credit,
+            kind=PaymentKind.OTHER,
+            paid_at=date.today(),
+            course_id=new_course.id,
+            note="اعتبار جلسات لغوشدهٔ مربی از دورهٔ قبل",
+            notify=False,
+        )
     if old.status != CourseStatus.FINISHED:
         old.status = CourseStatus.FINISHED
         db.commit()
