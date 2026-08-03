@@ -15,6 +15,7 @@ from app.copy import texts
 from app.models import (
     AttendanceStatus,
     Course,
+    CourseStatus,
     Notification,
     Payment,
     PaymentKind,
@@ -145,6 +146,23 @@ def test_admin_cannot_mark_future_session(db):
     disp.handle_update(callback_update(2, CHAT, OWNER, f"a:attend:set:{course.id}:{token}:P"))
     db.expire_all()
     assert courses_service.consumed_sessions(db, course.id) == 0
+
+
+def test_admin_finish_then_reactivate_course(db):
+    disp, client = make_dispatcher()
+    student = persons_service.create(db, name="فعال‌سازی مجدد", role=Role.CLIENT)
+    class_type = classes_service.list_class_types(db, only_active=True)[0]
+    course = courses_service.create(
+        db, client_id=student.id, class_type_id=class_type.id, sessions_total=8,
+    )
+    disp.handle_update(callback_update(1, CHAT, OWNER, f"a:courses:status:{course.id}:FINISHED"))
+    db.expire_all()
+    assert courses_service.get(db, course.id).status == CourseStatus.FINISHED
+    assert A.BTN_REACTIVATE_COURSE in button_texts(last_markup(client))  # reversible
+
+    disp.handle_update(callback_update(2, CHAT, OWNER, f"a:courses:status:{course.id}:ACTIVE"))
+    db.expire_all()
+    assert courses_service.get(db, course.id).status == CourseStatus.ACTIVE
 
 
 def test_admin_delete_course(db):

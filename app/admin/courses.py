@@ -317,6 +317,16 @@ def _view(req: AdminReq, course_id: int, flash: str | None = None) -> None:
         common.button(A.BTN_STUDENT_GRID, "attend", "course", course.id),
         common.button(A.BTN_EDIT_WEEKDAYS, "courses", "wdedit", course.id),
     ]]
+    # Finish an active course, or bring a finished/paused one back to active —
+    # the one button toggles, so «پایان دوره» is always reversible.
+    if course.status == CourseStatus.ACTIVE:
+        rows.append(
+            [common.button(A.BTN_FINISH_COURSE, "courses", "status", course.id, "FINISHED")]
+        )
+    else:
+        rows.append(
+            [common.button(A.BTN_REACTIVATE_COURSE, "courses", "status", course.id, "ACTIVE")]
+        )
     rows.append([
         common.button(A.BTN_RENEW_COURSE, "courses", "renew", course.id),
         common.button(A.BTN_PAYMENTS, "pay", "course", course.id),
