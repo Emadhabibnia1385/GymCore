@@ -180,7 +180,14 @@ def _effective_events(db: Session, course_id: int) -> dict[date, AttendanceEvent
 
 
 def build(db: Session, course: Course) -> list[Slot]:
-    """The full grid for a course: recorded slots in date order, then pending ones."""
+    """The full grid for a course, in date order.
+
+    Recorded sessions show their outcome; every other scheduled date — walking
+    the weekly pattern from the start, INCLUDING dates the coach skipped over —
+    shows as pending, until the course holds ``sessions_total`` consuming slots.
+    Filling from the start (not just after the last recorded date) keeps the
+    timeline continuous, so a skipped week never silently disappears.
+    """
     effective = _effective_events(db, course.id)
     slots: list[Slot] = []
     consumed = 0
@@ -200,29 +207,27 @@ def build(db: Session, course: Course) -> list[Slot]:
             )
         )
 
-    # Whatever is still unpaid-for gets pending rows on the next training days.
+    # Pending rows fill the weekly pattern from the start date, skipping dates
+    # already recorded, so gaps in the middle reappear as «در انتظار».
     pending = max(course.sessions_total - consumed, 0)
-    if pending:
-        cursor = course.start_date
-        last_recorded = max(effective) if effective else None
-        if last_recorded is not None and last_recorded >= cursor:
-            cursor = last_recorded + timedelta(days=1)
-        added = 0
-        for session_date in iter_scheduled(cursor, course_weekdays(course)):
-            if added >= pending:
-                break
-            if session_date in effective:  # defensive; cursor already skips them
-                continue
-            slots.append(
-                Slot(
-                    date=session_date,
-                    status=None,
-                    session_no=None,
-                    note=None,
-                    recorded=False,
-                )
+    added = 0
+    for session_date in iter_scheduled(course.start_date, course_weekdays(course)):
+        if added >= pending:
+            break
+        if session_date in effective:
+            continue
+        slots.append(
+            Slot(
+                date=session_date,
+                status=None,
+                session_no=None,
+                note=None,
+                recorded=False,
             )
-            added += 1
+        )
+        added += 1
+
+    slots.sort(key=lambda slot: slot.date)
     return slots
 
 

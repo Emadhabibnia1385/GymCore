@@ -150,13 +150,31 @@ def test_holiday_and_coach_cancellation_also_extend_the_grid(db):
 
 
 def test_off_schedule_session_is_merged_by_date(db):
-    """A make-up session on a non-pattern day still shows up, in date order."""
+    """A make-up session on a non-pattern day still shows up, merged by date."""
     _, course = _course(db, sessions_total=4)
-    _record(db, course.id, date(2026, 7, 26), AttendanceStatus.PRESENT)  # یک‌شنبه
+    _record(db, course.id, date(2026, 7, 26), AttendanceStatus.PRESENT)  # یک‌شنبه (off-pattern)
     slots = schedule_service.build(db, course)
-    assert slots[0].date == date(2026, 7, 26)
-    assert slots[0].session_no == 1
-    assert slots[1].date > date(2026, 7, 26)
+    dates = [s.date for s in slots]
+    assert dates == sorted(dates)  # chronological order
+    present = next(s for s in slots if s.date == date(2026, 7, 26))
+    assert present.session_no == 1  # the off-schedule session is counted
+    assert (dates.index(date(2026, 7, 25))
+            < dates.index(date(2026, 7, 26))
+            < dates.index(date(2026, 7, 27)))  # sits between the scheduled 25th and 27th
+
+
+def test_skipped_middle_sessions_stay_in_the_grid(db):
+    """Recording a later session must not erase the scheduled dates before it."""
+    _, course = _course(db, sessions_total=6)  # شنبه/دوشنبه/چهارشنبه from 25 تیر
+    _record(db, course.id, date(2026, 7, 25), AttendanceStatus.PRESENT)  # شنبه
+    _record(db, course.id, date(2026, 8, 1), AttendanceStatus.PRESENT)   # a week ahead
+    slots = schedule_service.build(db, course)
+    dates = [s.date for s in slots]
+    assert dates == sorted(dates)
+    # The skipped scheduled dates between them are still shown, as pending.
+    for gap in (date(2026, 7, 27), date(2026, 7, 29)):
+        assert gap in dates
+        assert not next(s for s in slots if s.date == gap).recorded
 
 
 def test_correction_renumbers_the_grid(db):
