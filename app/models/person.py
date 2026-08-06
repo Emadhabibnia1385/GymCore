@@ -22,6 +22,8 @@ class Person(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(150))
     phone: Mapped[str | None] = mapped_column(String(20), unique=True, index=True)
+    # Optional second contact number (not used for account linking).
+    phone2: Mapped[str | None] = mapped_column(String(20))
     role: Mapped[Role] = mapped_column(Enum(Role), default=Role.CLIENT, index=True)
     is_active: Mapped[bool] = mapped_column(default=True)
     note: Mapped[str | None] = mapped_column(String(500))

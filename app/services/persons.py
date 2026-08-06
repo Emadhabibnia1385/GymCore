@@ -100,6 +100,7 @@ def update(
     person_id: int,
     name: str | None = None,
     phone: str | None = None,
+    phone2: str | None = None,
     role: Role | None = None,
     note: str | None = None,
     is_active: bool | None = None,
@@ -121,6 +122,14 @@ def update(
             if existing is not None and existing.id != person.id:
                 raise ConflictError("این شماره موبایل قبلاً ثبت شده است")
             person.phone = normalized
+    if phone2 is not None:
+        if phone2 == "":
+            person.phone2 = None
+        else:
+            normalized2 = normalize_phone(phone2)
+            if not is_valid_phone(normalized2):
+                raise ValidationError("شماره موبایل دوم نامعتبر است")
+            person.phone2 = normalized2
     if role is not None:
         person.role = role
     if note is not None:

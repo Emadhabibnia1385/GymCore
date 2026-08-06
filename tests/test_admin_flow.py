@@ -303,6 +303,20 @@ def test_admin_delete_student_cascades(db):
     assert db.scalar(select(func.count()).select_from(Payment).where(Payment.person_id == sid)) == 0
 
 
+def test_admin_edit_student_name_and_second_phone(db):
+    disp, client = make_dispatcher()
+    student = persons_service.create(db, name="نام قدیم", role=Role.CLIENT)
+    disp.handle_update(callback_update(1, CHAT, OWNER, f"a:students:edit_name:{student.id}"))
+    disp.handle_update(message_update(2, CHAT, OWNER, "نام جدید"))
+    disp.handle_update(callback_update(3, CHAT, OWNER, f"a:students:edit_phone2:{student.id}"))
+    disp.handle_update(message_update(4, CHAT, OWNER, "09121112233"))
+    db.expire_all()
+
+    updated = persons_service.get(db, student.id)
+    assert updated.name == "نام جدید"
+    assert updated.phone2 and "1112233" in updated.phone2
+
+
 def test_admin_send_private_message_to_student(db):
     disp, client = make_dispatcher()
     student = identities_service.get_or_create_person(db, Platform.TELEGRAM, "7788", "شاگرد پیام")

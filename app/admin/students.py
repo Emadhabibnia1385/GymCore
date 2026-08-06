@@ -6,11 +6,19 @@ from app.admin import common
 from app.admin.common import AdminReq
 from app.copy import admin_texts as A
 from app.copy import texts
+from app.core.exceptions import ConflictError, ValidationError
 from app.models import Role
 from app.services import courses as courses_service
 from app.services import notifications as notify_service
 from app.services import persons as persons_service
 from app.services import schedule as schedule_service
+
+_EDIT_FIELDS = ("edit_name", "edit_phone", "edit_phone2")
+_EDIT_PROMPTS = {
+    "edit_name": A.ASK_EDIT_NAME,
+    "edit_phone": A.ASK_EDIT_PHONE,
+    "edit_phone2": A.ASK_EDIT_PHONE2,
+}
 
 _PER_PAGE = 6
 _PLATFORM_LABELS = {"TELEGRAM": "تلگرام", "BALE": "بله"}
@@ -48,6 +56,10 @@ def handle_callback(req: AdminReq, args: str) -> None:
             _profile(req, person.id)
         else:
             common.prompt(req, A.ASK_STUDENT_MESSAGE, f"students:msg:{person.id}", {})
+    elif action == "edit" and rest.isdigit():
+        _edit_menu(req, int(rest))
+    elif action in _EDIT_FIELDS and rest.isdigit():
+        common.prompt(req, _EDIT_PROMPTS[action], f"students:{action}", {"id": int(rest)})
     elif action == "del" and rest.isdigit():
         persons_service.delete(req.db, int(rest))
         _list(req)
@@ -81,6 +93,8 @@ def handle_message(req: AdminReq, message: dict, substep: str, state) -> None:
             common.send(req, A.MESSAGE_SENT)
         common.clear(req)
         _profile(req, int(id_str))
+    elif substep in _EDIT_FIELDS:
+        _apply_edit(req, substep, state.data.get("id"), text)
     else:
         common.clear(req)
         _list(req)
@@ -93,6 +107,50 @@ def _create(req: AdminReq, name: str | None, phone: str | None) -> None:
     person = persons_service.create(req.db, name=name, phone=phone, role=Role.CLIENT)
     common.clear(req)
     _profile(req, person.id)
+
+
+def _edit_menu(req: AdminReq, person_id: int) -> None:
+    """Pick which field of a student to edit."""
+    person = persons_service.get(req.db, person_id)
+    body = (
+        f"{A.EDIT_STUDENT_TITLE}\n\n"
+        f"👤 {person.name}\n"
+        f"{A.LABEL_PHONE}: {person.phone or '-'}\n"
+        f"{A.LABEL_PHONE2}: {person.phone2 or '-'}"
+    )
+    rows = [
+        [common.button(A.BTN_EDIT_NAME, "students", "edit_name", person.id)],
+        [
+            common.button(A.BTN_EDIT_PHONE, "students", "edit_phone", person.id),
+            common.button(A.BTN_EDIT_PHONE2, "students", "edit_phone2", person.id),
+        ],
+    ]
+    common.render(req, body, common.with_back(rows, ("students", "view", person.id)))
+
+
+def _apply_edit(req: AdminReq, field: str, person_id: int | None, text: str) -> None:
+    if not person_id:
+        common.clear(req)
+        _list(req)
+        return
+    value = "" if text == A.CLEAR_WORD else text
+    try:
+        if field == "edit_name":
+            if not value:
+                common.prompt(req, A.ASK_EDIT_NAME, "students:edit_name", {"id": person_id})
+                return
+            persons_service.update(req.db, person_id, name=value)
+        elif field == "edit_phone":
+            persons_service.update(req.db, person_id, phone=value)
+        else:  # edit_phone2
+            persons_service.update(req.db, person_id, phone2=value)
+    except (ValidationError, ConflictError) as exc:
+        common.prompt(
+            req, f"⚠️ {exc}\n{_EDIT_PROMPTS[field]}", f"students:{field}", {"id": person_id}
+        )
+        return
+    common.clear(req)
+    _profile(req, person_id)
 
 
 def _list(req: AdminReq, page: int = 1, query: str | None = None) -> None:
@@ -116,7 +174,7 @@ def _list(req: AdminReq, page: int = 1, query: str | None = None) -> None:
     ]]
     item_rows = []
     for person, remaining in window:
-        sessions = f"🟢 {remaining} جلسه" if remaining is not None else "— بدون دوره"
+        sessions = f"{remaining} جلسه" if remaining is not None else "بدون دوره"
         item_rows.append([
             common.button(person.name, "students", "view", person.id),
             common.button(sessions, "students", "view", person.id),
@@ -142,6 +200,8 @@ def _profile(req: AdminReq, person_id: int) -> None:
         f"👤 {person.name}",
         f"{A.LABEL_PHONE}: {person.phone or '-'}",
     ]
+    if person.phone2:
+        lines.append(f"{A.LABEL_PHONE2}: {person.phone2}")
     platforms = sorted({identity.platform.value for identity in person.identities})
     if platforms:
         linked = "، ".join(_PLATFORM_LABELS.get(p, p) for p in platforms)
@@ -172,6 +232,9 @@ def _profile(req: AdminReq, person_id: int) -> None:
         common.button(A.BTN_PAYMENTS, "pay", "client", person.id),
         common.button(A.BTN_SEND_MESSAGE, "students", "msg", person.id),
     ])
-    rows.append([common.button(A.BTN_DELETE_STUDENT, "students", "del_confirm", person.id)])
+    rows.append([
+        common.button(A.BTN_EDIT_STUDENT, "students", "edit", person.id),
+        common.button(A.BTN_DELETE_STUDENT, "students", "del_confirm", person.id),
+    ])
     rows.append([common.button(A.BACK, "students")])
     common.render(req, "\n".join(lines), common.inline(rows))
