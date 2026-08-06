@@ -12,7 +12,7 @@ append-only and a re-tap on an already-recorded row is a correction.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
 from app.admin import common
 from app.admin.common import AdminReq
@@ -61,8 +61,23 @@ def handle_callback(req: AdminReq, args: str) -> None:
             )
     elif action == "extra" and rest.isdigit():
         common.prompt(req, A.ASK_ATTEND_DATE, "attend:extra", {"course_id": int(rest)})
-    else:
+    elif action == "today":
+        _today(req)
+    elif action == "onday":
+        _today(req, grid.parse_date_token(rest))
+    elif action == "day":
+        course_id, _, token = rest.partition(":")
+        session_date = grid.parse_date_token(token)
+        if course_id.isdigit() and session_date is not None:
+            _day_slot(req, int(course_id), session_date)
+        else:
+            _today(req)
+    elif action == "dset":
+        _day_set(req, rest)
+    elif action == "allcourses":
         _pick_active(req)
+    else:
+        _today(req)
 
 
 def handle_message(req: AdminReq, message: dict, substep: str, state) -> None:
@@ -85,7 +100,115 @@ def handle_message(req: AdminReq, message: dict, substep: str, state) -> None:
         _slot(req, data["course_id"], session_date)
     else:
         common.clear(req)
-        _pick_active(req)
+        _today(req)
+
+
+# --- day view: one row per student who has a session on a given day ---
+
+
+def _courses_on(req: AdminReq, day: date) -> list:
+    """Active courses whose weekly pattern falls on `day` (started by then)."""
+    weekday = schedule_service.persian_weekday(day)
+    courses = [
+        course
+        for course in courses_service.list_courses(req.db, status=CourseStatus.ACTIVE)
+        if day >= course.start_date and weekday in schedule_service.course_weekdays(course)
+    ]
+    courses.sort(key=lambda c: c.client.name)
+    return courses
+
+
+def _today(req: AdminReq, day: date | None = None, flash: str | None = None) -> None:
+    """The day's attendance: every student with a session that day, tap to mark."""
+    from app.core.jalali import format_jalali
+
+    day = day or date.today()
+    courses = _courses_on(req, day)
+    header = A.ATTEND_DAY_TITLE.format(
+        date=format_jalali(day), weekday=schedule_service.weekday_name(day)
+    )
+    if not courses:
+        header = f"{header}\n\n{A.NO_SESSIONS_DAY}"
+    if flash:
+        header = f"{flash}\n\n{header}"
+
+    token = grid.date_token(day)
+    rows = []
+    for course in courses:
+        status = courses_service.effective_status_map(req.db, course.id).get(day)
+        rows.append([
+            common.button(
+                f"{course.client.name} · {course.class_type.title}",
+                "attend", "day", course.id, token,
+                style=grid.STATUS_STYLES.get(status) if status else None,
+            )
+        ])
+    rows.append([
+        common.button(A.PREV_DAY, "attend", "onday", grid.date_token(day - timedelta(days=1))),
+        common.button(A.TODAY, "attend", "today"),
+        common.button(A.NEXT_DAY, "attend", "onday", grid.date_token(day + timedelta(days=1))),
+    ])
+    rows.append([common.button(A.BTN_ALL_COURSES, "attend", "allcourses")])
+    common.render(req, header, common.with_back(rows))
+
+
+def _day_slot(req: AdminReq, course_id: int, session_date: date) -> None:
+    """Outcome picker for one student's session on the day; returns to the day view."""
+    from app.core.jalali import format_jalali
+
+    course = courses_service.get(req.db, course_id)
+    current = courses_service.effective_status_map(req.db, course_id).get(session_date)
+    token = grid.date_token(session_date)
+    back = common.button(A.BTN_BACK_TO_DAY, "attend", "onday", token)
+    lines = [
+        A.SLOT_TITLE.format(
+            weekday=schedule_service.weekday_name(session_date), date=format_jalali(session_date)
+        ),
+        f"🏷 {course.class_type.title} · 👤 {course.client.name}",
+        f"{A.SLOT_CURRENT}: "
+        + (attendance_service.status_label(current) if current else A.SLOT_PENDING),
+    ]
+    if session_date > date.today():  # can't mark a session that hasn't happened
+        lines += ["", A.ATTEND_FUTURE]
+        common.render(req, "\n".join(lines), common.inline([[back]]))
+        return
+    lines += ["", A.ASK_ATTEND_OUTCOME]
+    rows = [
+        [_day_status_button(course.id, token, s) for s in grid.PRIMARY_STATUSES],
+        [_day_status_button(course.id, token, s) for s in grid.SECONDARY_STATUSES],
+        [back],
+    ]
+    common.render(req, "\n".join(lines), common.inline(rows))
+
+
+def _day_status_button(course_id: int, token: str, status: AttendanceStatus) -> dict:
+    return common.button(
+        grid.PICKER_LABELS[status],
+        "attend", "dset", course_id, token, grid.CODE_BY_STATUS[status],
+        style=grid.STATUS_STYLES.get(status),
+    )
+
+
+def _day_set(req: AdminReq, rest: str) -> None:
+    """Record an outcome from the day view, then re-show that day."""
+    course_id, _, tail = rest.partition(":")
+    token, _, code = tail.partition(":")
+    session_date = grid.parse_date_token(token)
+    status = grid.STATUS_CODES.get(code)
+    if not course_id.isdigit() or session_date is None or status is None:
+        _today(req)
+        return
+    if session_date > date.today():
+        _today(req, session_date, flash=A.ATTEND_FUTURE)
+        return
+    flash = None
+    try:
+        attendance_service.record(
+            req.db, int(course_id), session_date, status, created_by=req.user_id
+        )
+    except DomainError as exc:
+        flash = f"⚠️ {exc}"
+    _today(req, session_date, flash=flash)
 
 
 # --- pickers ---

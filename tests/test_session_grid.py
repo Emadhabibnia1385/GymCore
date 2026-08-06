@@ -5,7 +5,7 @@ The rules being pinned down here are the coach's, from the paper table:
 لغو مربی / تعطیلی burn nothing and push one extra row onto the end.
 """
 
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
@@ -369,6 +369,53 @@ def test_tampered_grid_callbacks_do_not_crash(db):
     ):
         disp.handle_update(callback_update(1, CHAT, OWNER, data))
     assert client.sent  # every one produced a screen, none raised
+
+
+# --- day view (attendance by day, across all courses) ---
+
+
+def test_day_view_lists_students_with_a_session_that_day(db):
+    disp, client = make_dispatcher()
+    today = date.today()
+    # A course training on today's weekday, started a while back.
+    on_day = persons_service.create(db, name="شاگرد امروز", role=Role.CLIENT)
+    class_type = classes_service.list_class_types(db, only_active=True)[0]
+    courses_service.create(
+        db, client_id=on_day.id, class_type_id=class_type.id, sessions_total=8,
+        start_date=today - timedelta(days=30),
+        weekdays=str(schedule_service.persian_weekday(today)),
+    )
+    # ...and one that trains only on a different weekday.
+    off_day = persons_service.create(db, name="شاگرد روز دیگر", role=Role.CLIENT)
+    courses_service.create(
+        db, client_id=off_day.id, class_type_id=class_type.id, sessions_total=8,
+        start_date=today - timedelta(days=30),
+        weekdays=str((schedule_service.persian_weekday(today) + 1) % 7),
+    )
+
+    disp.handle_update(callback_update(1, CHAT, OWNER, "a:attend:today"))
+    labels = " | ".join(button_texts(last_markup(client)))
+    assert "شاگرد امروز" in labels
+    assert "شاگرد روز دیگر" not in labels  # not scheduled today
+    assert A.TODAY in labels  # day navigation is present
+
+
+def test_day_view_records_attendance_in_two_taps(db):
+    disp, client = make_dispatcher()
+    today = date.today()
+    student = persons_service.create(db, name="ثبت روزانه", role=Role.CLIENT)
+    class_type = classes_service.list_class_types(db, only_active=True)[0]
+    course = courses_service.create(
+        db, client_id=student.id, class_type_id=class_type.id, sessions_total=8,
+        start_date=today - timedelta(days=30),
+        weekdays=str(schedule_service.persian_weekday(today)),
+    )
+    token = grid.date_token(today)
+    disp.handle_update(callback_update(1, CHAT, OWNER, f"a:attend:day:{course.id}:{token}"))
+    disp.handle_update(callback_update(2, CHAT, OWNER, f"a:attend:dset:{course.id}:{token}:P"))
+    db.expire_all()
+
+    assert courses_service.consumed_sessions(db, course.id) == 1
 
 
 # --- client side ---
