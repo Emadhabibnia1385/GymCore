@@ -188,6 +188,27 @@ def set_class_times(db: Session, course_id: int, class_times: str | None) -> Cou
     return course
 
 
+def set_fees(
+    db: Session,
+    course_id: int,
+    tuition: int | None = None,
+    gym_fee: int | None = None,
+) -> Course:
+    """Adjust this course's locked-in tuition and/or gym fee."""
+    course = get(db, course_id)
+    if tuition is not None:
+        if tuition < 0:
+            raise ValidationError("مبلغ نمی‌تواند منفی باشد")
+        course.tuition = tuition
+    if gym_fee is not None:
+        if gym_fee < 0:
+            raise ValidationError("مبلغ نمی‌تواند منفی باشد")
+        course.gym_fee = gym_fee
+    db.commit()
+    db.refresh(course)
+    return course
+
+
 def set_status(db: Session, course_id: int, status: CourseStatus) -> Course:
     course = get(db, course_id)
     course.status = status

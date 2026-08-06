@@ -165,6 +165,25 @@ def test_admin_finish_then_reactivate_course(db):
     assert courses_service.get(db, course.id).status == CourseStatus.ACTIVE
 
 
+def test_admin_edit_course_fees(db):
+    disp, client = make_dispatcher()
+    student = persons_service.create(db, name="ویرایش هزینه", role=Role.CLIENT)
+    class_type = classes_service.list_class_types(db, only_active=True)[0]
+    course = courses_service.create(
+        db, client_id=student.id, class_type_id=class_type.id,
+        sessions_total=8, tuition=500_000, gym_fee=0,
+    )
+    disp.handle_update(callback_update(1, CHAT, OWNER, f"a:courses:edit_tuition:{course.id}"))
+    disp.handle_update(message_update(2, CHAT, OWNER, "750000"))
+    disp.handle_update(callback_update(3, CHAT, OWNER, f"a:courses:edit_gym:{course.id}"))
+    disp.handle_update(message_update(4, CHAT, OWNER, "120000"))
+    db.expire_all()
+
+    updated = courses_service.get(db, course.id)
+    assert updated.tuition == 750_000
+    assert updated.gym_fee == 120_000
+
+
 def test_admin_delete_course(db):
     disp, client = make_dispatcher()
     student = persons_service.create(db, name="حذف دوره", role=Role.CLIENT)

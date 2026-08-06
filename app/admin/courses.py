@@ -8,6 +8,7 @@ from app.admin import common
 from app.admin.common import AdminReq
 from app.bots.common import formatting
 from app.copy import admin_texts as A
+from app.copy import texts
 from app.models import CourseStatus
 from app.services import classes as classes_service
 from app.services import courses as courses_service
@@ -37,6 +38,12 @@ def handle_callback(req: AdminReq, args: str) -> None:
             _view(req, int(course_id))
     elif action == "renew" and rest.isdigit():
         common.prompt(req, A.ASK_RENEW_SESSIONS, "courses:renew", {"course_id": int(rest)})
+    elif action == "edit" and rest.isdigit():
+        _edit_menu(req, int(rest))
+    elif action == "edit_tuition" and rest.isdigit():
+        common.prompt(req, A.ASK_EDIT_TUITION, "courses:edit_tuition", {"course_id": int(rest)})
+    elif action == "edit_gym" and rest.isdigit():
+        common.prompt(req, A.ASK_EDIT_GYM, "courses:edit_gym", {"course_id": int(rest)})
     elif action == "del_confirm" and rest.isdigit():
         course = courses_service.get(req.db, int(rest))
         common.render(
@@ -131,6 +138,18 @@ def handle_message(req: AdminReq, message: dict, substep: str, state) -> None:
             else:
                 times.pop(day, None)
         _ask_times(req, data)
+    elif substep in ("edit_tuition", "edit_gym"):
+        amount = common.parse_count(text)
+        if amount is None:
+            prompt = A.ASK_EDIT_TUITION if substep == "edit_tuition" else A.ASK_EDIT_GYM
+            common.prompt(req, f"{A.INVALID_NUMBER}\n{prompt}", f"courses:{substep}", data)
+            return
+        if substep == "edit_tuition":
+            courses_service.set_fees(req.db, data["course_id"], tuition=amount)
+        else:
+            courses_service.set_fees(req.db, data["course_id"], gym_fee=amount)
+        common.clear(req)
+        _view(req, data["course_id"])
     elif substep == "renew":
         count = common.parse_count(text)
         if not count:
@@ -306,6 +325,26 @@ def _pick_class(req: AdminReq, client_id: int) -> None:
     common.render(req, A.ASK_COURSE_CLASS, common.with_back(rows, ("courses", "client", client_id)))
 
 
+def _edit_menu(req: AdminReq, course_id: int) -> None:
+    """Pick which part of a course to edit: fees, or the weekly days + times."""
+    course = courses_service.get(req.db, course_id)
+    body = (
+        f"{A.EDIT_COURSE_TITLE}\n\n"
+        f"🏷 {course.class_type.title}\n"
+        f"💰 {texts.LABEL_TUITION}: {course.tuition:,}\n"
+        f"🏟 {texts.LABEL_GYM_FEE}: {course.gym_fee:,}\n"
+        f"🗓 {schedule_service.class_schedule_label(course)}"
+    )
+    rows = [
+        [
+            common.button(A.BTN_EDIT_TUITION, "courses", "edit_tuition", course.id),
+            common.button(A.BTN_EDIT_GYM, "courses", "edit_gym", course.id),
+        ],
+        [common.button(A.BTN_EDIT_SCHEDULE, "courses", "wdedit", course.id)],
+    ]
+    common.render(req, body, common.with_back(rows, ("courses", "view", course.id)))
+
+
 def _view(req: AdminReq, course_id: int, flash: str | None = None) -> None:
     course = courses_service.get(req.db, course_id)
     # Admin has the full session grid one tap away, so the per-date history list
@@ -315,7 +354,7 @@ def _view(req: AdminReq, course_id: int, flash: str | None = None) -> None:
         body = f"{flash}\n\n{body}"
     rows: list[list[dict]] = [[
         common.button(A.BTN_STUDENT_GRID, "attend", "course", course.id),
-        common.button(A.BTN_EDIT_WEEKDAYS, "courses", "wdedit", course.id),
+        common.button(A.BTN_EDIT_COURSE, "courses", "edit", course.id),
     ]]
     # Finish an active course, or bring a finished/paused one back to active —
     # the one button toggles, so «پایان دوره» is always reversible.
