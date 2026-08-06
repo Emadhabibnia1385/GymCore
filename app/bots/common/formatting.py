@@ -68,6 +68,23 @@ def format_course_detail(
     return "\n".join(lines)
 
 
+def format_attendance_report(db: Session, course: Course) -> str | None:
+    """The per-session attendance record DM'd to a client when a course ends.
+
+    Returns None when nothing was recorded (nothing worth sending).
+    """
+    effective = courses_service.effective_status_map(db, course.id)
+    if not effective:
+        return None
+    lines = [texts.ATTENDANCE_REPORT_TITLE.format(title=course.class_type.title), ""]
+    for session_date in sorted(effective):
+        label = attendance_service.status_label(effective[session_date])
+        lines.append(f"{format_jalali(session_date)} — {label}")
+    lines.append("")
+    lines.append(texts.ATTENDANCE_REPORT_FOOTER)
+    return "\n".join(lines)
+
+
 def program_label(assignment: PlanAssignment) -> str:
     """Short label for a program list button."""
     title = assignment.title or assignment.plan_type.title

@@ -74,6 +74,8 @@ LABEL_GYM_FEE = "ورودی باشگاه"
 LABEL_PAID = "پرداخت‌شده"
 LABEL_OUTSTANDING = "باقی‌مانده"
 NO_ATTENDANCE_YET = "هنوز جلسه‌ای ثبت نشده است."
+ATTENDANCE_REPORT_TITLE = "📋 ریز حضور و غیاب دورهٔ «{title}»:"
+ATTENDANCE_REPORT_FOOTER = "— پایان دوره —\nبرای ادامه با مربی هماهنگ کن 🟢"
 TOMAN = "تومان"
 
 # --- Session grid (shared by the client view and the admin panel) ---

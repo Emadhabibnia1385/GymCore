@@ -148,6 +148,29 @@ def test_admin_cannot_mark_future_session(db):
     assert courses_service.consumed_sessions(db, course.id) == 0
 
 
+def test_admin_quick_renew_resets_sessions(db):
+    disp, client = make_dispatcher()
+    student = persons_service.create(db, name="تمدید سریع", role=Role.CLIENT)
+    class_type = classes_service.list_class_types(db, only_active=True)[0]
+    course = courses_service.create(
+        db, client_id=student.id, class_type_id=class_type.id,
+        sessions_total=8, tuition=600_000, gym_fee=50_000, weekdays="0,2",
+    )
+    disp.handle_update(callback_update(1, CHAT, OWNER, f"a:courses:renew:{course.id}"))
+    disp.handle_update(callback_update(2, CHAT, OWNER, f"a:courses:renew_go:{course.id}"))
+    db.expire_all()
+
+    assert courses_service.get(db, course.id).status == CourseStatus.FINISHED
+    new_course = next(
+        c for c in courses_service.list_courses(db, client_id=student.id) if c.id != course.id
+    )
+    assert new_course.status == CourseStatus.ACTIVE
+    assert new_course.sessions_total == 8  # same terms, reset
+    assert new_course.tuition == 600_000
+    assert new_course.gym_fee == 50_000
+    assert courses_service.remaining_sessions(db, new_course) == 8
+
+
 def test_admin_finish_then_reactivate_course(db):
     disp, client = make_dispatcher()
     student = persons_service.create(db, name="فعال‌سازی مجدد", role=Role.CLIENT)

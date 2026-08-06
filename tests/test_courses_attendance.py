@@ -75,6 +75,21 @@ def test_attendance_module_has_no_mutators():
     assert not hasattr(attendance_service, "delete")
 
 
+def test_attendance_report_text_lists_sessions(db):
+    from app.bots.common import formatting
+
+    _, course = _setup(db, sessions_total=4)
+    _record(db, course.id, 1, AttendanceStatus.PRESENT)
+    _record(db, course.id, 3, AttendanceStatus.ABSENT_UNAUTHORIZED)
+    text = formatting.format_attendance_report(db, course)
+    assert text is not None
+    assert course.class_type.title in text
+    assert "حاضر" in text
+
+    _, empty = _setup(db, sessions_total=4)
+    assert formatting.format_attendance_report(db, empty) is None  # nothing to report
+
+
 def test_coach_cancel_credits_next_course(db):
     client = persons_service.create(db, name="اعتبار لغو")
     class_type = classes_service.list_class_types(db, only_active=True)[0]

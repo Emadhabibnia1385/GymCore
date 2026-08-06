@@ -34,10 +34,23 @@ def handle_callback(req: AdminReq, args: str) -> None:
     elif action == "status":
         course_id, _, status = rest.partition(":")
         if course_id.isdigit() and status in CourseStatus.__members__:
-            courses_service.set_status(req.db, int(course_id), CourseStatus[status])
+            new_status = CourseStatus[status]
+            courses_service.set_status(req.db, int(course_id), new_status)
+            if new_status == CourseStatus.FINISHED:
+                _send_attendance_report(req.db, courses_service.get(req.db, int(course_id)))
             _view(req, int(course_id))
     elif action == "renew" and rest.isdigit():
-        common.prompt(req, A.ASK_RENEW_SESSIONS, "courses:renew", {"course_id": int(rest)})
+        course = courses_service.get(req.db, int(rest))
+        common.render(
+            req,
+            A.CONFIRM_RENEW.format(title=course.class_type.title, n=course.sessions_total),
+            common.inline([[
+                common.button(A.BTN_YES_RENEW, "courses", "renew_go", course.id),
+                common.button(A.CANCEL, "courses", "view", course.id),
+            ]]),
+        )
+    elif action == "renew_go" and rest.isdigit():
+        _renew_same_terms(req, int(rest))
     elif action == "edit" and rest.isdigit():
         _edit_menu(req, int(rest))
     elif action == "edit_tuition" and rest.isdigit():
@@ -150,19 +163,6 @@ def handle_message(req: AdminReq, message: dict, substep: str, state) -> None:
             courses_service.set_fees(req.db, data["course_id"], gym_fee=amount)
         common.clear(req)
         _view(req, data["course_id"])
-    elif substep == "renew":
-        count = common.parse_count(text)
-        if not count:
-            common.prompt(req, f"{A.INVALID_NUMBER}\n{A.ASK_RENEW_SESSIONS}", "courses:renew", data)
-            return
-        old_course = courses_service.get(req.db, data["course_id"])
-        credit = courses_service.coach_cancel_credit(req.db, old_course)
-        new_course = courses_service.renew(req.db, data["course_id"], sessions_total=count)
-        flash = A.RENEWED
-        if credit > 0:
-            flash = f"{A.RENEWED}\n{A.CANCEL_CREDIT_APPLIED.format(amount=f'{credit:,}')}"
-        common.clear(req)
-        _view(req, new_course.id, flash=flash)
     elif substep == "weekdays":
         _ask_weekdays(req, data)  # stray text mid-selection: just re-show the picker
     else:
@@ -323,6 +323,36 @@ def _pick_class(req: AdminReq, client_id: int) -> None:
     types = classes_service.list_class_types(req.db, only_active=True)
     rows = [[common.button(c.title, "courses", "cls", client_id, c.id)] for c in types]
     common.render(req, A.ASK_COURSE_CLASS, common.with_back(rows, ("courses", "client", client_id)))
+
+
+def _renew_same_terms(req: AdminReq, course_id: int) -> None:
+    """One-tap تمدید: a fresh course with the SAME terms, sessions reset to zero."""
+    old = courses_service.get(req.db, course_id)
+    credit = courses_service.coach_cancel_credit(req.db, old)
+    _send_attendance_report(req.db, old)  # DM the finishing course's record first
+    new_course = courses_service.renew(
+        req.db,
+        course_id,
+        sessions_total=old.sessions_total,
+        tuition=old.tuition,
+        gym_fee=old.gym_fee,
+        allowed_absence=old.allowed_absence,
+        carry_credit=False,
+    )
+    flash = A.RENEWED
+    if credit > 0:
+        flash = f"{A.RENEWED}\n{A.CANCEL_CREDIT_APPLIED.format(amount=f'{credit:,}')}"
+    common.clear(req)
+    _view(req, new_course.id, flash=flash)
+
+
+def _send_attendance_report(db, course) -> None:
+    """DM the client the per-session attendance record of a course."""
+    from app.services import notifications as notify_service
+
+    text = formatting.format_attendance_report(db, course)
+    if text:
+        notify_service.notify_person(db, course.client, text)
 
 
 def _edit_menu(req: AdminReq, course_id: int) -> None:
