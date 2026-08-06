@@ -233,7 +233,7 @@ Current default links:
 mailto:mahdisarmad59@gmail.com
 
 📞 تلفن
-tel:+989305560950
+tel:+989152050950
 
 💬 واتساپ
 https://wa.me/message/Y5RUNKX4CVP5H1

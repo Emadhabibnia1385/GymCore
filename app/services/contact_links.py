@@ -16,16 +16,16 @@ from app.models import ContactLink, Platform
 # Order + labels-with-values per the coach's request. Phone/email are tap-to-copy
 # on Telegram; the rest are link buttons. Colours alternate blue/green in the UI.
 _DEFAULT_LINKS = [
-    {"key": "phone", "label": "تلفن: 09305560950", "icon": "📞",
-     "url": "tel:09305560950", "sort_order": 1},
+    {"key": "phone", "label": "تلفن: 09152050950", "icon": "📞",
+     "url": "tel:09152050950", "sort_order": 1},
     {"key": "telegram", "label": "تلگرام: @MahdiSarmad1", "icon": "✈️",
      "url": "https://t.me/MahdiSarmad1", "sort_order": 2, "platform": Platform.TELEGRAM},
     {"key": "instagram", "label": "اینستاگرام: @mahdisarmad", "icon": "📸",
      "url": "https://instagram.com/mahdisarmad", "sort_order": 3},
     {"key": "bale", "label": "بله: @mahdisarmad", "icon": "💬",
      "url": "https://ble.ir/mahdisarmad", "sort_order": 4, "platform": Platform.BALE},
-    {"key": "whatsapp", "label": "واتساپ: 09305560950", "icon": "🟢",
-     "url": "https://wa.me/989305560950", "sort_order": 5},
+    {"key": "whatsapp", "label": "واتساپ: 09152050950", "icon": "🟢",
+     "url": "https://wa.me/989152050950", "sort_order": 5},
     {"key": "linkedin", "label": "لینکدین: mahdisarmad", "icon": "💼",
      "url": "https://linkedin.com/in/mahdisarmad", "sort_order": 6},
     {"key": "email", "label": "ایمیل: mahdisarmad59@gmail.com", "icon": "📧",

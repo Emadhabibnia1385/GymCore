@@ -231,7 +231,7 @@ def test_contact_us_telegram_copy_buttons_alternating_colours(db):
     assert all("mailto:" not in u and "tel:" not in u for u in button_urls(markup))
     copies = _copy_values(markup)
     assert "mahdisarmad59@gmail.com" in copies  # email is tap-to-copy
-    assert any("09305560950" in v for v in copies)  # phone is tap-to-copy
+    assert any("09152050950" in v for v in copies)  # phone is tap-to-copy
     assert any("wa.me" in u for u in button_urls(markup))  # https links are buttons
     rows = markup["inline_keyboard"]
     assert rows[-1][0]["style"] == "danger"  # red back
@@ -245,7 +245,7 @@ def test_contact_us_bale_keeps_tel_mailto_as_text_no_style(db):
     disp.handle_update(callback_update(1, 500, 900, cb.CONTACT))
     body = last_text(client)
     assert "mahdisarmad59@gmail.com" in body  # email as text
-    assert "09305560950" in body  # phone as text
+    assert "09152050950" in body  # phone as text
     markup = last_markup(client)
     assert not _copy_values(markup)  # Bale gets no copy buttons
     for row in markup["inline_keyboard"]:
