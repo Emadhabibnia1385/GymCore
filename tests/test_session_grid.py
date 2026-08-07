@@ -394,10 +394,16 @@ def test_day_view_lists_students_with_a_session_that_day(db):
     )
 
     disp.handle_update(callback_update(1, CHAT, OWNER, "a:attend:today"))
-    labels = " | ".join(button_texts(last_markup(client)))
+    markup = last_markup(client)
+    labels = button_texts(markup)
     assert "شاگرد امروز" in labels
     assert "شاگرد روز دیگر" not in labels  # not scheduled today
     assert A.TODAY in labels  # day navigation is present
+    # The student's row is two glass buttons: name + class, one shared target.
+    row = next(r for r in markup["inline_keyboard"] if r[0]["text"] == "شاگرد امروز")
+    assert len(row) == 2
+    assert row[1]["text"] == class_type.title
+    assert row[0]["callback_data"] == row[1]["callback_data"]
 
 
 def test_day_view_records_attendance_in_two_taps(db):
