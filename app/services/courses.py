@@ -102,6 +102,19 @@ def allowed_absence_used(db: Session, course_id: int) -> int:
     )
 
 
+def unauthorized_absence_used(db: Session, course_id: int) -> int:
+    """How many unauthorized absences the course already carries.
+
+    ``Course.allowed_absence`` is the ceiling for these (see
+    services/attendance.py::record) — past it, no more can be recorded.
+    """
+    return sum(
+        1
+        for status in effective_status_map(db, course_id).values()
+        if status == AttendanceStatus.ABSENT_UNAUTHORIZED
+    )
+
+
 def remaining_sessions(db: Session, course: Course) -> int:
     return max(course.sessions_total - consumed_sessions(db, course.id), 0)
 

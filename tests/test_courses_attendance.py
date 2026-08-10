@@ -70,6 +70,27 @@ def test_cannot_record_beyond_capacity(db):
         _record(db, course.id, 3, AttendanceStatus.PRESENT)
 
 
+def test_unauthorized_absence_is_capped_by_the_allowance(db):
+    _, course = _setup(db, sessions_total=10, allowed=2)
+    _record(db, course.id, 1, AttendanceStatus.ABSENT_UNAUTHORIZED)
+    _record(db, course.id, 3, AttendanceStatus.ABSENT_UNAUTHORIZED)
+    assert courses_service.unauthorized_absence_used(db, course.id) == 2
+
+    with pytest.raises(ValidationError):  # the third one is over the ceiling
+        _record(db, course.id, 5, AttendanceStatus.ABSENT_UNAUTHORIZED)
+
+    # Other outcomes are unaffected, and re-marking a capped date is a correction.
+    _record(db, course.id, 5, AttendanceStatus.ABSENT_ALLOWED)
+    _record(db, course.id, 1, AttendanceStatus.ABSENT_UNAUTHORIZED)
+    assert courses_service.unauthorized_absence_used(db, course.id) == 2
+
+
+def test_zero_allowance_blocks_every_unauthorized_absence(db):
+    _, course = _setup(db, sessions_total=10, allowed=0)
+    with pytest.raises(ValidationError):
+        _record(db, course.id, 1, AttendanceStatus.ABSENT_UNAUTHORIZED)
+
+
 def test_attendance_module_has_no_mutators():
     assert not hasattr(attendance_service, "update")
     assert not hasattr(attendance_service, "delete")
