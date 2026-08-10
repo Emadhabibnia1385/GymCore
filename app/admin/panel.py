@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.admin import attendance as attendance_admin
 from app.admin import classes as classes_admin
+from app.admin import contacts as contacts_admin
 from app.admin import courses as courses_admin
 from app.admin import notifications as notifications_admin
 from app.admin import payments as payments_admin
@@ -40,6 +41,7 @@ SECTIONS = {
     "pay": payments_admin,
     "notify": notifications_admin,
     "settings": settings_admin,
+    "contacts": contacts_admin,
     "start": start_admin,
 }
 

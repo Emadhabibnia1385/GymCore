@@ -142,6 +142,24 @@ ASK_MOVE_DATE = (
     "جلسه از تاریخ فعلی حذف و به تاریخ جدید منتقل می‌شود."
 )
 MOVED_OK = "🔀 جلسه به {date} منتقل شد."
+
+# --- contact links ---
+CONTACTS_TITLE = "📞 راه‌های ارتباطی"
+CONTACTS_HINT = "روی هر مورد بزن تا متن، آدرس، ترتیب یا فعال‌بودنش را عوض کنی 👇"
+LABEL_LINK_URL = "آدرس"
+BTN_EDIT_LINK_LABEL = "✏️ متن"
+BTN_EDIT_LINK_URL = "🔗 آدرس"
+BTN_LINK_ON = "🟢 فعال کن"
+BTN_LINK_OFF = "⚪ غیرفعال کن"
+BTN_MOVE_UP = "⬆️ بالاتر"
+BTN_MOVE_DOWN = "⬇️ پایین‌تر"
+ASK_LINK_LABEL = "متن جدید این دکمه را بفرست:\nمتن فعلی: {current}"
+ASK_LINK_URL = (
+    "آدرس جدید را بفرست:\n"
+    "نمونه: https://t.me/user · tel:09121234567 · mailto:name@mail.com\n"
+    "آدرس فعلی: {current}"
+)
+LINK_SAVED = "🟢 ذخیره شد."
 GRID_HINT = "روی هر ردیف بزن تا وضعیت آن جلسه ثبت شود 👇"
 BTN_EXTRA_SESSION = "➕ جلسهٔ خارج از برنامه"
 BTN_ADD_NOTE = "📝 افزودن توضیح"

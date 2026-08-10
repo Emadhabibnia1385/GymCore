@@ -202,7 +202,8 @@ def admin_menu() -> dict:
              button(texts.BTN_ADMIN_PAYMENTS, cb.admin("pay"))],
             [button(texts.BTN_ADMIN_NOTIFY, cb.admin("notify")),
              button(texts.BTN_ADMIN_SETTINGS, cb.admin("settings"))],
-            [button(texts.BTN_ADMIN_START, cb.admin("start"))],
+            [button(texts.BTN_ADMIN_CONTACTS, cb.admin("contacts")),
+             button(texts.BTN_ADMIN_START, cb.admin("start"))],
             [button(texts.BTN_ADMIN_EXIT, cb.HOME, STYLE_DANGER)],
         ]
     )

@@ -35,6 +35,7 @@ from tests.fakes import (
     button_texts,
     callback_update,
     last_markup,
+    last_text,
     make_dispatcher,
     message_update,
     photo_message_update,
@@ -57,6 +58,7 @@ def test_admin_panel_lists_all_sections(db):
         texts.BTN_ADMIN_STUDENTS, texts.BTN_ADMIN_CLASSES, texts.BTN_ADMIN_PLANS,
         texts.BTN_ADMIN_ATTENDANCE, texts.BTN_ADMIN_PAYMENTS,
         texts.BTN_ADMIN_NOTIFY, texts.BTN_ADMIN_SETTINGS, texts.BTN_ADMIN_START,
+        texts.BTN_ADMIN_CONTACTS,
     ):
         assert expected in labels
     assert texts.BTN_ADMIN_COURSES not in labels  # «مدیریت دوره‌ها» removed (empty)
@@ -366,6 +368,34 @@ def test_admin_send_private_message_to_student(db):
     disp.handle_update(message_update(2, CHAT, OWNER, "فردا کلاس تعطیل است"))
     db.expire_all()
     assert any(A.MESSAGE_SENT in (s.get("text") or "") for s in client.sent)
+
+
+def test_admin_edits_a_contact_link(db):
+    from app.services import contact_links as links_service
+
+    disp, client = make_dispatcher()
+    phone = links_service.get_by_key(db, "phone")
+
+    # Open the section, pick the phone link, then change its text and address.
+    disp.handle_update(callback_update(1, CHAT, OWNER, "a:contacts"))
+    assert A.CONTACTS_TITLE in last_text(client)
+
+    disp.handle_update(callback_update(2, CHAT, OWNER, f"a:contacts:view:{phone.id}"))
+    disp.handle_update(callback_update(3, CHAT, OWNER, f"a:contacts:label:{phone.id}"))
+    disp.handle_update(message_update(4, CHAT, OWNER, "تلفن: 09121112233"))
+    disp.handle_update(callback_update(5, CHAT, OWNER, f"a:contacts:url:{phone.id}"))
+    disp.handle_update(message_update(6, CHAT, OWNER, "tel:09121112233"))
+    db.expire_all()
+
+    updated = links_service.get_by_key(db, "phone")
+    assert updated.label == "تلفن: 09121112233"
+    assert updated.url == "tel:09121112233"
+
+    # Toggling hides it from the client's contact screen.
+    disp.handle_update(callback_update(7, CHAT, OWNER, f"a:contacts:toggle:{phone.id}"))
+    db.expire_all()
+    assert links_service.get_by_key(db, "phone").active is False
+    assert all(link.key != "phone" for link in links_service.list_active(db))
 
 
 def test_non_owner_message_never_enters_admin(db):
