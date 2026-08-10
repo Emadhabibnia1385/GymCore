@@ -185,10 +185,14 @@ def header(db: Session, course: Course, page: int, pages: int, *, for_admin: boo
         f"{texts.LABEL_CONSUMED}: {stats['consumed']}/{stats['total']}"
         f" · {texts.LABEL_REMAINING}: {stats['remaining']}"
     )
-    # The allowance caps unauthorized absences, so that's the counter with /N.
+    # The allowance caps unauthorized absences, so that's the counter carrying
+    # the /N — unless it is zero, which means no limit.
+    unauthorized = str(stats["absent_unauthorized"])
+    if course.allowed_absence > 0:
+        unauthorized = f"{unauthorized}/{course.allowed_absence}"
     lines.append(
         f"{texts.LABEL_ALLOWED_ABSENCE}: {stats['absent_allowed']}"
-        f" · {texts.LABEL_UNAUTHORIZED}: {stats['absent_unauthorized']}/{course.allowed_absence}"
+        f" · {texts.LABEL_UNAUTHORIZED}: {unauthorized}"
     )
     if for_admin:
         balance = payments_service.course_balance(db, course)

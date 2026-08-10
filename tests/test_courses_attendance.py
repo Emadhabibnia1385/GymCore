@@ -85,10 +85,11 @@ def test_unauthorized_absence_is_capped_by_the_allowance(db):
     assert courses_service.unauthorized_absence_used(db, course.id) == 2
 
 
-def test_zero_allowance_blocks_every_unauthorized_absence(db):
+def test_zero_allowance_means_no_limit(db):
     _, course = _setup(db, sessions_total=10, allowed=0)
-    with pytest.raises(ValidationError):
-        _record(db, course.id, 1, AttendanceStatus.ABSENT_UNAUTHORIZED)
+    for day in (1, 3, 5):
+        _record(db, course.id, day, AttendanceStatus.ABSENT_UNAUTHORIZED)
+    assert courses_service.unauthorized_absence_used(db, course.id) == 3
 
 
 def test_attendance_module_has_no_mutators():
