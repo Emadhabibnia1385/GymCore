@@ -28,6 +28,9 @@ class AttendanceStatus(str, enum.Enum):
     ABSENT_UNAUTHORIZED = "ABSENT_UNAUTHORIZED"
     COACH_CANCELLED = "COACH_CANCELLED"
     HOLIDAY = "HOLIDAY"
+    # The session was rescheduled to another date by arrangement: the original
+    # date is replaced by ``AttendanceEvent.moved_to`` in the derived grid.
+    MOVED = "MOVED"
 
 
 # Statuses that consume one of the course's paid sessions.

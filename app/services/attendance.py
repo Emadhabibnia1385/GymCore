@@ -32,6 +32,7 @@ _STATUS_LABELS = {
     AttendanceStatus.ABSENT_UNAUTHORIZED: "🔴 غیبت غیرمجاز",
     AttendanceStatus.COACH_CANCELLED: "🔵 لغو توسط مربی",
     AttendanceStatus.HOLIDAY: "⚪ تعطیلی",
+    AttendanceStatus.MOVED: "🔀 جایگزین شد",
 }
 
 
@@ -57,6 +58,7 @@ def record(
     note: str | None = None,
     created_by: str | None = None,
     notify: bool = True,
+    moved_to: date | None = None,
 ) -> AttendanceEvent:
     course = courses_service.get(db, course_id)
     if course.status == CourseStatus.FINISHED:
@@ -89,6 +91,7 @@ def record(
         course_id=course_id,
         session_date=session_date,
         status=status,
+        moved_to=moved_to,
         note=note,
         created_by=created_by,
     )
@@ -112,6 +115,50 @@ def record(
             f"جلسات باقی‌مانده: {remaining}",
         )
     db.refresh(event)
+    return event
+
+
+def move_session(
+    db: Session,
+    course_id: int,
+    session_date: date,
+    new_date: date,
+    note: str | None = None,
+    created_by: str | None = None,
+    notify: bool = True,
+) -> AttendanceEvent:
+    """Reschedule a session: the original date is replaced by `new_date`.
+
+    Recorded as a MOVED event on the original date carrying the new one, so the
+    derived grid drops the original row and expects the session on `new_date`
+    instead. No session is consumed by the move itself.
+    """
+    if new_date == session_date:
+        raise ValidationError("تاریخ جدید با تاریخ جلسه یکسان است")
+    course = courses_service.get(db, course_id)
+    effective = courses_service.effective_status_map(db, course_id)
+    if effective.get(new_date) is not None:
+        raise ValidationError("برای تاریخ مقصد قبلاً جلسه‌ای ثبت شده است")
+
+    event = record(
+        db,
+        course_id=course_id,
+        session_date=session_date,
+        status=AttendanceStatus.MOVED,
+        note=note,
+        created_by=created_by,
+        notify=False,  # the move has its own message below
+        moved_to=new_date,
+    )
+    if notify and settings_service.get_bool(db, KEY_NOTIFY_ON_ATTENDANCE, True):
+        notifications.notify_person(
+            db,
+            course.client,
+            "🔀 جلسه‌ات جابه‌جا شد\n"
+            f"کلاس: {course.class_type.title}\n"
+            f"از: {format_jalali(session_date)}\n"
+            f"به: {format_jalali(new_date)}",
+        )
     return event
 
 

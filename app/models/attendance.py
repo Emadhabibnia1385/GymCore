@@ -24,6 +24,8 @@ class AttendanceEvent(Base):
     course_id: Mapped[int] = mapped_column(ForeignKey("courses.id"), index=True)
     session_date: Mapped[date] = mapped_column(Date, index=True)
     status: Mapped[AttendanceStatus] = mapped_column(Enum(AttendanceStatus))
+    # Only for MOVED events: the date this session was rescheduled to.
+    moved_to: Mapped[date | None] = mapped_column(Date)
     note: Mapped[str | None] = mapped_column(String(500))
     # Audit: numeric platform user ID of the admin who recorded the event.
     created_by: Mapped[str | None] = mapped_column(String(64))

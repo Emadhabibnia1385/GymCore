@@ -35,6 +35,7 @@ STATUS_CODES: dict[str, AttendanceStatus] = {
     "A": AttendanceStatus.ABSENT_ALLOWED,
     "C": AttendanceStatus.COACH_CANCELLED,
     "H": AttendanceStatus.HOLIDAY,
+    "M": AttendanceStatus.MOVED,
 }
 CODE_BY_STATUS = {status: code for code, status in STATUS_CODES.items()}
 
@@ -58,6 +59,7 @@ _CELL_LABELS = {
     AttendanceStatus.ABSENT_ALLOWED: "غیبت مجاز",
     AttendanceStatus.COACH_CANCELLED: "لغو مربی",
     AttendanceStatus.HOLIDAY: "تعطیلی",
+    AttendanceStatus.MOVED: "جابه‌جا شد",
 }
 PENDING_CELL = "در انتظار"
 
@@ -69,6 +71,7 @@ PICKER_LABELS = {
     AttendanceStatus.ABSENT_ALLOWED: "مجاز",
     AttendanceStatus.COACH_CANCELLED: "لغو مربی",
     AttendanceStatus.HOLIDAY: "تعطیلی",
+    AttendanceStatus.MOVED: "جایگزین",
 }
 
 # Row / picker colour per outcome (Telegram button style; Bale renders plain):
@@ -80,6 +83,7 @@ STATUS_STYLES = {
     AttendanceStatus.ABSENT_ALLOWED: STYLE_PRIMARY,
     AttendanceStatus.COACH_CANCELLED: STYLE_PRIMARY,
     AttendanceStatus.HOLIDAY: STYLE_PRIMARY,
+    AttendanceStatus.MOVED: STYLE_PRIMARY,
 }
 
 

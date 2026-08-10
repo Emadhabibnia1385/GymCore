@@ -13,6 +13,7 @@ from app.bots.common import callbacks as cb
 from app.bots.common import grid
 from app.copy import admin_texts as A
 from app.copy import texts
+from app.core.exceptions import ValidationError
 from app.models import AttendanceStatus, Platform, Role
 from app.services import attendance as attendance_service
 from app.services import classes as classes_service
@@ -175,6 +176,37 @@ def test_skipped_middle_sessions_stay_in_the_grid(db):
     for gap in (date(2026, 7, 27), date(2026, 7, 29)):
         assert gap in dates
         assert not next(s for s in slots if s.date == gap).recorded
+
+
+def test_moved_session_replaces_its_original_date(db):
+    """«جایگزین»: the original date leaves the grid, the new date takes its place."""
+    _, course = _course(db, sessions_total=6)  # شنبه/دوشنبه/چهارشنبه from 25 تیر
+    monday, tuesday = date(2026, 7, 27), date(2026, 7, 28)
+
+    attendance_service.move_session(db, course.id, monday, tuesday, notify=False)
+    slots = schedule_service.build(db, course)
+    dates = [s.date for s in slots]
+
+    assert monday not in dates          # the original slot is gone
+    assert tuesday in dates             # replaced by the arranged date
+    assert dates == sorted(dates)
+    assert len(slots) == 6              # the move neither adds nor drops a session
+    assert not schedule_service.find_slot(slots, tuesday).recorded  # awaiting an outcome
+    assert courses_service.remaining_sessions(db, course) == 6  # nothing consumed
+
+    # The student then attends on the new date and it counts normally.
+    _record(db, course.id, tuesday, AttendanceStatus.PRESENT)
+    assert courses_service.remaining_sessions(db, course) == 5
+    assert schedule_service.find_slot(schedule_service.build(db, course), tuesday).session_no == 1
+
+
+def test_moved_session_rejects_an_occupied_target(db):
+    _, course = _course(db, sessions_total=6)
+    _record(db, course.id, date(2026, 7, 29), AttendanceStatus.PRESENT)
+    with pytest.raises(ValidationError):
+        attendance_service.move_session(
+            db, course.id, date(2026, 7, 27), date(2026, 7, 29), notify=False
+        )
 
 
 def test_correction_renumbers_the_grid(db):

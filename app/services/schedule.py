@@ -189,10 +189,21 @@ def build(db: Session, course: Course) -> list[Slot]:
     timeline continuous, so a skipped week never silently disappears.
     """
     effective = _effective_events(db, course.id)
+
+    # A rescheduled session vacates its original date and is expected on the new
+    # one instead, so the original row is dropped from the grid entirely.
+    moved_to = {
+        event.moved_to
+        for event in effective.values()
+        if event.status == AttendanceStatus.MOVED and event.moved_to is not None
+    }
+
     slots: list[Slot] = []
     consumed = 0
     for session_date in sorted(effective):
         event = effective[session_date]
+        if event.status == AttendanceStatus.MOVED and event.moved_to is not None:
+            continue
         session_no = None
         if event.status in SESSION_CONSUMING_STATUSES:
             consumed += 1
@@ -207,24 +218,30 @@ def build(db: Session, course: Course) -> list[Slot]:
             )
         )
 
-    # Pending rows fill the weekly pattern from the start date, skipping dates
-    # already recorded, so gaps in the middle reappear as «در انتظار».
+    def _pending_slot(session_date: date) -> Slot:
+        return Slot(
+            date=session_date, status=None, session_no=None, note=None, recorded=False
+        )
+
+    # Pending rows: first the dates sessions were moved to, then the weekly
+    # pattern from the start date — skipping anything already on the grid, so
+    # gaps in the middle reappear as «در انتظار».
     pending = max(course.sessions_total - consumed, 0)
+    taken = {slot.date for slot in slots}
     added = 0
+    for session_date in sorted(moved_to - taken):
+        if added >= pending:
+            break
+        slots.append(_pending_slot(session_date))
+        taken.add(session_date)
+        added += 1
     for session_date in iter_scheduled(course.start_date, course_weekdays(course)):
         if added >= pending:
             break
-        if session_date in effective:
+        if session_date in effective or session_date in taken:
             continue
-        slots.append(
-            Slot(
-                date=session_date,
-                status=None,
-                session_no=None,
-                note=None,
-                recorded=False,
-            )
-        )
+        slots.append(_pending_slot(session_date))
+        taken.add(session_date)
         added += 1
 
     slots.sort(key=lambda slot: slot.date)

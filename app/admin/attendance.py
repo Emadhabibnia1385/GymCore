@@ -61,6 +61,20 @@ def handle_callback(req: AdminReq, args: str) -> None:
             )
     elif action == "extra" and rest.isdigit():
         common.prompt(req, A.ASK_ATTEND_DATE, "attend:extra", {"course_id": int(rest)})
+    elif action in ("move", "dmove"):
+        course_id, _, token = rest.partition(":")
+        session_date = grid.parse_date_token(token)
+        if course_id.isdigit() and session_date is not None:
+            common.prompt(
+                req, A.ASK_MOVE_DATE, "attend:move",
+                {
+                    "course_id": int(course_id),
+                    "date": token,
+                    "origin": "day" if action == "dmove" else "grid",
+                },
+            )
+        else:
+            _today(req)
     elif action == "today":
         _today(req)
     elif action == "onday":
@@ -98,6 +112,8 @@ def handle_message(req: AdminReq, message: dict, substep: str, state) -> None:
             return
         common.clear(req)
         _slot(req, data["course_id"], session_date)
+    elif substep == "move":
+        _move(req, data, text)
     else:
         common.clear(req)
         _today(req)
@@ -107,12 +123,16 @@ def handle_message(req: AdminReq, message: dict, substep: str, state) -> None:
 
 
 def _courses_on(req: AdminReq, day: date) -> list:
-    """Active courses whose weekly pattern falls on `day` (started by then)."""
-    weekday = schedule_service.persian_weekday(day)
+    """Active courses with a session on `day`.
+
+    That's the weekly pattern, plus any course whose session was rescheduled
+    onto this day (and minus one whose session was moved away from it).
+    """
     courses = [
         course
         for course in courses_service.list_courses(req.db, status=CourseStatus.ACTIVE)
-        if day >= course.start_date and weekday in schedule_service.course_weekdays(course)
+        if day >= course.start_date
+        and schedule_service.find_slot(schedule_service.build(req.db, course), day) is not None
     ]
     courses.sort(key=lambda c: c.client.name)
     return courses
@@ -176,9 +196,38 @@ def _day_slot(req: AdminReq, course_id: int, session_date: date) -> None:
     rows = [
         [_day_status_button(course.id, token, s) for s in grid.PRIMARY_STATUSES],
         [_day_status_button(course.id, token, s) for s in grid.SECONDARY_STATUSES],
+        [common.button(A.BTN_MOVE_SESSION, "attend", "dmove", course.id, token)],
         [back],
     ]
     common.render(req, "\n".join(lines), common.inline(rows))
+
+
+def _move(req: AdminReq, data: dict, text: str) -> None:
+    """Reschedule a session to a new date, then return where the move started."""
+    from app.core.jalali import format_jalali
+
+    session_date = grid.parse_date_token(data.get("date", ""))
+    course_id = data.get("course_id")
+    if session_date is None or not course_id:
+        common.clear(req)
+        _today(req)
+        return
+    new_date = common.parse_date(text)
+    if new_date is None:
+        common.prompt(req, A.INVALID_DATE, "attend:move", data)
+        return
+    try:
+        attendance_service.move_session(
+            req.db, course_id, session_date, new_date, created_by=req.user_id
+        )
+        flash = A.MOVED_OK.format(date=format_jalali(new_date))
+    except DomainError as exc:
+        flash = f"⚠️ {exc}"
+    common.clear(req)
+    if data.get("origin") == "day":
+        _today(req, session_date, flash=flash)
+    else:
+        _grid(req, course_id, page=None, flash=flash)
 
 
 def _day_status_button(course_id: int, token: str, status: AttendanceStatus) -> dict:
@@ -328,7 +377,10 @@ def _slot(
     rows = [
         [_status_button(course.id, token, status) for status in grid.PRIMARY_STATUSES],
         [_status_button(course.id, token, status) for status in grid.SECONDARY_STATUSES],
-        [common.button(A.BTN_ADD_NOTE, "attend", "note", course.id, token)],
+        [
+            common.button(A.BTN_MOVE_SESSION, "attend", "move", course.id, token),
+            common.button(A.BTN_ADD_NOTE, "attend", "note", course.id, token),
+        ],
         [back_to_grid],
     ]
     body = "\n".join(lines)
