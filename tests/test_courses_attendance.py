@@ -70,26 +70,27 @@ def test_cannot_record_beyond_capacity(db):
         _record(db, course.id, 3, AttendanceStatus.PRESENT)
 
 
-def test_unauthorized_absence_is_capped_by_the_allowance(db):
+def test_excused_absence_is_capped_by_the_allowance(db):
     _, course = _setup(db, sessions_total=10, allowed=2)
-    _record(db, course.id, 1, AttendanceStatus.ABSENT_UNAUTHORIZED)
-    _record(db, course.id, 3, AttendanceStatus.ABSENT_UNAUTHORIZED)
-    assert courses_service.unauthorized_absence_used(db, course.id) == 2
+    _record(db, course.id, 1, AttendanceStatus.ABSENT_ALLOWED)
+    _record(db, course.id, 3, AttendanceStatus.ABSENT_ALLOWED)
+    assert courses_service.allowed_absence_used(db, course.id) == 2
 
     with pytest.raises(ValidationError):  # the third one is over the ceiling
-        _record(db, course.id, 5, AttendanceStatus.ABSENT_UNAUTHORIZED)
+        _record(db, course.id, 5, AttendanceStatus.ABSENT_ALLOWED)
 
-    # Other outcomes are unaffected, and re-marking a capped date is a correction.
-    _record(db, course.id, 5, AttendanceStatus.ABSENT_ALLOWED)
-    _record(db, course.id, 1, AttendanceStatus.ABSENT_UNAUTHORIZED)
-    assert courses_service.unauthorized_absence_used(db, course.id) == 2
+    # Past the ceiling the absence is recorded as unauthorized instead, and
+    # re-marking an already-excused date stays a correction.
+    _record(db, course.id, 5, AttendanceStatus.ABSENT_UNAUTHORIZED)
+    _record(db, course.id, 1, AttendanceStatus.ABSENT_ALLOWED)
+    assert courses_service.allowed_absence_used(db, course.id) == 2
 
 
 def test_zero_allowance_means_no_limit(db):
     _, course = _setup(db, sessions_total=10, allowed=0)
     for day in (1, 3, 5):
-        _record(db, course.id, day, AttendanceStatus.ABSENT_UNAUTHORIZED)
-    assert courses_service.unauthorized_absence_used(db, course.id) == 3
+        _record(db, course.id, day, AttendanceStatus.ABSENT_ALLOWED)
+    assert courses_service.allowed_absence_used(db, course.id) == 3
 
 
 def test_attendance_module_has_no_mutators():

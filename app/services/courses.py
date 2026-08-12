@@ -95,23 +95,15 @@ def consumed_sessions(db: Session, course_id: int) -> int:
 
 
 def allowed_absence_used(db: Session, course_id: int) -> int:
-    return sum(
-        1
-        for status in effective_status_map(db, course_id).values()
-        if status == AttendanceStatus.ABSENT_ALLOWED
-    )
-
-
-def unauthorized_absence_used(db: Session, course_id: int) -> int:
-    """How many unauthorized absences the course already carries.
+    """How many excused absences the course has used.
 
     ``Course.allowed_absence`` is the ceiling for these (see
-    services/attendance.py::record) — past it, no more can be recorded.
+    services/attendance.py::record) — past it, an absence must be unauthorized.
     """
     return sum(
         1
         for status in effective_status_map(db, course_id).values()
-        if status == AttendanceStatus.ABSENT_UNAUTHORIZED
+        if status == AttendanceStatus.ABSENT_ALLOWED
     )
 
 

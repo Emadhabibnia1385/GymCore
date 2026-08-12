@@ -72,17 +72,18 @@ def record(
         if not already_consuming and courses_service.remaining_sessions(db, course) <= 0:
             raise ValidationError("جلسه‌ای از این دوره باقی نمانده است")
 
-    # The course's absence allowance is a hard ceiling on unauthorized absences:
-    # once it is used up, no further ones can be recorded. Zero means "no limit".
-    # Re-marking a date that already counts as one is a correction, so it never
-    # trips the limit.
-    if status == AttendanceStatus.ABSENT_UNAUTHORIZED and course.allowed_absence > 0:
+    # The course's allowance is a hard ceiling on EXCUSED absences: once it is
+    # used up, further ones have to be recorded as unauthorized. Zero means "no
+    # limit". Re-marking a date that already counts as one is a correction, so
+    # it never trips the limit.
+    if status == AttendanceStatus.ABSENT_ALLOWED and course.allowed_absence > 0:
         effective = courses_service.effective_status_map(db, course_id)
-        if effective.get(session_date) != AttendanceStatus.ABSENT_UNAUTHORIZED:
-            used = courses_service.unauthorized_absence_used(db, course_id)
+        if effective.get(session_date) != AttendanceStatus.ABSENT_ALLOWED:
+            used = courses_service.allowed_absence_used(db, course_id)
             if used >= course.allowed_absence:
                 raise ValidationError(
-                    f"سقف غیبت غیرمجاز این دوره ({course.allowed_absence}) تکمیل شده است"
+                    f"سقف غیبت مجاز این دوره ({course.allowed_absence}) تکمیل شده است؛ "
+                    "این جلسه را «غیبت غیرمجاز» ثبت کن"
                 )
 
     was_active = course.status == CourseStatus.ACTIVE
