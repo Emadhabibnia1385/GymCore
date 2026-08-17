@@ -23,6 +23,18 @@ config.set_main_option("sqlalchemy.url", get_settings().database_url)
 
 target_metadata = Base.metadata
 
+# Retired v1 tables that still hold history. They have no model any more, so
+# autogenerate would otherwise propose dropping them and quietly destroy the
+# audit trail. Keep the rows; keep the tables out of autogenerate.
+RETIRED_TABLES = {"reminder_logs"}
+
+
+def include_object(obj, name, type_, reflected, compare_to) -> bool:
+    """Skip retired tables so autogenerate never emits a DROP for them."""
+    if type_ == "table" and name in RETIRED_TABLES:
+        return False
+    return True
+
 
 def run_migrations_offline() -> None:
     """Emit SQL to stdout without a live DB connection (`alembic upgrade --sql`)."""
@@ -32,6 +44,7 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
         compare_type=True,
+        include_object=include_object,
         render_as_batch=True,  # required for SQLite ALTER support
     )
     with context.begin_transaction():
@@ -49,6 +62,7 @@ def run_migrations_online() -> None:
             connection=connection,
             target_metadata=target_metadata,
             compare_type=True,
+            include_object=include_object,
             render_as_batch=True,  # required for SQLite ALTER support
         )
         with context.begin_transaction():

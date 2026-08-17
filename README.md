@@ -23,20 +23,30 @@ Brand — Mahdi Sarmad · primary green `#B2F828` · black `#000000` · white `#
 
 The **⚙️ ورود به پنل مدیریت** row appears **only** for configured owners.
 
+**One deliberate prompt.** On a client's *very first* `/start`, the bot asks once
+for their mobile number (shared via a contact button or typed). That is the only
+question the bot ever asks a client, and it is not part of class registration —
+it is what makes the **same phone resolve to the same `Person` on Telegram and
+Bale**, so a client who switches platforms keeps their courses, programs and
+attendance. Owners skip it entirely. Every other client screen is pure inline
+navigation: no forms, no requests, no phone prompt.
+
 **Coach / admin** (in-bot panel, same on both platforms). The menu leads with
 the two catalogs, then شاگردان — the hub every per-student action hangs off:
 
 ```
 🏋️ مدیریت کلاس‌ها      📄 مدیریت برنامه‌ها
             👥 مدیریت شاگردان
-📚 مدیریت دوره‌ها       ✅ ثبت حضور و غیاب
-💳 مدیریت پرداخت‌ها     🔔 اعلان‌ها
-⚙️ تنظیمات             🖼 متن و پوستر استارت
+✅ ثبت حضور و غیاب      💳 مدیریت پرداخت‌ها
+🔔 اعلان‌ها             ⚙️ تنظیمات
+📞 راه‌های ارتباطی      🖼 متن و پوستر استارت
         🏠 خروج از پنل مدیریت
 ```
 
 Opening a student shows **that student's own menu**: their active course, its
-weekly pattern, session progress, and one tap into the session grid.
+weekly pattern, session progress, and one tap into the session grid. Courses,
+programs, attendance and payments for one student are all reached from there —
+there is no separate top-level courses section.
 
 ### 📋 The session grid
 
@@ -205,9 +215,14 @@ alembic downgrade -1                                   # roll back one
 ```
 
 Migrations are forward-only and data-preserving — the schema is never reset.
-The latest revision is `0007` (adds `courses.weekdays`, the weekly training
-pattern behind the session grid; nullable, so existing courses fall back to
-their start date's weekday).
+The latest revision is `0012` (adds `attendance_events.moved_to`, the target
+date of a rescheduled session). The chain runs `0001 → 0012`; run
+`alembic current` to see where a deployment sits.
+
+`reminder_logs` is a retired v1 table. Its rows are kept for audit history, so
+the table is deliberately left in the database with no model behind it and is
+excluded from autogenerate (see `migrations/env.py`) — nothing will ever
+propose dropping it.
 
 ## Backups
 

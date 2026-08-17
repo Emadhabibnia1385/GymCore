@@ -17,7 +17,6 @@ from app.models.enums import (
     NotificationStatus,
     PaymentKind,
     Platform,
-    ReminderKind,
     Role,
 )
 from app.models.notification import Notification
@@ -25,7 +24,6 @@ from app.models.payment import Payment
 from app.models.person import Person
 from app.models.plan_assignment import PlanAssignment
 from app.models.plan_type import PlanType
-from app.models.reminder import ReminderLog
 from app.models.setting import Setting
 
 __all__ = [
@@ -46,8 +44,6 @@ __all__ = [
     "PlanAssignment",
     "PlanType",
     "Platform",
-    "ReminderKind",
-    "ReminderLog",
     "Role",
     "Setting",
 ]

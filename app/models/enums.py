@@ -48,13 +48,6 @@ class PaymentKind(str, enum.Enum):
     OTHER = "OTHER"
 
 
-class ReminderKind(str, enum.Enum):
-    """Automated reminders written to reminder_logs by the worker (v1, retained)."""
-
-    LOW_SESSIONS = "LOW_SESSIONS"
-    COURSE_INACTIVE = "COURSE_INACTIVE"
-
-
 class NotificationKind(str, enum.Enum):
     """Categories for the unified notification system."""
 

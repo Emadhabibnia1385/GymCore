@@ -29,7 +29,11 @@ def format_course_detail(
 ) -> str:
     consumed = courses_service.consumed_sessions(db, course.id)
     remaining = courses_service.remaining_sessions(db, course)
-    allowed_used = courses_service.allowed_absence_used(db, course.id)
+    # The allowance caps excused absences, so it is what carries the /N — unless
+    # it is zero, which means no limit (same rule as the grid header).
+    allowed = str(courses_service.allowed_absence_used(db, course.id))
+    if course.allowed_absence > 0:
+        allowed = f"{allowed}/{course.allowed_absence}"
 
     lines = [
         f"🏷 {course.class_type.title}",
@@ -39,7 +43,7 @@ def format_course_detail(
         f"🎟 {texts.LABEL_TOTAL}: {course.sessions_total}",
         f"✅ {texts.LABEL_CONSUMED}: {consumed}",
         f"💪 {texts.LABEL_REMAINING}: {remaining}",
-        f"🆓 {texts.LABEL_ALLOWED_ABSENCE}: {allowed_used}/{course.allowed_absence}",
+        f"🆓 {texts.LABEL_ALLOWED_ABSENCE}: {allowed}",
     ]
     # The attendance history is one line per session date (corrections reflected,
     # raw duplicates are not). Both cards now show the colour-coded grid instead,

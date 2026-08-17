@@ -58,8 +58,10 @@ def _defaults() -> dict[str, str]:
         KEY_SIGNUP_URL: cfg.signup_url,
         KEY_DEFAULT_ALLOWED_ABSENCE: "1",
         KEY_LOW_SESSION_THRESHOLD: str(cfg.low_session_threshold),
-        KEY_TELEGRAM_OWNER_CONTACT: "https://t.me/mahdisarmadcoach",
-        KEY_BALE_OWNER_CONTACT: "",
+        # Keep in step with the `telegram` / `bale` rows in
+        # services/contact_links.py::_DEFAULT_LINKS — same coach, same handle.
+        KEY_TELEGRAM_OWNER_CONTACT: "https://t.me/MahdiSarmad1",
+        KEY_BALE_OWNER_CONTACT: "https://ble.ir/mahdisarmad",
         KEY_NOTIFY_ON_ATTENDANCE: "1",
     }
 

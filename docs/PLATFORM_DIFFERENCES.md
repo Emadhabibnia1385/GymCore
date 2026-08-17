@@ -33,3 +33,22 @@ A `Person` is the shared human identity and owns all data (courses, programs,
 attendance, payments). Each `ChannelIdentity` links one platform account
 (`TELEGRAM` or `BALE`) to that person, so a client may switch platforms and the
 coach can link both accounts to the same person from the admin panel.
+
+### Why the bot asks for a phone number once
+
+Telegram and Bale user IDs are unrelated numbers — nothing in either API says
+"these two accounts are the same human". Without a shared key, a client who
+starts the Bale bot after using Telegram would land on a brand-new `Person` with
+an empty course list.
+
+So on a client's **first contact only**, `client_flow.resolve_registered` asks
+for a mobile number (contact-share button, or typed). The normalized phone is the
+join key: `identities.link_by_phone` attaches the new `ChannelIdentity` to the
+existing `Person` with that phone instead of creating a second one. Configured
+owners bypass the prompt.
+
+This is the single exception to the product rule that the bots never ask a client
+anything — and it is deliberately **not** part of class registration, which stays
+form-free and phone-free («ثبت‌نام در کلاس‌ها» only ever shows contact links).
+The reply keyboard used for the contact-share button is likewise the only
+non-inline keyboard in the product; it is removed as soon as the number arrives.
