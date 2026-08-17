@@ -157,11 +157,14 @@ def _today(req: AdminReq, day: date | None = None, flash: str | None = None) -> 
     for course in courses:
         status = courses_service.effective_status_map(req.db, course.id).get(day)
         style = grid.STATUS_STYLES.get(status) if status else None
-        # Two glass buttons per student — name (right) and class (left) — both
-        # opening the same outcome picker, so the whole row is one target.
+        # Two glass buttons per student — name (right) and that session's
+        # outcome (left) — both opening the same picker, coloured to match the
+        # outcome so the day reads at a glance.
         rows.append([
             common.button(course.client.name, "attend", "day", course.id, token, style=style),
-            common.button(course.class_type.title, "attend", "day", course.id, token, style=style),
+            common.button(
+                grid.outcome_label(status), "attend", "day", course.id, token, style=style
+            ),
         ])
     rows.append([
         common.button(A.PREV_DAY, "attend", "onday", grid.date_token(day - timedelta(days=1))),

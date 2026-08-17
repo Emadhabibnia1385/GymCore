@@ -431,11 +431,23 @@ def test_day_view_lists_students_with_a_session_that_day(db):
     assert "شاگرد امروز" in labels
     assert "شاگرد روز دیگر" not in labels  # not scheduled today
     assert A.TODAY in labels  # day navigation is present
-    # The student's row is two glass buttons: name + class, one shared target.
+    # The student's row is two glass buttons: name + that session's outcome,
+    # sharing one target and one colour.
     row = next(r for r in markup["inline_keyboard"] if r[0]["text"] == "شاگرد امروز")
     assert len(row) == 2
-    assert row[1]["text"] == class_type.title
+    assert row[1]["text"] == grid.PENDING_CELL  # nothing recorded yet
     assert row[0]["callback_data"] == row[1]["callback_data"]
+    assert "style" not in row[0] and "style" not in row[1]  # pending stays glass
+
+    # Once marked حاضر, both cells turn green and the label follows the outcome.
+    course = courses_service.active_course(db, on_day.id)
+    _record(db, course.id, today, AttendanceStatus.PRESENT)
+    disp.handle_update(callback_update(2, CHAT, OWNER, "a:attend:today"))
+    row = next(
+        r for r in last_markup(client)["inline_keyboard"] if r[0]["text"] == "شاگرد امروز"
+    )
+    assert row[1]["text"] == grid.outcome_label(AttendanceStatus.PRESENT)
+    assert row[0]["style"] == row[1]["style"] == "success"
 
 
 def test_day_view_records_attendance_in_two_taps(db):
