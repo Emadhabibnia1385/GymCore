@@ -74,6 +74,22 @@ PICKER_LABELS = {
     AttendanceStatus.MOVED: "جایگزین",
 }
 
+# Plain outcome names for lists that carry no session number (the day view).
+OUTCOME_LABELS = {
+    AttendanceStatus.PRESENT: "حاضر",
+    AttendanceStatus.ABSENT_UNAUTHORIZED: "غایب",
+    AttendanceStatus.ABSENT_ALLOWED: "غیبت مجاز",
+    AttendanceStatus.COACH_CANCELLED: "لغو مربی",
+    AttendanceStatus.HOLIDAY: "تعطیلی",
+    AttendanceStatus.MOVED: "جابه‌جا شد",
+}
+
+
+def outcome_label(status: AttendanceStatus | None) -> str:
+    """The session's outcome in words — «در انتظار» while nothing is recorded."""
+    return OUTCOME_LABELS[status] if status is not None else PENDING_CELL
+
+
 # Row / picker colour per outcome (Telegram button style; Bale renders plain):
 # present → green, unauthorized absence → red, excused & scheduling → blue,
 # and a pending session stays the default glass colour.
