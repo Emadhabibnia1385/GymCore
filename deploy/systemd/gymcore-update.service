@@ -6,4 +6,4 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 # Runs as root — it invokes install.sh (systemctl restart, migrations, etc.).
-ExecStart=/opt/gymcore/autoupdate.sh
+ExecStart=/opt/gymcore/deploy/autoupdate.sh

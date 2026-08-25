@@ -23,14 +23,22 @@ green() { printf '\033[0;32m%s\033[0m\n' "$1"; }
 warn()  { printf '\033[0;33m%s\033[0m\n' "$1"; }
 err()   { printf '\033[0;31m%s\033[0m\n' "$1" >&2; }
 
+# Unit files + the runner's exec bit. Re-run on EVERY install so an existing
+# timer keeps working: the runner lives under deploy/, which rsync syncs, and
+# a stale unit pointing at an older path is corrected here.
+install_autoupdate_units() {
+  chmod 0755 "$APP_DIR/deploy/autoupdate.sh"
+  install -m 0644 "$APP_DIR/deploy/systemd/gymcore-update.service" /etc/systemd/system/
+  install -m 0644 "$APP_DIR/deploy/systemd/gymcore-update.timer"   /etc/systemd/system/
+  rm -f "$APP_DIR/autoupdate.sh"   # legacy copy that rsync --delete used to eat
+  systemctl daemon-reload
+}
+
 setup_autoupdate() {
   green "==> Enabling auto-update (checks GitHub every minute)..."
   command -v git >/dev/null 2>&1 || apt-get install -y git
   [ -d "$SRC_REPO/.git" ] || git clone --depth 20 "$REPO_URL" "$SRC_REPO"
-  install -m 0755 "$APP_DIR/deploy/autoupdate.sh" "$APP_DIR/autoupdate.sh"
-  install -m 0644 "$APP_DIR/deploy/systemd/gymcore-update.service" /etc/systemd/system/
-  install -m 0644 "$APP_DIR/deploy/systemd/gymcore-update.timer"   /etc/systemd/system/
-  systemctl daemon-reload
+  install_autoupdate_units
   systemctl enable --now gymcore-update.timer
   green "==> Auto-update ON.  status: systemctl status gymcore-update.timer"
 }
@@ -146,13 +154,12 @@ if [[ -f "$SRC_DIR/gymcore.sh" ]]; then
 fi
 
 # --- auto-update (interactive only; the auto-update run itself has no tty) ---
-if [ -t 0 ]; then
-  if systemctl is-enabled --quiet gymcore-update.timer 2>/dev/null; then
-    green "==> Auto-update is already ON."
-  else
-    read -r -p "Enable auto-update? (check GitHub every minute & apply) [y/N] " au || true
-    [[ "${au:-N}" =~ ^[Yy]$ ]] && setup_autoupdate
-  fi
+if systemctl is-enabled --quiet gymcore-update.timer 2>/dev/null; then
+  install_autoupdate_units   # self-heal: keep the enabled timer pointing at the runner
+  green "==> Auto-update is already ON."
+elif [ -t 0 ]; then
+  read -r -p "Enable auto-update? (check GitHub every minute & apply) [y/N] " au || true
+  [[ "${au:-N}" =~ ^[Yy]$ ]] && setup_autoupdate
 fi
 
 # --- 9. summary ---
