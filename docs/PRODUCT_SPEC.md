@@ -1,3 +1,24 @@
+# GymCore — original product specification
+
+> **Historical record — not an active instruction.**
+>
+> This is the brief that GymCore was built from. Every phase in it is
+> complete: the web admin panel and client dashboard are gone, the
+> request/ordering workflow is gone, both bots run on one shared service
+> layer, and the in-bot admin panel, notifications, installer and tests
+> all exist.
+>
+> It is kept because it records *why* the product is shaped the way it is —
+> the menu layout, the business rules, the brand, and the server-safety
+> constraints. Read it for intent and history.
+>
+> **To work in the codebase, use the `gymcore-engineering` skill instead**
+> (`.claude/skills/gymcore-engineering/SKILL.md`). This document describes
+> a rebuild that has already happened; following it as a set of orders
+> would mean redoing finished work.
+
+---
+
 You are the lead software engineer responsible for redesigning and completing the existing GymCore repository.
 
 Project name:
@@ -30,7 +51,7 @@ find . -maxdepth 3 -type f
 Then read:
 
 README.md
-.claude/skills/gymcore/SKILL.md
+docs/PRODUCT_SPEC.md
 all environment examples
 all database models
 all Telegram and Bale bot code

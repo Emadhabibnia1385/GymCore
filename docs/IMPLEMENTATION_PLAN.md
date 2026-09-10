@@ -1,7 +1,7 @@
 # GymCore — Implementation Plan (v2, bot-first)
 
 > Status: **Phase 1 complete** (this document). Source of truth for requirements:
-> `.claude/skills/gymcore/SKILL.md`.
+> `docs/PRODUCT_SPEC.md`.
 
 GymCore is a **bot-first management system** for coach **Mahdi Sarmad**. The entire
 client experience and the entire admin experience run inside the **Telegram** and

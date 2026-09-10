@@ -97,7 +97,8 @@ sessions are merged in by date.
 
 Platform-specific code is thin: `BotContext` knows each platform's capabilities
 (Telegram edits messages + Mini App; Bale sends fresh messages + URL buttons).
-See [docs/PLATFORM_DIFFERENCES.md](docs/PLATFORM_DIFFERENCES.md).
+See [docs/PLATFORM_DIFFERENCES.md](docs/PLATFORM_DIFFERENCES.md). The original product
+brief that GymCore was built from is kept as [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.md).
 
 | Layer | Path |
 |---|---|
