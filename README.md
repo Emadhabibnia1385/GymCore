@@ -130,6 +130,19 @@ On SQLite the schema is auto-created from the models. Lint and test:
 .venv/bin/pytest -q
 ```
 
+### Code graph (optional)
+
+The repo is wired for [graft](https://github.com/trailhq/Graft), which gives
+coding agents a symbol graph instead of grepping the tree. The wiring is
+committed; the graph itself is a local cache, so generate your own:
+
+```bash
+npm install -g @nanonets/graft
+graft build
+```
+
+Nothing depends on it — the hooks no-op when graft is not installed.
+
 ## Server installation (Debian/Ubuntu)
 
 **Management menu** (install, edit tokens, update, start/stop/restart, logs,
