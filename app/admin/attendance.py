@@ -17,9 +17,10 @@ from datetime import date, timedelta
 from app.admin import common
 from app.admin.common import AdminReq
 from app.bots.common import grid
+from app.bots.common.client import BotApiError
 from app.copy import admin_texts as A
 from app.core.exceptions import DomainError
-from app.models import AttendanceStatus, CourseStatus
+from app.models import AttendanceStatus, Course, CourseStatus
 from app.repositories.pagination import paginate
 from app.services import attendance as attendance_service
 from app.services import courses as courses_service
@@ -316,10 +317,35 @@ def _grid(
             req, A.NOTHING, common.back_home("students", "view", course.client_id)
         )
         return
-    visible, page, pages = grid.page_slice(slots, page or grid.default_page(slots))
+    per_page = grid.rows_per_page(course)
+    try:
+        _render_grid(req, course, slots, page, per_page, flash)
+    except BotApiError:
+        if per_page == grid.ROWS_PER_PAGE:
+            raise
+        # Neither platform documents its keyboard ceiling, so if the one-screen
+        # grid is refused, fall back to ordinary pages rather than an error.
+        _render_grid(req, course, slots, page, grid.ROWS_PER_PAGE, flash)
+
+
+def _render_grid(
+    req: AdminReq,
+    course: Course,
+    slots: list,
+    page: int | None,
+    per_page: int,
+    flash: str | None,
+) -> None:
+    finished = course.status == CourseStatus.FINISHED
+    start = page or grid.default_page(slots, per_page)
+    visible, page, pages = grid.page_slice(slots, start, per_page)
     # The confirmation rides along in the grid header — one screen, never two.
     lead = f"{flash}\n\n" if flash else ""
-    body = f"{lead}{grid.header(req.db, course, page, pages, for_admin=True)}\n\n{A.GRID_HINT}"
+    # A finished course is a record the coach screenshots and sends on, so it
+    # drops the tap hint and the balance — and «جلسهٔ خارج از برنامه», since a
+    # finished course takes no new sessions.
+    head = grid.header(req.db, course, page, pages, for_admin=True, with_balance=not finished)
+    body = f"{lead}{head}" if finished else f"{lead}{head}\n\n{A.GRID_HINT}"
     rows = grid.rows(
         visible,
         lambda slot: common.cb_data("attend", "slot", course.id, grid.date_token(slot.date)),
@@ -331,7 +357,8 @@ def _grid(
         nav.append(common.button(A.NEXT, "attend", "course", course.id, page + 1))
     if nav:
         rows.append(nav)
-    rows.append([common.button(A.BTN_EXTRA_SESSION, "attend", "extra", course.id)])
+    if not finished:
+        rows.append([common.button(A.BTN_EXTRA_SESSION, "attend", "extra", course.id)])
     common.render(req, body, common.with_back(rows, ("students", "view", course.client_id)))
 
 
@@ -360,7 +387,7 @@ def _slot(
 
     back_to_grid = common.button(
         A.BTN_BACK_TO_GRID, "attend", "course", course.id,
-        grid.page_of(slots, session_date),
+        grid.page_of(slots, session_date, grid.rows_per_page(course)),
     )
     # A session whose date hasn't arrived yet can't be marked — no outcome
     # picker, just the info and a way back.

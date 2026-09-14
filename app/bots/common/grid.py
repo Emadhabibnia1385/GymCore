@@ -21,12 +21,20 @@ from app.bots.common import callbacks as cb
 from app.bots.common.keyboards import STYLE_DANGER, STYLE_PRIMARY, STYLE_SUCCESS
 from app.copy import texts
 from app.core.jalali import format_jalali, format_jalali_short
-from app.models import AttendanceStatus, Course
+from app.models import AttendanceStatus, Course, CourseStatus
 from app.services import courses as courses_service
 from app.services import payments as payments_service
 from app.services import schedule
 
 ROWS_PER_PAGE = 8
+
+# A finished course is a closed record the coach screenshots and sends on, so it
+# goes out whole on one screen instead of in pages. Neither Telegram nor Bale
+# documents an inline-keyboard ceiling; 100 buttons is the widely reported one,
+# which at three per row plus the back button is 33 rows. A longer course still
+# pages, 33 rows at a time (and admin/attendance.py::_grid falls back to ordinary
+# pages if a platform refuses even that).
+MAX_ROWS_PER_SCREEN = 33
 
 # Compact status codes for callback data (Telegram caps callback_data at 64 bytes).
 STATUS_CODES: dict[str, AttendanceStatus] = {
@@ -137,28 +145,42 @@ def status_style(slot: schedule.Slot) -> str | None:
 # --- paging ---
 
 
-def page_count(slots: list) -> int:
-    return max((len(slots) + ROWS_PER_PAGE - 1) // ROWS_PER_PAGE, 1)
+def rows_per_page(course: Course) -> int:
+    """How many grid rows one screen holds for this course.
+
+    An active or paused course pages at :data:`ROWS_PER_PAGE`, landing on the
+    next session to record. A finished course is shown whole, up to
+    :data:`MAX_ROWS_PER_SCREEN`, so it fits in a single screenshot.
+    """
+    if course.status == CourseStatus.FINISHED:
+        return MAX_ROWS_PER_SCREEN
+    return ROWS_PER_PAGE
 
 
-def page_of(slots: list, session_date: date) -> int:
+def page_count(slots: list, per_page: int = ROWS_PER_PAGE) -> int:
+    return max((len(slots) + per_page - 1) // per_page, 1)
+
+
+def page_of(slots: list, session_date: date, per_page: int = ROWS_PER_PAGE) -> int:
     for index, slot in enumerate(slots):
         if slot.date == session_date:
-            return index // ROWS_PER_PAGE + 1
+            return index // per_page + 1
     return 1
 
 
-def default_page(slots: list) -> int:
+def default_page(slots: list, per_page: int = ROWS_PER_PAGE) -> int:
     """Land the coach on the page holding the next unrecorded session."""
     pending = schedule.next_pending(slots)
-    return page_of(slots, pending.date) if pending else page_count(slots)
+    return page_of(slots, pending.date, per_page) if pending else page_count(slots, per_page)
 
 
-def page_slice(slots: list, page: int) -> tuple[list, int, int]:
-    pages = page_count(slots)
+def page_slice(
+    slots: list, page: int, per_page: int = ROWS_PER_PAGE
+) -> tuple[list, int, int]:
+    pages = page_count(slots, per_page)
     page = min(max(page, 1), pages)
-    start = (page - 1) * ROWS_PER_PAGE
-    return slots[start : start + ROWS_PER_PAGE], page, pages
+    start = (page - 1) * per_page
+    return slots[start : start + per_page], page, pages
 
 
 # --- rows ---
@@ -192,12 +214,26 @@ def client_rows(slots: list) -> list[list[dict]]:
 # --- header ---
 
 
-def header(db: Session, course: Course, page: int, pages: int, *, for_admin: bool) -> str:
-    """The text above the grid: who/what, the weekly pattern and the counters."""
+def header(
+    db: Session,
+    course: Course,
+    page: int,
+    pages: int,
+    *,
+    for_admin: bool,
+    with_balance: bool | None = None,
+) -> str:
+    """The text above the grid: who/what, the weekly pattern and the counters.
+
+    The outstanding balance follows ``for_admin`` unless ``with_balance`` says
+    otherwise — a screen meant to be screenshotted and sent on leaves it out.
+    """
     stats = schedule.summary(db, course)
     lines = [texts.GRID_TITLE, f"🏷 {course.class_type.title}"]
     if for_admin:
         lines.append(f"👤 {course.client.name}")
+    if course.status == CourseStatus.FINISHED:
+        lines.append(f"🏁 {texts.LABEL_STATUS}: {texts.COURSE_STATUS_LABELS['FINISHED']}")
     lines.append(f"🗓 {texts.LABEL_TRAINING_DAYS}: {schedule.weekdays_label(course.weekdays)}")
     lines.append(f"▫️ {texts.LABEL_START}: {format_jalali(course.start_date)}")
     lines.append("")
@@ -214,7 +250,8 @@ def header(db: Session, course: Course, page: int, pages: int, *, for_admin: boo
         f"{texts.LABEL_ALLOWED_ABSENCE}: {allowed}"
         f" · {texts.LABEL_UNAUTHORIZED}: {stats['absent_unauthorized']}"
     )
-    if for_admin:
+    show_balance = for_admin if with_balance is None else with_balance
+    if show_balance:
         balance = payments_service.course_balance(db, course)
         lines.append(
             f"💳 {texts.LABEL_OUTSTANDING}: {balance['outstanding']:,} {texts.TOMAN}"

@@ -11,10 +11,11 @@ import pytest
 
 from app.bots.common import callbacks as cb
 from app.bots.common import grid
+from app.bots.common.client import BotApiError
 from app.copy import admin_texts as A
 from app.copy import texts
 from app.core.exceptions import ValidationError
-from app.models import AttendanceStatus, Platform, Role
+from app.models import AttendanceStatus, CourseStatus, Platform, Role
 from app.services import attendance as attendance_service
 from app.services import classes as classes_service
 from app.services import courses as courses_service
@@ -273,6 +274,89 @@ def test_default_page_lands_on_the_next_pending_session(db):
     slots = schedule_service.build(db, course)
     pending = schedule_service.next_pending(slots)
     assert grid.default_page(slots) == grid.page_of(slots, pending.date)
+
+
+def _finish_course(db, course, excused=0):
+    """Record `excused` excused absences, then attend every paid session."""
+    marked = 0
+    while True:
+        course = courses_service.get(db, course.id)
+        if course.status == CourseStatus.FINISHED:
+            return course
+        pending = schedule_service.next_pending(schedule_service.build(db, course))
+        status = AttendanceStatus.ABSENT_ALLOWED if marked < excused else AttendanceStatus.PRESENT
+        _record(db, course.id, pending.date, status)
+        marked += 1
+
+
+def _grid_rows(markup):
+    return [row for row in markup["inline_keyboard"] if len(row) == 3]
+
+
+def test_finished_course_shows_its_whole_grid_on_one_screen(db):
+    disp, client = make_dispatcher()
+    _, course = _course(db, sessions_total=12, allowed=2, name="شاگرد تمام‌شده")
+    course = _finish_course(db, course, excused=2)
+    assert len(schedule_service.build(db, course)) == 14  # two pages of 8 before
+
+    disp.handle_update(callback_update(1, CHAT, OWNER, f"a:attend:course:{course.id}"))
+    body, markup = last_text(client), last_markup(client)
+    assert len(_grid_rows(markup)) == 14
+    assert sum(len(row) for row in markup["inline_keyboard"]) <= 100
+    labels = button_texts(markup)
+    assert A.PREV not in labels and A.NEXT not in labels
+    assert A.BTN_EXTRA_SESSION not in labels  # a finished course takes no new sessions
+    # Screenshot-ready: no page counter, no tap hint, no balance — and it says it ended.
+    assert texts.GRID_PAGE.format(page=1, pages=2) not in body
+    assert A.GRID_HINT not in body
+    assert "💳" not in body
+    assert texts.COURSE_STATUS_LABELS["FINISHED"] in body
+
+
+def test_active_course_grid_still_pages(db):
+    disp, client = make_dispatcher()
+    _, course = _course(db, sessions_total=12, name="شاگرد فعال")
+    disp.handle_update(callback_update(1, CHAT, OWNER, f"a:attend:course:{course.id}"))
+    markup = last_markup(client)
+    assert len(_grid_rows(markup)) == grid.ROWS_PER_PAGE
+    assert A.NEXT in button_texts(markup)
+    assert A.BTN_EXTRA_SESSION in button_texts(markup)
+    assert A.GRID_HINT in last_text(client)
+
+
+def test_finished_course_longer_than_one_screen_pages_at_the_screen_size(db):
+    _, course = _course(db, sessions_total=grid.MAX_ROWS_PER_SCREEN + 7, allowed=0)
+    course = courses_service.set_status(db, course.id, CourseStatus.FINISHED)
+    slots = schedule_service.build(db, course)
+    per_page = grid.rows_per_page(course)
+    assert per_page == grid.MAX_ROWS_PER_SCREEN
+    visible, _, pages = grid.page_slice(slots, 1, per_page)
+    assert (len(visible), pages) == (grid.MAX_ROWS_PER_SCREEN, 2)
+
+
+def test_finished_grid_falls_back_to_pages_when_the_platform_refuses_it(db):
+    disp, client = make_dispatcher()
+    _, course = _course(db, sessions_total=12, allowed=2, name="شاگرد محدود")
+    course = _finish_course(db, course, excused=2)
+
+    # A platform whose (undocumented) keyboard ceiling is lower than ours.
+    def refuse_big(send):
+        def wrapper(chat_id, *args, reply_markup=None, **kwargs):
+            buttons = sum(len(row) for row in (reply_markup or {}).get("inline_keyboard", []))
+            if buttons > 30:
+                raise BotApiError("reply markup is too long")
+            return send(chat_id, *args, reply_markup=reply_markup, **kwargs)
+        return wrapper
+
+    client.send_message = refuse_big(client.send_message)
+    client.edit_message_text = refuse_big(client.edit_message_text)
+
+    disp.handle_update(callback_update(1, CHAT, OWNER, f"a:attend:course:{course.id}"))
+    body, markup = last_text(client), last_markup(client)
+    assert texts.GRID_TITLE in body  # the grid, not the generic error
+    assert 0 < len(_grid_rows(markup)) <= grid.ROWS_PER_PAGE
+    labels = button_texts(markup)
+    assert A.PREV in labels or A.NEXT in labels
 
 
 def test_callback_data_stays_within_telegram_limit(db):

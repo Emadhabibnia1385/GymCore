@@ -68,6 +68,12 @@ Dates come from the course's weekly pattern (`Course.weekdays`, e.g.
 شنبه/دوشنبه/چهارشنبه) walking forward from the start date; off-schedule make-up
 sessions are merged in by date.
 
+Active courses page eight rows at a time and open on the next session to record.
+A **finished** course is a closed record, so it opens on **one screen** — no page
+buttons, tap hint or balance — ready to screenshot for a student who isn't on the
+bot. One screen holds up to 33 rows (100 buttons, the widely reported keyboard
+ceiling); longer courses page at that size.
+
 ## Business rules baked in
 
 - **Remaining sessions are never stored** — always derived from attendance
