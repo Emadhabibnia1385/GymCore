@@ -37,6 +37,7 @@ the two catalogs, then شاگردان — the hub every per-student action hangs
 ```
 🏋️ مدیریت کلاس‌ها      📄 مدیریت برنامه‌ها
             👥 مدیریت شاگردان
+            🗓 برنامهٔ هفتگی
 ✅ ثبت حضور و غیاب      💳 مدیریت پرداخت‌ها
 🔔 اعلان‌ها             ⚙️ تنظیمات
 📞 راه‌های ارتباطی      🖼 متن و پوستر استارت
@@ -47,6 +48,11 @@ Opening a student shows **that student's own menu**: their active course, its
 weekly pattern, session progress, and one tap into the session grid. Courses,
 programs, attendance and payments for one student are all reached from there —
 there is no separate top-level courses section.
+
+**🗓 برنامهٔ هفتگی** lays out the whole week — each day with its classes in time
+order (time · student · class) — built from the active courses' weekly patterns,
+so it always matches the session grids. Tap a day to see it as a table; tap a row
+to open that student.
 
 ### 📋 The session grid
 
@@ -96,7 +102,7 @@ ceiling); longer courses page at that size.
  Bale bot     ┤─ bots/common (router, ┤  courses · attendance · schedule · payments
  (long poll)  │   inline keyboards,   │  plans · persons · identities · classes
               │   grid, BotContext)   │  settings · contact_links · auth (whitelist)
- admin/ (9 shared sections) ──────────┤
+ admin/ (11 shared sections) ─────────┤
  notifications/ (queue + worker) ─────┤─ models/ (SQLAlchemy 2.0) ─ Alembic ─ PostgreSQL
  api/ (health + optional webhook) ────┘                                      (SQLite for dev)
 ```

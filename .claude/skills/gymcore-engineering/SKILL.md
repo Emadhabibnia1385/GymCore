@@ -95,7 +95,7 @@ deploy/systemd/  gymcore-{api,telegram,bale,worker}.service
 
 **Admin sections** (`app/admin/`), routed by `panel.py::SECTIONS`:
 `students` · `classes` · `courses` · `attend` · `plans` · `pay` · `notify` ·
-`settings` · `contacts` · `start`. Each exposes `handle_callback(req, args)` and
+`settings` · `contacts` · `start` · `week`. Each exposes `handle_callback(req, args)` and
 `handle_message(req, message, substep, state)`.
 
 Reaching a student's courses, programs, attendance and payments goes **through

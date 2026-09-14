@@ -150,6 +150,17 @@ ASK_MOVE_DATE = (
 )
 MOVED_OK = "🔀 جلسه به {date} منتقل شد."
 
+# --- weekly timetable ---
+TIMETABLE_TITLE = "🗓 برنامهٔ هفتگی کلاس‌ها"
+TIMETABLE_HINT = "روی هر روز بزن تا کلاس‌هایش را جدولی ببینی 👇"
+TIMETABLE_EMPTY = "هنوز دورهٔ فعالی با روز کلاس ثبت نشده است."
+TIMETABLE_DAY_EMPTY = "— کلاسی نیست"
+TIMETABLE_NO_TIME = "بدون ساعت"
+TIMETABLE_COUNT = "{n} کلاس"
+TIMETABLE_DAY_TITLE = "🗓 کلاس‌های {day}"
+TIMETABLE_DAY_HINT = "ساعت · شاگرد · کلاس — روی هر ردیف بزن تا پروفایل شاگرد باز شود 👇"
+TIMETABLE_DAY_TRUNCATED = "{shown} کلاس اول از {total} کلاس این روز نمایش داده شده است."
+
 # --- contact links ---
 CONTACTS_TITLE = "📞 راه‌های ارتباطی"
 CONTACTS_HINT = "روی هر مورد بزن تا متن، آدرس، ترتیب یا فعال‌بودنش را عوض کنی 👇"

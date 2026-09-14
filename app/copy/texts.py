@@ -98,6 +98,7 @@ COURSE_STATUS_LABELS = {
 ADMIN_TITLE = "⚙️ پنل مدیریت"
 ADMIN_WELCOME = "به پنل مدیریت خوش آمدی 🟢\nیکی از بخش‌ها را انتخاب کن:"
 BTN_ADMIN_STUDENTS = "👥 مدیریت شاگردان"
+BTN_ADMIN_WEEK = "🗓 برنامهٔ هفتگی"
 BTN_ADMIN_CLASSES = "🏋️ مدیریت کلاس‌ها"
 BTN_ADMIN_COURSES = "📚 مدیریت دوره‌ها"
 BTN_ADMIN_ATTENDANCE = "✅ ثبت حضور و غیاب"

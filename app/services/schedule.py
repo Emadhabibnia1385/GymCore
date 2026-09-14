@@ -20,17 +20,19 @@ coach records by hand are merged in by date, so the grid never loses history.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import date, timedelta
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.models import (
     SESSION_CONSUMING_STATUSES,
     AttendanceEvent,
     AttendanceStatus,
     Course,
+    CourseStatus,
 )
 
 # Persian week: index 0 is شنبه (Saturday), 6 is جمعه (Friday).
@@ -112,13 +114,14 @@ def class_schedule_label(course: Course) -> str:
     days = parse_weekdays(course.weekdays)
     if not days:
         return "—"
+    return "، ".join(f"{WEEKDAY_NAMES[day]} {day_time(course, day)}".strip() for day in days)
+
+
+def day_time(course: Course, day: int) -> str:
+    """The course's class time on one weekday: that day's own time, else the
+    single ``class_time`` older courses carry, else empty."""
     times = parse_day_times(getattr(course, "class_times", None))
-    fallback = (getattr(course, "class_time", None) or "").strip()
-    parts = []
-    for day in days:
-        time = (times.get(day) or fallback).strip()
-        parts.append(f"{WEEKDAY_NAMES[day]} {time}".strip())
-    return "، ".join(parts)
+    return (times.get(day) or getattr(course, "class_time", None) or "").strip()
 
 
 def course_weekdays(course: Course) -> list[int]:
@@ -130,6 +133,49 @@ def course_weekdays(course: Course) -> list[int]:
     """
     days = parse_weekdays(course.weekdays)
     return days or [persian_weekday(course.start_date)]
+
+
+# --- the weekly timetable (admin «برنامهٔ هفتگی») ---
+
+_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+_CLOCK = re.compile(r"(\d{1,2})(?:[:.٫](\d{2}))?")
+
+
+@dataclass(frozen=True)
+class TimetableEntry:
+    """One recurring class on the weekly timetable."""
+
+    day: int  # Persian weekday index, شنبه = 0
+    time: str  # the class time as the coach typed it; "" when unset
+    course: Course
+
+
+def _clock_key(label: str) -> tuple[int, int]:
+    """Sort free-text class times by clock time; ones with no number go last."""
+    match = _CLOCK.search((label or "").translate(_DIGITS))
+    if match is None:
+        return (1, 0)
+    return (0, int(match.group(1)) * 60 + int(match.group(2) or 0))
+
+
+def weekly_timetable(db: Session) -> dict[int, list[TimetableEntry]]:
+    """Every active course's recurring classes, grouped by weekday, earliest first.
+
+    This is the weekly pattern, not a calendar: one-off moves and extra sessions
+    belong to the dated day view in «ثبت حضور و غیاب».
+    """
+    courses = db.scalars(
+        select(Course)
+        .options(selectinload(Course.client), selectinload(Course.class_type))
+        .where(Course.status == CourseStatus.ACTIVE)
+    )
+    week: dict[int, list[TimetableEntry]] = {day: [] for day in range(7)}
+    for course in courses:
+        for day in course_weekdays(course):
+            week[day].append(TimetableEntry(day, day_time(course, day), course))
+    for entries in week.values():
+        entries.sort(key=lambda entry: (_clock_key(entry.time), entry.course.client.name))
+    return week
 
 
 def iter_scheduled(start: date, days: list[int] | set[int]):

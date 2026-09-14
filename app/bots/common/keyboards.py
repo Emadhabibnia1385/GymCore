@@ -191,13 +191,15 @@ def admin_menu() -> dict:
     """The admin panel main menu (shown only to authorized owners).
 
     Layout follows the coach's own priority: the two catalogs side by side on
-    top, then شاگردان — the hub every day-to-day task is reached through.
+    top, then شاگردان — the hub every day-to-day task is reached through — with
+    the weekly timetable right under it.
     """
     return _inline(
         [
             [button(texts.BTN_ADMIN_CLASSES, cb.admin("classes"), STYLE_PRIMARY),
              button(texts.BTN_ADMIN_PLANS, cb.admin("plans"), STYLE_PRIMARY)],
             [button(texts.BTN_ADMIN_STUDENTS, cb.admin("students"), STYLE_SUCCESS)],
+            [button(texts.BTN_ADMIN_WEEK, cb.admin("week"), STYLE_SUCCESS)],
             [button(texts.BTN_ADMIN_ATTENDANCE, cb.admin("attend")),
              button(texts.BTN_ADMIN_PAYMENTS, cb.admin("pay"))],
             [button(texts.BTN_ADMIN_NOTIFY, cb.admin("notify")),

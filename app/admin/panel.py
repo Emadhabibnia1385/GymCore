@@ -22,6 +22,7 @@ from app.admin import programs as programs_admin
 from app.admin import settings as settings_admin
 from app.admin import start as start_admin
 from app.admin import students as students_admin
+from app.admin import timetable as timetable_admin
 from app.admin.common import AdminReq
 from app.bots.common import keyboards
 from app.bots.common.context import BotContext
@@ -43,6 +44,7 @@ SECTIONS = {
     "settings": settings_admin,
     "contacts": contacts_admin,
     "start": start_admin,
+    "week": timetable_admin,
 }
 
 
