@@ -13,7 +13,7 @@ from sqlalchemy import DateTime, Enum, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-from app.models.enums import Role
+from app.models.enums import Role, StudentType
 
 
 class Person(Base):
@@ -25,6 +25,14 @@ class Person(Base):
     # Optional second contact number (not used for account linking).
     phone2: Mapped[str | None] = mapped_column(String(20))
     role: Mapped[Role] = mapped_column(Enum(Role), default=Role.CLIENT, index=True)
+    # حضوری / غیرحضوری — splits the admin student list. Plain VARCHAR rather than
+    # a native enum, so a later type needs no Postgres ALTER TYPE.
+    student_type: Mapped[StudentType] = mapped_column(
+        Enum(StudentType, native_enum=False, length=20),
+        default=StudentType.IN_PERSON,
+        server_default=StudentType.IN_PERSON.value,
+        index=True,
+    )
     is_active: Mapped[bool] = mapped_column(default=True)
     note: Mapped[str | None] = mapped_column(String(500))
     created_at: Mapped[datetime] = mapped_column(

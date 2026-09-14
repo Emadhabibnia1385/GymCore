@@ -1,4 +1,8 @@
-"""Admin section: student management (search, create, profile, pause/activate)."""
+"""Admin section: student management (search, create, profile, pause/activate).
+
+Students are split into two tabs — حضوری (in-person: courses, the session grid)
+and غیرحضوری (online: programs only). A search covers both.
+"""
 
 from __future__ import annotations
 
@@ -7,10 +11,11 @@ from app.admin.common import AdminReq
 from app.copy import admin_texts as A
 from app.copy import texts
 from app.core.exceptions import ConflictError, ValidationError
-from app.models import Role
+from app.models import Role, StudentType
 from app.services import courses as courses_service
 from app.services import notifications as notify_service
 from app.services import persons as persons_service
+from app.services import plans as plans_service
 from app.services import schedule as schedule_service
 
 _EDIT_FIELDS = ("edit_name", "edit_phone", "edit_phone2")
@@ -21,6 +26,11 @@ _EDIT_PROMPTS = {
 }
 
 _PER_PAGE = 6
+_STYLE_SELECTED = "success"  # green on Telegram; Bale strips it (the ✅ stays)
+
+# Tab codes in callback data (Telegram caps callback_data at 64 bytes).
+_TYPE_CODES = {"I": StudentType.IN_PERSON, "O": StudentType.ONLINE}
+_CODE_OF = {kind: code for code, kind in _TYPE_CODES.items()}
 _PLATFORM_LABELS = {"TELEGRAM": "تلگرام", "BALE": "بله"}
 
 
@@ -30,15 +40,23 @@ def handle_callback(req: AdminReq, args: str) -> None:
         _list(req, page=1)
     elif action == "page":
         _list(req, page=common.parse_count(rest) or 1)
+    elif action == "tab":
+        code, _, tail = rest.partition(":")
+        _, _, page = tail.partition(":")  # the pager appends "page:<n>"
+        kind = _TYPE_CODES.get(code, StudentType.IN_PERSON)
+        _list(req, page=common.parse_count(page) or 1, kind=kind)
     elif action == "view" and rest.isdigit():
         _profile(req, int(rest))
     elif action == "new":
-        common.prompt(req, A.ASK_STUDENT_NAME, "students:new_name", {})
+        # Created in the tab it was started from (in-person when none is given).
+        code = rest if rest in _TYPE_CODES else "I"
+        common.prompt(req, A.ASK_STUDENT_NAME, "students:new_name", {"type": code})
     elif action == "search":
         common.prompt(req, A.STUDENTS_HINT, "students:search", {})
     elif action == "new_phone_skip":
         state = req.store.get(req.ctx.platform, req.chat_id)
-        _create(req, (state.data.get("name") if state else None), None)
+        data = state.data if state else {}
+        _create(req, data.get("name"), None, data.get("type"))
     elif action == "del_confirm" and rest.isdigit():
         person = persons_service.get(req.db, int(rest))
         common.render(
@@ -58,11 +76,17 @@ def handle_callback(req: AdminReq, args: str) -> None:
             common.prompt(req, A.ASK_STUDENT_MESSAGE, f"students:msg:{person.id}", {})
     elif action == "edit" and rest.isdigit():
         _edit_menu(req, int(rest))
+    elif action == "type" and rest.isdigit():
+        person = persons_service.get(req.db, int(rest))
+        new_type = _other_type(person.student_type)
+        persons_service.update(req.db, person.id, student_type=new_type)
+        _profile(req, person.id, flash=A.TYPE_CHANGED.format(type=A.TYPE_LABELS[new_type.value]))
     elif action in _EDIT_FIELDS and rest.isdigit():
         common.prompt(req, _EDIT_PROMPTS[action], f"students:{action}", {"id": int(rest)})
     elif action == "del" and rest.isdigit():
+        kind = persons_service.get(req.db, int(rest)).student_type
         persons_service.delete(req.db, int(rest))
-        _list(req)
+        _list(req, kind=kind)
     else:
         _list(req)
 
@@ -70,15 +94,16 @@ def handle_callback(req: AdminReq, args: str) -> None:
 def handle_message(req: AdminReq, message: dict, substep: str, state) -> None:
     text = (message.get("text") or "").strip()
     if substep == "new_name":
-        if not text:
-            common.prompt(req, A.ASK_STUDENT_NAME, "students:new_name", {})
+        if not text:  # keep the tab it was started from while asking again
+            common.prompt(req, A.ASK_STUDENT_NAME, "students:new_name", state.data)
             return
         common.prompt(
-            req, A.ASK_STUDENT_PHONE, "students:new_phone", {"name": text},
+            req, A.ASK_STUDENT_PHONE, "students:new_phone",
+            {"name": text, "type": state.data.get("type")},
             keyboard=common.skip_keyboard(("students", "new_phone_skip")),
         )
     elif substep == "new_phone":
-        _create(req, state.data.get("name"), text or None)
+        _create(req, state.data.get("name"), text or None, state.data.get("type"))
     elif substep == "search":
         _list(req, page=1, query=text)
     elif substep.startswith("msg:"):
@@ -100,11 +125,20 @@ def handle_message(req: AdminReq, message: dict, substep: str, state) -> None:
         _list(req)
 
 
-def _create(req: AdminReq, name: str | None, phone: str | None) -> None:
+def _other_type(kind: StudentType) -> StudentType:
+    return StudentType.ONLINE if kind == StudentType.IN_PERSON else StudentType.IN_PERSON
+
+
+def _create(
+    req: AdminReq, name: str | None, phone: str | None, type_code: str | None = None
+) -> None:
     if not name:
         common.render(req, A.CANCELLED)
         return
-    person = persons_service.create(req.db, name=name, phone=phone, role=Role.CLIENT)
+    person = persons_service.create(
+        req.db, name=name, phone=phone, role=Role.CLIENT,
+        student_type=_TYPE_CODES.get(type_code or "", StudentType.IN_PERSON),
+    )
     common.clear(req)
     _profile(req, person.id)
 
@@ -115,6 +149,7 @@ def _edit_menu(req: AdminReq, person_id: int) -> None:
     body = (
         f"{A.EDIT_STUDENT_TITLE}\n\n"
         f"👤 {person.name}\n"
+        f"{A.LABEL_STUDENT_TYPE}: {A.TYPE_LABELS[person.student_type.value]}\n"
         f"{A.LABEL_PHONE}: {person.phone or '-'}\n"
         f"{A.LABEL_PHONE2}: {person.phone2 or '-'}"
     )
@@ -124,6 +159,10 @@ def _edit_menu(req: AdminReq, person_id: int) -> None:
             common.button(A.BTN_EDIT_PHONE, "students", "edit_phone", person.id),
             common.button(A.BTN_EDIT_PHONE2, "students", "edit_phone2", person.id),
         ],
+        [common.button(
+            A.BTN_MOVE_TO_TYPE.format(type=A.TYPE_LABELS[_other_type(person.student_type).value]),
+            "students", "type", person.id,
+        )],
     ]
     common.render(req, body, common.with_back(rows, ("students", "view", person.id)))
 
@@ -153,53 +192,89 @@ def _apply_edit(req: AdminReq, field: str, person_id: int | None, text: str) -> 
     _profile(req, person_id)
 
 
-def _list(req: AdminReq, page: int = 1, query: str | None = None) -> None:
-    clients = list(req.db.scalars(persons_service.search_stmt(Role.CLIENT, query)))
-    # Each student carries their active course's remaining sessions; the list is
-    # sorted by that ascending (fewest first) so who needs a renewal is on top.
+def _list(
+    req: AdminReq,
+    page: int = 1,
+    query: str | None = None,
+    kind: StudentType = StudentType.IN_PERSON,
+) -> None:
+    """One tab of the student list, or a search across both tabs.
+
+    In-person students carry their active course's remaining sessions, sorted
+    fewest first so whoever needs a renewal is on top. Online students carry how
+    many programs they have.
+    """
+    searching = bool(query)
+    stmt = persons_service.search_stmt(Role.CLIENT, query, None if searching else kind)
     enriched = []
-    for person in clients:
+    for person in req.db.scalars(stmt):
+        if person.student_type == StudentType.ONLINE:
+            count = len(plans_service.list_assignments(req.db, person_id=person.id))
+            label = A.PROGRAM_COUNT.format(n=count) if count else A.NO_PROGRAM
+            enriched.append((person, None, label))
+            continue
         active = courses_service.active_course(req.db, person.id)
         remaining = courses_service.remaining_sessions(req.db, active) if active else None
-        enriched.append((person, remaining))
-    enriched.sort(key=lambda pr: (pr[1] is None, pr[1] if pr[1] is not None else 0))
+        label = A.SESSIONS_LEFT.format(n=remaining) if remaining is not None else A.NO_COURSE
+        enriched.append((person, remaining, label))
+    enriched.sort(key=lambda row: (row[1] is None, row[1] or 0))
 
     pages = max((len(enriched) + _PER_PAGE - 1) // _PER_PAGE, 1)
     page = max(min(page, pages), 1)
     window = enriched[(page - 1) * _PER_PAGE: page * _PER_PAGE]
 
-    top = [[
-        common.button(A.BTN_NEW_STUDENT, "students", "new"),
-        common.button(A.BTN_SEARCH, "students", "search"),
-    ]]
+    counts = persons_service.count_by_type(req.db)
+    tabs = []
+    for tab in StudentType:
+        label = f"{A.TYPE_LABELS[tab.value]} ({counts[tab]})"
+        selected = tab == kind and not searching
+        tabs.append(common.button(
+            A.TAB_SELECTED.format(label=label) if selected else label,
+            "students", "tab", _CODE_OF[tab],
+            style=_STYLE_SELECTED if selected else None,
+        ))
+    top = [
+        tabs,
+        [
+            common.button(A.BTN_NEW_STUDENT, "students", "new", _CODE_OF[kind]),
+            common.button(A.BTN_SEARCH, "students", "search"),
+        ],
+    ]
     item_rows = []
-    for person, remaining in window:
-        sessions = f"{remaining} جلسه" if remaining is not None else "بدون دوره"
+    for person, _remaining, label in window:
+        name = person.name
+        if searching:  # a search mixes both tabs, so say which each one is in
+            name = f"{A.TYPE_LABELS[person.student_type.value].split()[0]} {name}"
         item_rows.append([
-            common.button(person.name, "students", "view", person.id),
-            common.button(sessions, "students", "view", person.id),
+            common.button(name, "students", "view", person.id),
+            common.button(label, "students", "view", person.id),
         ])
+    title = A.STUDENTS_TITLE if searching else f"{A.STUDENTS_TITLE} — {A.TYPE_LABELS[kind.value]}"
     if enriched:
-        body = f"{A.STUDENTS_TITLE}\n{A.STUDENTS_HINT}"
+        body = f"{title}\n{A.STUDENTS_HINT}"
     else:
-        body = f"{A.STUDENTS_TITLE}\n\n{A.NO_STUDENTS if not query else A.NOTHING}"
-    keyboard = common.pager(top + item_rows, page, pages, ("students",))
-    common.render(req, body, keyboard)
+        body = f"{title}\n\n{A.NOTHING if searching else A.NO_STUDENTS_OF_TYPE}"
+    base = ("students",) if searching else ("students", "tab", _CODE_OF[kind])
+    common.render(req, body, common.pager(top + item_rows, page, pages, base))
 
 
-def _profile(req: AdminReq, person_id: int) -> None:
+def _profile(req: AdminReq, person_id: int, flash: str | None = None) -> None:
     """That student's own menu — the hub every per-student action hangs off.
 
     The primary action is always on top: the session grid when the student has
-    an active course, otherwise «دوره جدید» to give them one.
+    an active course; otherwise «ارسال برنامه» for an online student and
+    «دوره جدید» for an in-person one.
     """
     person = persons_service.get(req.db, person_id)
     active = courses_service.active_course(req.db, person.id)
 
     lines = [
         f"👤 {person.name}",
+        f"{A.LABEL_STUDENT_TYPE}: {A.TYPE_LABELS[person.student_type.value]}",
         f"{A.LABEL_PHONE}: {person.phone or '-'}",
     ]
+    if flash:
+        lines.insert(0, f"{flash}\n")
     if person.phone2:
         lines.append(f"{A.LABEL_PHONE2}: {person.phone2}")
     platforms = sorted({identity.platform.value for identity in person.identities})
@@ -222,6 +297,8 @@ def _profile(req: AdminReq, person_id: int) -> None:
     rows: list[list[dict]] = []
     if active is not None:
         rows.append([common.button(A.BTN_STUDENT_GRID, "attend", "course", active.id)])
+    elif person.student_type == StudentType.ONLINE:
+        rows.append([common.button(A.BTN_ASSIGN_PLAN, "plans", "assign", person.id)])
     else:
         rows.append([common.button(A.BTN_NEW_COURSE_FOR, "courses", "new", person.id)])
     rows.append([
@@ -236,5 +313,5 @@ def _profile(req: AdminReq, person_id: int) -> None:
         common.button(A.BTN_EDIT_STUDENT, "students", "edit", person.id),
         common.button(A.BTN_DELETE_STUDENT, "students", "del_confirm", person.id),
     ])
-    rows.append([common.button(A.BACK, "students")])
+    rows.append([common.button(A.BACK, "students", "tab", _CODE_OF[person.student_type])])
     common.render(req, "\n".join(lines), common.inline(rows))

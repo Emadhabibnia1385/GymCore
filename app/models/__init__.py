@@ -18,6 +18,7 @@ from app.models.enums import (
     PaymentKind,
     Platform,
     Role,
+    StudentType,
 )
 from app.models.notification import Notification
 from app.models.payment import Payment
@@ -46,4 +47,5 @@ __all__ = [
     "Platform",
     "Role",
     "Setting",
+    "StudentType",
 ]

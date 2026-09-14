@@ -3,7 +3,7 @@ numeric platform ID (see services.auth)."""
 
 from __future__ import annotations
 
-from sqlalchemy import Select, or_, select
+from sqlalchemy import Select, func, or_, select
 from sqlalchemy import delete as sa_delete
 from sqlalchemy.orm import Session
 
@@ -19,6 +19,7 @@ from app.models import (
     PlanAssignment,
     Platform,
     Role,
+    StudentType,
 )
 
 
@@ -36,11 +37,17 @@ def get_by_phone(db: Session, phone: str) -> Person | None:
     return db.scalar(select(Person).where(Person.phone == normalized))
 
 
-def search_stmt(role: Role | None = Role.CLIENT, query: str | None = None) -> Select:
+def search_stmt(
+    role: Role | None = Role.CLIENT,
+    query: str | None = None,
+    student_type: StudentType | None = None,
+) -> Select:
     """Select for a paginated person list, filtered by name / phone / username."""
     stmt = select(Person).order_by(Person.created_at.desc())
     if role is not None:
         stmt = stmt.where(Person.role == role)
+    if student_type is not None:
+        stmt = stmt.where(Person.student_type == student_type)
     if query:
         needle = f"%{query.strip()}%"
         digits = normalize_phone(query)
@@ -57,6 +64,19 @@ def search_stmt(role: Role | None = Role.CLIENT, query: str | None = None) -> Se
         conditions.append(Person.id.in_(id_match))
         stmt = stmt.where(or_(*conditions))
     return stmt
+
+
+def count_by_type(db: Session, role: Role = Role.CLIENT) -> dict[StudentType, int]:
+    """How many people of `role` are حضوری vs غیرحضوری — for the list's tabs."""
+    counts = dict.fromkeys(StudentType, 0)
+    rows = db.execute(
+        select(Person.student_type, func.count())
+        .where(Person.role == role)
+        .group_by(Person.student_type)
+    )
+    for student_type, count in rows:
+        counts[student_type] = count
+    return counts
 
 
 def find_by_platform_id(
@@ -77,6 +97,7 @@ def create(
     phone: str | None = None,
     role: Role = Role.CLIENT,
     note: str | None = None,
+    student_type: StudentType = StudentType.IN_PERSON,
 ) -> Person:
     name = (name or "").strip()
     if not name:
@@ -88,7 +109,9 @@ def create(
             raise ValidationError("شماره موبایل نامعتبر است")
         if get_by_phone(db, normalized) is not None:
             raise ConflictError("این شماره موبایل قبلاً ثبت شده است")
-    person = Person(name=name, phone=normalized, role=role, note=note)
+    person = Person(
+        name=name, phone=normalized, role=role, note=note, student_type=student_type
+    )
     db.add(person)
     db.commit()
     db.refresh(person)
@@ -104,6 +127,7 @@ def update(
     role: Role | None = None,
     note: str | None = None,
     is_active: bool | None = None,
+    student_type: StudentType | None = None,
 ) -> Person:
     person = get(db, person_id)
     if name is not None:
@@ -136,6 +160,8 @@ def update(
         person.note = note or None
     if is_active is not None:
         person.is_active = is_active
+    if student_type is not None:
+        person.student_type = student_type
     db.commit()
     db.refresh(person)
     return person

@@ -24,6 +24,7 @@ from app.models import (
     Person,
     Platform,
     Role,
+    StudentType,
 )
 from app.models.setting import KEY_CARD_NUMBER, KEY_MAIN_INTRO
 from app.services import attendance as attendance_service
@@ -452,3 +453,54 @@ def test_lowering_the_allowance_keeps_recorded_absences(db):
         )
     with pytest.raises(ValidationError):
         courses_service.set_allowed_absence(db, course.id, -1)
+
+
+def test_students_are_split_into_in_person_and_online_tabs(db):
+    disp, client = make_dispatcher()
+    persons_service.create(db, name="حضوری یک", role=Role.CLIENT)
+    persons_service.create(db, name="آنلاین یک", role=Role.CLIENT, student_type=StudentType.ONLINE)
+
+    disp.handle_update(callback_update(1, CHAT, OWNER, "a:students"))
+    labels = button_texts(last_markup(client))
+    assert "حضوری یک" in labels and "آنلاین یک" not in labels
+    assert f"{A.TYPE_LABELS['ONLINE']} (1)" in labels
+
+    disp.handle_update(callback_update(2, CHAT, OWNER, "a:students:tab:O"))
+    labels = button_texts(last_markup(client))
+    assert "آنلاین یک" in labels and "حضوری یک" not in labels
+    assert A.NO_PROGRAM in labels  # online students show programs, not sessions
+
+    # A search covers both tabs.
+    disp.handle_update(callback_update(3, CHAT, OWNER, "a:students:search"))
+    disp.handle_update(message_update(4, CHAT, OWNER, "یک"))
+    labels = button_texts(last_markup(client))
+    assert any("حضوری یک" in label for label in labels)
+    assert any("آنلاین یک" in label for label in labels)
+
+
+def test_new_student_from_the_online_tab_is_online(db):
+    disp, client = make_dispatcher()
+    disp.handle_update(callback_update(1, CHAT, OWNER, "a:students:tab:O"))
+    disp.handle_update(callback_update(2, CHAT, OWNER, "a:students:new:O"))
+    disp.handle_update(photo_message_update(3, CHAT, OWNER))  # not a name: asked again
+    disp.handle_update(message_update(4, CHAT, OWNER, "شاگرد آنلاین"))
+    disp.handle_update(callback_update(5, CHAT, OWNER, "a:students:new_phone_skip"))
+    db.expire_all()
+    student = db.scalar(select(Person).where(Person.name == "شاگرد آنلاین"))
+    assert student.student_type == StudentType.ONLINE
+    # An online student's profile leads with sending a program, not a course.
+    assert last_markup(client)["inline_keyboard"][0][0]["text"] == A.BTN_ASSIGN_PLAN
+
+
+def test_admin_moves_a_student_between_tabs(db):
+    disp, client = make_dispatcher()
+    student = persons_service.create(db, name="شاگرد جابه‌جا", role=Role.CLIENT)
+    online = A.TYPE_LABELS["ONLINE"]
+
+    disp.handle_update(callback_update(1, CHAT, OWNER, f"a:students:edit:{student.id}"))
+    assert A.BTN_MOVE_TO_TYPE.format(type=online) in button_texts(last_markup(client))
+
+    disp.handle_update(callback_update(2, CHAT, OWNER, f"a:students:type:{student.id}"))
+    db.expire_all()
+    assert persons_service.get(db, student.id).student_type == StudentType.ONLINE
+    assert A.TYPE_CHANGED.format(type=online) in last_text(client)

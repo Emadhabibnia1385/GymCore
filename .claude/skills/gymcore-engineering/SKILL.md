@@ -84,7 +84,7 @@ app/
   admin/         in-bot admin panel, one module per section
   notifications/ queued/idempotent notifications + worker
   api/           FastAPI: /health, /health/ready, optional webhook
-migrations/      Alembic (head: 0012)
+migrations/      Alembic (head: 0013)
 tests/           pytest with fakes — never touches the network
 deploy/systemd/  gymcore-{api,telegram,bale,worker}.service
 ```
@@ -197,6 +197,10 @@ registration, which stays form-free. Phones are normalized to `09xxxxxxxxx`
   is **Alembic only** — never run `create_all()` against it.
 - Every schema change needs a migration. Migrations are forward-only and
   data-preserving; the database is never reset.
+- New enum columns are non-native (`Enum(..., native_enum=False)`, stored as
+  VARCHAR — see `Person.student_type`), so adding a value later needs no
+  Postgres `ALTER TYPE`. The older columns are native enums; see 0012 for how
+  those are extended.
 - Retired tables that still hold history (currently `reminder_logs`) are listed
   in `RETIRED_TABLES` in `migrations/env.py` so autogenerate never proposes
   dropping them.

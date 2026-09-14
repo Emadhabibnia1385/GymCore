@@ -62,6 +62,16 @@ LABEL_STATUS = "وضعیت"
 LABEL_ACTIVE = "فعال"
 LABEL_INACTIVE = "غیرفعال"
 NO_STUDENTS = "هنوز شاگردی ثبت نشده است."
+NO_STUDENTS_OF_TYPE = "در این دسته هنوز شاگردی نیست."
+TYPE_LABELS = {"IN_PERSON": "🏋️ حضوری", "ONLINE": "🌐 غیرحضوری"}
+TAB_SELECTED = "✅ {label}"
+LABEL_STUDENT_TYPE = "نوع"
+BTN_MOVE_TO_TYPE = "🔄 انتقال به {type}"
+TYPE_CHANGED = "🟢 به {type} منتقل شد."
+SESSIONS_LEFT = "{n} جلسه"
+NO_COURSE = "بدون دوره"
+PROGRAM_COUNT = "{n} برنامه"
+NO_PROGRAM = "بدون برنامه"
 
 # --- classes ---
 CLASSES_TITLE = "🏋️ مدیریت کلاس‌ها"

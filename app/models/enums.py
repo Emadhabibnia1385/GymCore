@@ -9,6 +9,14 @@ class Role(str, enum.Enum):
     ADMIN = "ADMIN"
 
 
+class StudentType(str, enum.Enum):
+    """How a client trains with the coach: حضوری (in the gym — classes and
+    attendance) or غیرحضوری (remotely — programs only)."""
+
+    IN_PERSON = "IN_PERSON"
+    ONLINE = "ONLINE"
+
+
 class Platform(str, enum.Enum):
     TELEGRAM = "TELEGRAM"
     BALE = "BALE"

@@ -44,6 +44,12 @@ the two catalogs, then شاگردان — the hub every per-student action hangs
         🏠 خروج از پنل مدیریت
 ```
 
+Students are split into two tabs — **🏋️ حضوری** (in-person: courses, the session
+grid, attendance) and **🌐 غیرحضوری** (online: programs only). In-person students
+are sorted by remaining sessions, fewest first; an online student's profile leads
+with sending a program. A search covers both tabs, and a student moves between
+them from their edit menu.
+
 Opening a student shows **that student's own menu**: their active course, its
 weekly pattern, session progress, and one tap into the session grid. Courses,
 programs, attendance and payments for one student are all reached from there —
@@ -241,9 +247,10 @@ alembic downgrade -1                                   # roll back one
 ```
 
 Migrations are forward-only and data-preserving — the schema is never reset.
-The latest revision is `0012` (adds `attendance_events.moved_to`, the target
-date of a rescheduled session). The chain runs `0001 → 0012`; run
-`alembic current` to see where a deployment sits.
+The latest revision is `0013` (adds `persons.student_type` — حضوری / غیرحضوری;
+existing clients with programs but no course are backfilled as online, everyone
+else as in-person). The chain runs `0001 → 0013`; run `alembic current` to see
+where a deployment sits.
 
 `reminder_logs` is a retired v1 table. Its rows are kept for audit history, so
 the table is deliberately left in the database with no model behind it and is
