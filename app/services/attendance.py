@@ -83,7 +83,8 @@ def record(
             if used >= course.allowed_absence:
                 raise ValidationError(
                     f"سقف غیبت مجاز این دوره ({course.allowed_absence}) تکمیل شده است؛ "
-                    "این جلسه را «غیبت غیرمجاز» ثبت کن"
+                    "این جلسه را «غیبت غیرمجاز» ثبت کن، "
+                    "یا سقف را از «✏️ ویرایش دوره» بیشتر کن"
                 )
 
     was_active = course.status == CourseStatus.ACTIVE

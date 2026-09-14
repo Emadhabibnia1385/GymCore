@@ -57,6 +57,12 @@ def handle_callback(req: AdminReq, args: str) -> None:
         common.prompt(req, A.ASK_EDIT_TUITION, "courses:edit_tuition", {"course_id": int(rest)})
     elif action == "edit_gym" and rest.isdigit():
         common.prompt(req, A.ASK_EDIT_GYM, "courses:edit_gym", {"course_id": int(rest)})
+    elif action == "edit_allowed" and rest.isdigit():
+        course = courses_service.get(req.db, int(rest))
+        common.prompt(
+            req, A.ASK_EDIT_ALLOWED.format(current=_allowance_label(course.allowed_absence)),
+            "courses:edit_allowed", {"course_id": course.id},
+        )
     elif action == "del_confirm" and rest.isdigit():
         course = courses_service.get(req.db, int(rest))
         common.render(
@@ -163,6 +169,16 @@ def handle_message(req: AdminReq, message: dict, substep: str, state) -> None:
             courses_service.set_fees(req.db, data["course_id"], gym_fee=amount)
         common.clear(req)
         _view(req, data["course_id"])
+    elif substep == "edit_allowed":
+        count = common.parse_count(text)
+        if count is None:
+            course = courses_service.get(req.db, data["course_id"])
+            ask = A.ASK_EDIT_ALLOWED.format(current=_allowance_label(course.allowed_absence))
+            common.prompt(req, f"{A.INVALID_NUMBER}\n{ask}", "courses:edit_allowed", data)
+            return
+        courses_service.set_allowed_absence(req.db, data["course_id"], count)
+        common.clear(req)
+        _view(req, data["course_id"], flash=A.ALLOWED_SAVED)
     elif substep == "weekdays":
         _ask_weekdays(req, data)  # stray text mid-selection: just re-show the picker
     else:
@@ -356,13 +372,15 @@ def _send_attendance_report(db, course) -> None:
 
 
 def _edit_menu(req: AdminReq, course_id: int) -> None:
-    """Pick which part of a course to edit: fees, or the weekly days + times."""
+    """Pick which part of a course to edit: fees, the excused-absence ceiling, or
+    the weekly days + times."""
     course = courses_service.get(req.db, course_id)
     body = (
         f"{A.EDIT_COURSE_TITLE}\n\n"
         f"🏷 {course.class_type.title}\n"
         f"💰 {texts.LABEL_TUITION}: {course.tuition:,}\n"
         f"🏟 {texts.LABEL_GYM_FEE}: {course.gym_fee:,}\n"
+        f"🆓 {texts.LABEL_ALLOWED_ABSENCE}: {_allowance_label(course.allowed_absence)}\n"
         f"🗓 {schedule_service.class_schedule_label(course)}"
     )
     rows = [
@@ -370,9 +388,17 @@ def _edit_menu(req: AdminReq, course_id: int) -> None:
             common.button(A.BTN_EDIT_TUITION, "courses", "edit_tuition", course.id),
             common.button(A.BTN_EDIT_GYM, "courses", "edit_gym", course.id),
         ],
-        [common.button(A.BTN_EDIT_SCHEDULE, "courses", "wdedit", course.id)],
+        [
+            common.button(A.BTN_EDIT_ALLOWED, "courses", "edit_allowed", course.id),
+            common.button(A.BTN_EDIT_SCHEDULE, "courses", "wdedit", course.id),
+        ],
     ]
     common.render(req, body, common.with_back(rows, ("courses", "view", course.id)))
+
+
+def _allowance_label(allowed_absence: int) -> str:
+    """The excused-absence ceiling in words — zero means no limit."""
+    return str(allowed_absence) if allowed_absence > 0 else A.NO_LIMIT
 
 
 def _view(req: AdminReq, course_id: int, flash: str | None = None) -> None:

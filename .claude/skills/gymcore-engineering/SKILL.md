@@ -122,6 +122,9 @@ it is stored. Get these rules right or the coach's counts silently break:
   counter bare in that case; only append `/N` when `allowed_absence > 0`. This
   rule appears in both `grid.header` and `formatting.format_course_detail` —
   keep them in step.
+  The ceiling stays editable after creation («✏️ ویرایش دوره» →
+  `courses.set_allowed_absence`); lowering it never rewrites absences already
+  recorded, it only gates new ones.
 - Active courses page at `grid.ROWS_PER_PAGE` (8). A **finished** course is
   shown whole on one screen (`grid.rows_per_page`, up to `MAX_ROWS_PER_SCREEN`
   = 33 rows: 100 buttons, the widely reported keyboard ceiling — neither

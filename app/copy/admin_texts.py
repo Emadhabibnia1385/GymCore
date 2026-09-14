@@ -110,6 +110,13 @@ BTN_EDIT_GYM = "🏟 ورودی باشگاه"
 BTN_EDIT_SCHEDULE = "🗓 روزها و ساعت‌ها"
 ASK_EDIT_TUITION = "مبلغ شهریهٔ جدید را بفرست (تومان):"
 ASK_EDIT_GYM = "مبلغ ورودی باشگاهِ جدید را بفرست (تومان):"
+BTN_EDIT_ALLOWED = "🆓 غیبت مجاز"
+ASK_EDIT_ALLOWED = (
+    "سقف غیبت مجاز این دوره را بفرست (عدد؛ 0 یعنی بدون محدودیت):\n"
+    "مقدار فعلی: {current}"
+)
+ALLOWED_SAVED = "🟢 سقف غیبت مجاز ذخیره شد."
+NO_LIMIT = "بدون محدودیت"
 BTN_DELETE_COURSE = "🗑 حذف دوره"
 CONFIRM_DELETE_COURSE = (
     "⚠️ دورهٔ «{title}» حذف شود؟\n"

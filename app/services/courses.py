@@ -214,6 +214,21 @@ def set_fees(
     return course
 
 
+def set_allowed_absence(db: Session, course_id: int, allowed_absence: int) -> Course:
+    """Change the course's excused-absence ceiling (0 = no limit).
+
+    History is never rewritten: excused absences already recorded stay as they
+    are even when the new ceiling is below them — it only gates future ones.
+    """
+    if allowed_absence < 0:
+        raise ValidationError("تعداد غیبت مجاز نمی‌تواند منفی باشد")
+    course = get(db, course_id)
+    course.allowed_absence = allowed_absence
+    db.commit()
+    db.refresh(course)
+    return course
+
+
 def set_status(db: Session, course_id: int, status: CourseStatus) -> Course:
     course = get(db, course_id)
     course.status = status

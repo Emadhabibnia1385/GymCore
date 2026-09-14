@@ -6,12 +6,14 @@ Owner id 111 (Telegram) is configured in conftest. Every step is a real update
 
 from datetime import date, timedelta
 
+import pytest
 from sqlalchemy import func, select
 
 from app.bots.common import callbacks as cb
 from app.bots.common import grid
 from app.copy import admin_texts as A
 from app.copy import texts
+from app.core.exceptions import ValidationError
 from app.models import (
     AttendanceStatus,
     Course,
@@ -24,6 +26,7 @@ from app.models import (
     Role,
 )
 from app.models.setting import KEY_CARD_NUMBER, KEY_MAIN_INTRO
+from app.services import attendance as attendance_service
 from app.services import classes as classes_service
 from app.services import courses as courses_service
 from app.services import identities as identities_service
@@ -406,3 +409,46 @@ def test_non_owner_message_never_enters_admin(db):
     labels = button_texts(last_markup(client))
     assert texts.BTN_ADMIN_PANEL not in labels
     assert A.STUDENTS_TITLE not in (client.sent[-1].get("text") or "")
+
+
+def test_admin_edits_a_courses_allowed_absence(db):
+    disp, client = make_dispatcher()
+    student = persons_service.create(db, name="شاگرد سقف", role=Role.CLIENT)
+    class_type = classes_service.list_class_types(db, only_active=True)[0]
+    course = courses_service.create(
+        db, client_id=student.id, class_type_id=class_type.id, sessions_total=8,
+        allowed_absence=1,
+    )
+    disp.handle_update(callback_update(1, CHAT, OWNER, f"a:courses:edit:{course.id}"))
+    assert A.BTN_EDIT_ALLOWED in button_texts(last_markup(client))
+
+    disp.handle_update(callback_update(2, CHAT, OWNER, f"a:courses:edit_allowed:{course.id}"))
+    disp.handle_update(message_update(3, CHAT, OWNER, "زیاد"))  # not a number: asked again
+    assert A.INVALID_NUMBER in last_text(client)
+    disp.handle_update(message_update(4, CHAT, OWNER, "۳"))  # Persian digits are fine
+    db.expire_all()
+    assert courses_service.get(db, course.id).allowed_absence == 3
+    assert A.ALLOWED_SAVED in last_text(client)
+
+
+def test_lowering_the_allowance_keeps_recorded_absences(db):
+    student = persons_service.create(db, name="شاگرد کاهش", role=Role.CLIENT)
+    class_type = classes_service.list_class_types(db, only_active=True)[0]
+    course = courses_service.create(
+        db, client_id=student.id, class_type_id=class_type.id, sessions_total=8,
+        allowed_absence=2, start_date=date(2026, 7, 25), weekdays="0,2,4",
+    )
+    slots = schedule_service.build(db, course)
+    for slot in slots[:2]:
+        attendance_service.record(
+            db, course.id, slot.date, AttendanceStatus.ABSENT_ALLOWED, notify=False
+        )
+
+    courses_service.set_allowed_absence(db, course.id, 1)
+    assert courses_service.allowed_absence_used(db, course.id) == 2  # history untouched
+    with pytest.raises(ValidationError):  # but the lower ceiling gates the next one
+        attendance_service.record(
+            db, course.id, slots[2].date, AttendanceStatus.ABSENT_ALLOWED, notify=False
+        )
+    with pytest.raises(ValidationError):
+        courses_service.set_allowed_absence(db, course.id, -1)
