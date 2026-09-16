@@ -53,6 +53,26 @@ command -v apt-get >/dev/null 2>&1 || { err "This installer supports Debian/Ubun
 
 green "==> GymCore installer"
 
+# --- 0. back up the database before anything changes (existing installs) ---
+# Every install and every auto-update passes through here first, so no
+# migration ever runs without a fresh copy. If the backup fails, stop — nothing
+# on this server has been touched yet. `--once` keeps the first backup of an
+# update that gets retried rather than rotating it out with later copies.
+if [[ -f "$APP_DIR/.env" ]]; then
+  backup_setting=$(grep -E '^BACKUP_BEFORE_UPDATE=' "$APP_DIR/.env" | cut -d= -f2- | tr 'A-Z' 'a-z' || true)
+  if [[ "$backup_setting" == "false" ]]; then
+    warn "==> BACKUP_BEFORE_UPDATE=false — installing WITHOUT a database backup."
+  else
+    green "==> Backing up the database..."
+    target=$(git -C "$SRC_DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)
+    label="${GYMCORE_PREVIOUS_COMMIT:+${GYMCORE_PREVIOUS_COMMIT}-to-}${target}"
+    if ! GYMCORE_APP_DIR="$APP_DIR" bash "$SRC_DIR/deploy/backup.sh" --once "$label"; then
+      err "!! Database backup failed — installation stopped before changing anything."
+      exit 1
+    fi
+  fi
+fi
+
 # --- 1. system packages (only what we need) ---
 green "==> Installing system packages (python3, venv, pip, rsync)..."
 apt-get update -y

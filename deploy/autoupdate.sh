@@ -21,8 +21,16 @@ REMOTE="$(git -C "$SRC" rev-parse origin/main 2>/dev/null || echo none)"
 if [ "$REMOTE" != "none" ] && [ "$LOCAL" != "$REMOTE" ]; then
   logger -t gymcore-update "update ${LOCAL:0:7} -> ${REMOTE:0:7}; applying" 2>/dev/null || true
   git -C "$SRC" reset --hard origin/main
-  # install.sh reinstalls + restarts; it runs non-interactively here (no tty,
-  # .env already exists) so it never prompts.
-  bash "$SRC/install.sh"
+  # install.sh backs up the database, then reinstalls + restarts. It runs
+  # non-interactively here (no tty, .env already exists), so it never prompts.
+  if ! GYMCORE_PREVIOUS_COMMIT="${LOCAL:0:7}" bash "$SRC/install.sh"; then
+    # Put the clone back so the next run retries this update, rather than
+    # taking the new HEAD as installed and never trying again.
+    if [ "$LOCAL" != "none" ]; then
+      git -C "$SRC" reset --hard "$LOCAL" >/dev/null 2>&1 || true
+    fi
+    logger -t gymcore-update "update ${REMOTE:0:7} FAILED — will retry" 2>/dev/null || true
+    exit 1
+  fi
   logger -t gymcore-update "update applied (${REMOTE:0:7})" 2>/dev/null || true
 fi

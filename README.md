@@ -259,12 +259,37 @@ propose dropping it.
 
 ## Backups
 
-Back up the database and the uploads directory regularly:
+**Automatic.** Every install and every auto-update backs up the database
+*before* it changes anything, so no migration ever runs without a fresh copy.
+Backups land in `/var/backups/gymcore` (root-only), gzipped and named after the
+update — e.g. `gymcore-20260916T101500Z-5214604-to-7c1e9aa.db.gz` — and the
+newest `BACKUP_KEEP` (default 30) are kept. If a backup can't be made, the update
+stops before touching anything, and the auto-updater tries again a minute later.
+
+SQLite is copied with SQLite's online backup API (consistent while the bots are
+writing) and integrity-checked; PostgreSQL uses `pg_dump`. Take one by hand:
 
 ```bash
-# PostgreSQL
-pg_dump "$DATABASE_URL" > gymcore-$(date +%F).sql
-# uploaded program files
+sudo bash /opt/gymcore/deploy/backup.sh manual
+```
+
+**Restoring (SQLite).** Stop the updater and the services, put the copy back,
+start them again:
+
+```bash
+sudo systemctl stop gymcore-update.timer gymcore-api gymcore-telegram gymcore-bale gymcore-worker
+gunzip -c /var/backups/gymcore/BACKUP.db.gz | sudo -u gymcore tee /opt/gymcore/gymcore.db >/dev/null
+sudo systemctl start gymcore-api gymcore-telegram gymcore-bale gymcore-worker gymcore-update.timer
+```
+
+A backup made for an update holds the database from *before* that update. To
+undo a bad update rather than just recover data, keep `gymcore-update.timer`
+stopped and reinstall the commit named first in the filename (`5214604` above) —
+otherwise the updater simply applies the same update again.
+
+Uploaded program files live outside the database; back them up separately:
+
+```bash
 tar czf gymcore-uploads-$(date +%F).tar.gz /opt/gymcore/uploads
 ```
 

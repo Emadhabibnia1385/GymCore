@@ -257,6 +257,13 @@ The server hosts **other applications**. The installer is deliberately narrow:
   rules, never ports 80/443, never Docker, never another app.
 - Secrets are never printed or logged (`core/logging.py` redacts
   `settings.secret_values`). Never echo a bot token.
+- Every install and auto-update first runs `deploy/backup.sh`: the database goes
+  to `/var/backups/gymcore` (root-only, gzipped, newest `BACKUP_KEEP` kept), and
+  a failed backup stops the update before anything changes. SQLite migrations
+  are not transactional, so a half-applied one is only recoverable from that
+  copy — keep migrations small and give them a working `downgrade`.
+- If `install.sh` fails, `deploy/autoupdate.sh` resets the source clone so the
+  next run retries, instead of treating the new commit as installed.
 
 Services: `gymcore-api`, `gymcore-telegram`, `gymcore-bale`, `gymcore-worker`.
 

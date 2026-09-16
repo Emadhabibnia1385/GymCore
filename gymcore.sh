@@ -76,7 +76,9 @@ action_update() {
   clone_or_pull
   install_self
   msg "==> بازنصب کد جدید (‏.env و دیتابیس دست‌نخورده می‌مانند)..."
-  bash "$SRC_DIR/install.sh"
+  # ORIG_HEAD is what clone_or_pull just moved away from — it names the backup.
+  GYMCORE_PREVIOUS_COMMIT=$(git -C "$SRC_DIR" rev-parse --short ORIG_HEAD 2>/dev/null || true) \
+    bash "$SRC_DIR/install.sh"
   msg "بروزرسانی انجام شد ✅"
   pause
 }
@@ -133,6 +135,7 @@ action_uninstall() {
   read -rp "پوشه برنامه و دیتابیس ($APP_DIR) هم پاک شود؟ [yes/no] " d || true
   if [[ "$d" == "yes" ]]; then
     rm -rf "$APP_DIR" "$SRC_DIR"
+    warn "بکاپ‌های دیتابیس در /var/backups/gymcore نگه داشته شدند (برای حذف: rm -rf /var/backups/gymcore)."
     msg "همه‌چیز حذف شد."
   else
     warn "سرویس‌ها حذف شدند؛ داده‌ها در $APP_DIR باقی ماند."
