@@ -237,19 +237,22 @@ def build(db: Session, course: Course) -> list[Slot]:
     effective = _effective_events(db, course.id)
 
     # A rescheduled session vacates its original date and is expected on the new
-    # one instead, so the original row is dropped from the grid entirely.
-    moved_to = {
-        event.moved_to
-        for event in effective.values()
+    # one instead, so the original row is dropped from the grid entirely. Only
+    # the end of a chain is expected: moved to B and then on to C leaves B
+    # vacated too, so B must not come back as «در انتظار».
+    vacated = {
+        session_date
+        for session_date, event in effective.items()
         if event.status == AttendanceStatus.MOVED and event.moved_to is not None
     }
+    moved_to = {effective[session_date].moved_to for session_date in vacated} - vacated
 
     slots: list[Slot] = []
     consumed = 0
     for session_date in sorted(effective):
-        event = effective[session_date]
-        if event.status == AttendanceStatus.MOVED and event.moved_to is not None:
+        if session_date in vacated:
             continue
+        event = effective[session_date]
         session_no = None
         if event.status in SESSION_CONSUMING_STATUSES:
             consumed += 1

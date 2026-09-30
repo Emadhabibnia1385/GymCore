@@ -50,18 +50,20 @@ def list_for_course(db: Session, course_id: int) -> list[AttendanceEvent]:
     )
 
 
-# A session belongs to its own course's stretch of the calendar: the grid walks
-# forward from ``start_date``, so nothing can sit before it, and no course here
-# runs for a year. That upper bound is the point — a mistyped Jalali year
-# («1404/07/07» for «1405/07/07») lands the session exactly a year away, where it
-# sorts to the top of the grid as «جلسه ۱» and quietly burns a paid session.
-_COURSE_WINDOW_DAYS = 365
+# The grid shows a date as «۷ مهر» — day and month, no year — so the one typo
+# it cannot show is a wrong Jalali year («1404/07/07» for «1405/07/07»). That
+# moves a session a whole year, where it sorts to the top of the grid as
+# «جلسه ۱» and quietly burns a paid session. So a session has to sit near its
+# own course: a little before the start (a course is sometimes registered after
+# its first sessions) and less than a year after it.
+_EARLIEST_BEFORE_START = timedelta(days=90)
+_LATEST_AFTER_START = timedelta(days=365)
 
 
 def _check_in_window(course, session_date: date) -> None:
     """Reject a date that cannot belong to this course — usually a year typo."""
-    horizon = course.start_date + timedelta(days=_COURSE_WINDOW_DAYS)
-    if course.start_date <= session_date < horizon:
+    earliest = course.start_date - _EARLIEST_BEFORE_START
+    if earliest <= session_date < course.start_date + _LATEST_AFTER_START:
         return
     raise ValidationError(
         f"تاریخ {format_jalali(session_date)} خارج از بازهٔ این دوره است "

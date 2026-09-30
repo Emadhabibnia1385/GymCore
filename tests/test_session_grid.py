@@ -210,6 +210,22 @@ def test_moved_session_rejects_an_occupied_target(db):
         )
 
 
+def test_a_session_moved_twice_is_expected_only_at_the_end(db):
+    """Moved to Tuesday, then on to Thursday: Tuesday must not linger as «در انتظار»."""
+    _, course = _course(db, sessions_total=6)
+    monday, tuesday, thursday = date(2026, 7, 27), date(2026, 7, 28), date(2026, 7, 30)
+
+    attendance_service.move_session(db, course.id, monday, tuesday, notify=False)
+    attendance_service.move_session(db, course.id, tuesday, thursday, notify=False)
+    slots = schedule_service.build(db, course)
+    dates = [s.date for s in slots]
+
+    assert monday not in dates and tuesday not in dates  # both vacated
+    assert thursday in dates                             # only the end of the chain
+    assert dates == sorted(dates)
+    assert len(slots) == 6  # still exactly one row per paid session
+
+
 def test_moved_session_rejects_a_date_outside_the_course(db):
     """A mistyped Jalali year must not park a session a year away from the course."""
     _, course = _course(db, sessions_total=6)
@@ -229,12 +245,14 @@ def test_moved_session_rejects_a_date_outside_the_course(db):
 def test_attendance_outside_the_course_window_is_refused(db):
     """The same guard on «جلسهٔ خارج از برنامه», where the date is typed too."""
     _, course = _course(db, sessions_total=6)
-    for stray in (START - timedelta(days=1), START + timedelta(days=365)):
+    for stray in (START - timedelta(days=91), START + timedelta(days=365)):
         with pytest.raises(ValidationError):
             _record(db, course.id, stray, AttendanceStatus.PRESENT)
-    # A make-up session inside the window is still recorded, off-pattern or not.
+    # A course registered after its first session: that session is still recorded.
+    _record(db, course.id, START - timedelta(days=1), AttendanceStatus.PRESENT)
+    # And so is a make-up session late in the window, off-pattern or not.
     _record(db, course.id, START + timedelta(days=364), AttendanceStatus.PRESENT)
-    assert courses_service.remaining_sessions(db, course) == 5
+    assert courses_service.remaining_sessions(db, course) == 4
 
 
 def test_a_date_already_on_the_grid_stays_correctable(db):

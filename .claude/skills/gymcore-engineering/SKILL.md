@@ -118,13 +118,17 @@ it is stored. Get these rules right or the coach's counts silently break:
   never allowed to lose a gap.
 - `MOVED` vacates its original date and expects the session on `moved_to`; the
   original row leaves the grid but stays in the audit history.
-- Every session date must sit inside its course's own window —
-  `start_date <= d < start_date + 365` (`attendance._check_in_window`), enforced
-  on `record` and on a move's destination. A **typed** date is the one place a
-  Jalali year goes wrong («1404/07/07» for «1405/07/07»), and a year-early
-  session sorts to the *top* of the grid as «جلسه ۱» and silently burns a paid
-  session. A date the grid already carries is exempt, so an old mistake stays
-  correctable — append-only history has to remain fixable.
+- Every session date must sit near its own course —
+  `start_date - 90 <= d < start_date + 365` (`attendance._check_in_window`),
+  enforced on `record` and on a move's destination. The grid shows «۷ مهر» with
+  no year, so a mistyped Jalali year («1404/07/07» for «1405/07/07») is the one
+  typo nobody can see: the session sorts to the *top* as «جلسه ۱» and silently
+  burns a paid session. The 90 days before the start are real: courses get
+  registered after their first sessions. A date the grid already carries is
+  exempt, so an old mistake stays correctable.
+- Only the **end** of a move chain is expected: moved A → B, then B → C, leaves
+  B vacated too (`schedule.build` subtracts `vacated` from `moved_to`), or B
+  would come back as a phantom «در انتظار» row.
 - **`allowed_absence == 0` means NO LIMIT**, not zero allowed. Render the
   counter bare in that case; only append `/N` when `allowed_absence > 0`. This
   rule appears in both `grid.header` and `formatting.format_course_detail` —
