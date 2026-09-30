@@ -15,7 +15,7 @@ from app.bots.common.client import BotApiError
 from app.copy import admin_texts as A
 from app.copy import texts
 from app.core.exceptions import ValidationError
-from app.models import AttendanceStatus, CourseStatus, Platform, Role
+from app.models import AttendanceEvent, AttendanceStatus, CourseStatus, Platform, Role
 from app.services import attendance as attendance_service
 from app.services import classes as classes_service
 from app.services import courses as courses_service
@@ -208,6 +208,52 @@ def test_moved_session_rejects_an_occupied_target(db):
         attendance_service.move_session(
             db, course.id, date(2026, 7, 27), date(2026, 7, 29), notify=False
         )
+
+
+def test_moved_session_rejects_a_date_outside_the_course(db):
+    """A mistyped Jalali year must not park a session a year away from the course."""
+    _, course = _course(db, sessions_total=6)
+    monday = date(2026, 7, 27)
+    # 1405/07/07 typed as 1404/07/07 — a year early, so it would sort to the top
+    # of the grid as «جلسه ۱» and burn a paid session on a date the course never had.
+    with pytest.raises(ValidationError):
+        attendance_service.move_session(db, course.id, monday, date(2025, 9, 29), notify=False)
+    with pytest.raises(ValidationError):  # and the same typo the other way
+        attendance_service.move_session(
+            db, course.id, monday, START + timedelta(days=365), notify=False
+        )
+    dates = [s.date for s in schedule_service.build(db, course)]
+    assert dates == sorted(dates) and min(dates) == START  # grid untouched, still in order
+
+
+def test_attendance_outside_the_course_window_is_refused(db):
+    """The same guard on «جلسهٔ خارج از برنامه», where the date is typed too."""
+    _, course = _course(db, sessions_total=6)
+    for stray in (START - timedelta(days=1), START + timedelta(days=365)):
+        with pytest.raises(ValidationError):
+            _record(db, course.id, stray, AttendanceStatus.PRESENT)
+    # A make-up session inside the window is still recorded, off-pattern or not.
+    _record(db, course.id, START + timedelta(days=364), AttendanceStatus.PRESENT)
+    assert courses_service.remaining_sessions(db, course) == 5
+
+
+def test_a_date_already_on_the_grid_stays_correctable(db):
+    """A stray row recorded before the guard existed has to remain fixable."""
+    _, course = _course(db, sessions_total=6)
+    stray = date(2025, 9, 29)  # written straight to history, as the old code allowed
+    db.add(
+        AttendanceEvent(
+            course_id=course.id, session_date=stray, status=AttendanceStatus.PRESENT
+        )
+    )
+    db.commit()
+    assert schedule_service.find_slot(schedule_service.build(db, course), stray) is not None
+
+    # The coach taps that row and moves it where it belonged all along.
+    attendance_service.move_session(db, course.id, stray, date(2026, 7, 28), notify=False)
+    dates = [s.date for s in schedule_service.build(db, course)]
+    assert stray not in dates
+    assert date(2026, 7, 28) in dates
 
 
 def test_correction_renumbers_the_grid(db):

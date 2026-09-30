@@ -7,7 +7,7 @@ effective outcome (see services/courses.py::effective_status_map).
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -50,6 +50,25 @@ def list_for_course(db: Session, course_id: int) -> list[AttendanceEvent]:
     )
 
 
+# A session belongs to its own course's stretch of the calendar: the grid walks
+# forward from ``start_date``, so nothing can sit before it, and no course here
+# runs for a year. That upper bound is the point — a mistyped Jalali year
+# («1404/07/07» for «1405/07/07») lands the session exactly a year away, where it
+# sorts to the top of the grid as «جلسه ۱» and quietly burns a paid session.
+_COURSE_WINDOW_DAYS = 365
+
+
+def _check_in_window(course, session_date: date) -> None:
+    """Reject a date that cannot belong to this course — usually a year typo."""
+    horizon = course.start_date + timedelta(days=_COURSE_WINDOW_DAYS)
+    if course.start_date <= session_date < horizon:
+        return
+    raise ValidationError(
+        f"تاریخ {format_jalali(session_date)} خارج از بازهٔ این دوره است "
+        f"(شروع دوره: {format_jalali(course.start_date)}) — سال شمسی را بررسی کن"
+    )
+
+
 def record(
     db: Session,
     course_id: int,
@@ -64,10 +83,17 @@ def record(
     if course.status == CourseStatus.FINISHED:
         raise ValidationError("این دوره به پایان رسیده است")
 
+    effective = courses_service.effective_status_map(db, course_id)
+
+    # A date outside the course's window is a typo, not a session. A date the
+    # grid already carries stays correctable whatever it is — append-only
+    # history has to remain fixable, including a date recorded in error.
+    if session_date not in effective:
+        _check_in_window(course, session_date)
+
     # Block over-consumption, but allow a correction on a date that already
     # consumed a session (it replaces, so the net is unchanged).
     if status in {AttendanceStatus.PRESENT, AttendanceStatus.ABSENT_UNAUTHORIZED}:
-        effective = courses_service.effective_status_map(db, course_id)
         already_consuming = effective.get(session_date) in SESSION_CONSUMING_STATUSES
         if not already_consuming and courses_service.remaining_sessions(db, course) <= 0:
             raise ValidationError("جلسه‌ای از این دوره باقی نمانده است")
@@ -77,7 +103,6 @@ def record(
     # limit". Re-marking a date that already counts as one is a correction, so
     # it never trips the limit.
     if status == AttendanceStatus.ABSENT_ALLOWED and course.allowed_absence > 0:
-        effective = courses_service.effective_status_map(db, course_id)
         if effective.get(session_date) != AttendanceStatus.ABSENT_ALLOWED:
             used = courses_service.allowed_absence_used(db, course_id)
             if used >= course.allowed_absence:
@@ -138,6 +163,9 @@ def move_session(
     if new_date == session_date:
         raise ValidationError("تاریخ جدید با تاریخ جلسه یکسان است")
     course = courses_service.get(db, course_id)
+    # The destination is typed by hand rather than tapped on the grid, so it is
+    # the one date the coach can get a whole Jalali year wrong.
+    _check_in_window(course, new_date)
     effective = courses_service.effective_status_map(db, course_id)
     if effective.get(new_date) is not None:
         raise ValidationError("برای تاریخ مقصد قبلاً جلسه‌ای ثبت شده است")

@@ -110,7 +110,8 @@ def test_generate_low_session_reminders_idempotent(db):
     person = _client_with_identity(db, "902")
     class_type = classes_service.list_class_types(db, only_active=True)[0]
     course = courses_service.create(
-        db, client_id=person.id, class_type_id=class_type.id, sessions_total=2
+        db, client_id=person.id, class_type_id=class_type.id, sessions_total=2,
+        start_date=date(2026, 7, 1),  # the session below belongs to this course's window
     )
     attendance_service.record(
         db, course.id, date(2026, 7, 1), AttendanceStatus.PRESENT, notify=False
@@ -126,7 +127,8 @@ def test_course_ending_queued_on_exhaustion(db):
     person = _client_with_identity(db, "903")
     class_type = classes_service.list_class_types(db, only_active=True)[0]
     course = courses_service.create(
-        db, client_id=person.id, class_type_id=class_type.id, sessions_total=1
+        db, client_id=person.id, class_type_id=class_type.id, sessions_total=1,
+        start_date=date(2026, 7, 1),  # the session below belongs to this course's window
     )
     attendance_service.record(
         db, course.id, date(2026, 7, 1), AttendanceStatus.PRESENT, notify=False
