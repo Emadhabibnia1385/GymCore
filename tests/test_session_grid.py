@@ -255,8 +255,8 @@ def test_attendance_outside_the_course_window_is_refused(db):
     assert courses_service.remaining_sessions(db, course) == 4
 
 
-def test_a_date_already_on_the_grid_stays_correctable(db):
-    """A stray row recorded before the guard existed has to remain fixable."""
+def test_a_stray_row_can_be_moved_away_but_never_marked_again(db):
+    """A row recorded before the guard existed stays fixable, and stays fixed."""
     _, course = _course(db, sessions_total=6)
     stray = date(2025, 9, 29)  # written straight to history, as the old code allowed
     db.add(
@@ -272,6 +272,12 @@ def test_a_date_already_on_the_grid_stays_correctable(db):
     dates = [s.date for s in schedule_service.build(db, course)]
     assert stray not in dates
     assert date(2026, 7, 28) in dates
+
+    # A tap on an old keyboard still showing the stray row can't bring it back.
+    for status in (AttendanceStatus.PRESENT, AttendanceStatus.ABSENT_ALLOWED):
+        with pytest.raises(ValidationError):
+            _record(db, course.id, stray, status)
+    assert stray not in [s.date for s in schedule_service.build(db, course)]
 
 
 def test_correction_renumbers_the_grid(db):

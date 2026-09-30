@@ -85,17 +85,17 @@ def record(
     if course.status == CourseStatus.FINISHED:
         raise ValidationError("این دوره به پایان رسیده است")
 
-    effective = courses_service.effective_status_map(db, course_id)
-
-    # A date outside the course's window is a typo, not a session. A date the
-    # grid already carries stays correctable whatever it is — append-only
-    # history has to remain fixable, including a date recorded in error.
-    if session_date not in effective:
+    # A date outside the course's window is a typo, not a session. Moving a
+    # session *away* is the exception — its destination is checked on its own —
+    # so a row recorded in error can always be moved where it belongs, while a
+    # stale keyboard still on screen can never mark it again.
+    if status != AttendanceStatus.MOVED:
         _check_in_window(course, session_date)
 
     # Block over-consumption, but allow a correction on a date that already
     # consumed a session (it replaces, so the net is unchanged).
     if status in {AttendanceStatus.PRESENT, AttendanceStatus.ABSENT_UNAUTHORIZED}:
+        effective = courses_service.effective_status_map(db, course_id)
         already_consuming = effective.get(session_date) in SESSION_CONSUMING_STATUSES
         if not already_consuming and courses_service.remaining_sessions(db, course) <= 0:
             raise ValidationError("جلسه‌ای از این دوره باقی نمانده است")
@@ -105,6 +105,7 @@ def record(
     # limit". Re-marking a date that already counts as one is a correction, so
     # it never trips the limit.
     if status == AttendanceStatus.ABSENT_ALLOWED and course.allowed_absence > 0:
+        effective = courses_service.effective_status_map(db, course_id)
         if effective.get(session_date) != AttendanceStatus.ABSENT_ALLOWED:
             used = courses_service.allowed_absence_used(db, course_id)
             if used >= course.allowed_absence:

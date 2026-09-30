@@ -124,8 +124,10 @@ it is stored. Get these rules right or the coach's counts silently break:
   no year, so a mistyped Jalali year («1404/07/07» for «1405/07/07») is the one
   typo nobody can see: the session sorts to the *top* as «جلسه ۱» and silently
   burns a paid session. The 90 days before the start are real: courses get
-  registered after their first sessions. A date the grid already carries is
-  exempt, so an old mistake stays correctable.
+  registered after their first sessions. Recording `MOVED` is the one
+  exemption — moving a session *away* is always safe (the destination is
+  checked on its own), so a row recorded in error can still be moved where it
+  belongs, yet a stale keyboard can never mark it again.
 - Only the **end** of a move chain is expected: moved A → B, then B → C, leaves
   B vacated too (`schedule.build` subtracts `vacated` from `moved_to`), or B
   would come back as a phantom «در انتظار» row.
