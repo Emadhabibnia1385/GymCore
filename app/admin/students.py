@@ -9,10 +9,12 @@ from __future__ import annotations
 from app.admin import common
 from app.admin.common import AdminReq
 from app.copy import admin_texts as A
-from app.copy import texts
+from app.copy import crm_texts, texts
 from app.core.exceptions import ConflictError, ValidationError
+from app.core.jalali import format_jalali
 from app.models import CourseStatus, Role, StudentType
 from app.services import courses as courses_service
+from app.services import crm as crm_service
 from app.services import notifications as notify_service
 from app.services import persons as persons_service
 from app.services import plans as plans_service
@@ -311,6 +313,9 @@ def _profile(req: AdminReq, person_id: int, flash: str | None = None) -> None:
         )
     else:
         lines.append(f"📚 {A.NO_ACTIVE_COURSE}")
+    upcoming = crm_service.open_follow_ups(req.db, person.id)
+    if upcoming:
+        lines.append(f"⏰ {crm_texts.LABEL_NEXT_FOLLOW_UP}: {format_jalali(upcoming[0].due_on)}")
     lines.append("")
     lines.append(A.STUDENT_MENU_HINT)
 
@@ -328,6 +333,15 @@ def _profile(req: AdminReq, person_id: int, flash: str | None = None) -> None:
     rows.append([
         common.button(A.BTN_PAYMENTS, "pay", "client", person.id),
         common.button(A.BTN_SEND_MESSAGE, "students", "msg", person.id),
+    ])
+    # «📇 پیگیری‌ها» for this student: what was said, and when to call next.
+    notes = crm_service.count_notes(req.db, person.id)
+    rows.append([
+        common.button(
+            crm_texts.BTN_NOTES_COUNT.format(n=notes) if notes else crm_texts.BTN_NOTES,
+            "crm", "notes", person.id, "p",
+        ),
+        common.button(crm_texts.BTN_FOLLOW_UP, "crm", "pfu", person.id, "p"),
     ])
     rows.append([
         common.button(A.BTN_EDIT_STUDENT, "students", "edit", person.id),
