@@ -349,8 +349,17 @@ def _deliver_program(ctx: BotContext, assignment, chat_id: object, caption: str)
         texts_after = _chunks(follow_up) if follow_up else []
     else:
         texts_after = _chunks(caption)  # 3. A text-only program (or no file reached).
-    for piece in texts_after:
-        ctx.send(chat_id, piece)
+    _send_content(ctx, chat_id, texts_after)
+
+
+def _send_content(ctx: BotContext, chat_id: object, pieces: list[str]) -> None:
+    """Send what the student came for as messages that stay in the chat.
+
+    Untracked: a tracked send is the chat's one "screen", deleted by the next
+    screen — the nav message sent right after would take the program with it.
+    """
+    for piece in pieces:
+        ctx.send(chat_id, piece, track=False)
 
 
 # --- callback routing ---
