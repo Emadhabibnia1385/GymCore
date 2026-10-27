@@ -19,6 +19,7 @@ from app.admin.common import AdminReq
 from app.bots.common import grid
 from app.bots.common.client import BotApiError
 from app.copy import admin_texts as A
+from app.core import clock
 from app.core.exceptions import DomainError
 from app.models import AttendanceStatus, Course, CourseStatus
 from app.repositories.pagination import paginate
@@ -143,7 +144,7 @@ def _today(req: AdminReq, day: date | None = None, flash: str | None = None) -> 
     """The day's attendance: every student with a session that day, tap to mark."""
     from app.core.jalali import format_jalali
 
-    day = day or date.today()
+    day = day or clock.today()
     courses = _courses_on(req, day)
     header = A.ATTEND_DAY_TITLE.format(
         date=format_jalali(day), weekday=schedule_service.weekday_name(day)
@@ -192,7 +193,7 @@ def _day_slot(req: AdminReq, course_id: int, session_date: date) -> None:
         f"{A.SLOT_CURRENT}: "
         + (attendance_service.status_label(current) if current else A.SLOT_PENDING),
     ]
-    if session_date > date.today():  # can't mark a session that hasn't happened
+    if session_date > clock.today():  # can't mark a session that hasn't happened
         lines += ["", A.ATTEND_FUTURE]
         common.render(req, "\n".join(lines), common.inline([[back]]))
         return
@@ -251,7 +252,7 @@ def _day_set(req: AdminReq, rest: str) -> None:
     if not course_id.isdigit() or session_date is None or status is None:
         _today(req)
         return
-    if session_date > date.today():
+    if session_date > clock.today():
         _today(req, session_date, flash=A.ATTEND_FUTURE)
         return
     flash = None
@@ -391,7 +392,7 @@ def _slot(
     )
     # A session whose date hasn't arrived yet can't be marked — no outcome
     # picker, just the info and a way back.
-    if session_date > date.today():
+    if session_date > clock.today():
         lines.append("")
         lines.append(A.ATTEND_FUTURE)
         common.render(req, "\n".join(lines), common.inline([[back_to_grid]]))
@@ -443,7 +444,7 @@ def _set(req: AdminReq, rest: str) -> None:
     if not course_id.isdigit() or session_date is None or status is None:
         _pick_active(req)
         return
-    if session_date > date.today():  # future session — a stale tap can't record it
+    if session_date > clock.today():  # future session — a stale tap can't record it
         common.clear(req)
         _grid(req, int(course_id), page=None, flash=A.ATTEND_FUTURE)
         return

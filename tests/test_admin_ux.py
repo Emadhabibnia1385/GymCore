@@ -5,6 +5,7 @@ and finished courses listed as «no course»."""
 from datetime import date
 
 from app.copy import admin_texts as A
+from app.core import clock
 from app.models import AttendanceStatus, PaymentKind
 from app.services import attendance as attendance_service
 from app.services import classes as classes_service
@@ -139,7 +140,7 @@ def test_course_creation_shortcuts(db):
     disp.handle_update(callback_update(8, CHAT, OWNER, "a:courses:times_done"))
     db.expire_all()
     (course,) = courses_service.list_courses(db, client_id=student.id)
-    assert course.allowed_absence == 3 and course.start_date == date.today()
+    assert course.allowed_absence == 3 and course.start_date == clock.today()
 
 
 def test_a_stale_tap_explains_itself(db):

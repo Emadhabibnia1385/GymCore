@@ -18,6 +18,7 @@ from sqlalchemy import Select, case, func, select
 from sqlalchemy.orm import Session
 
 from app.copy import finance_texts as F
+from app.core import clock
 from app.core.exceptions import ValidationError
 from app.core.jalali import gregorian_to_jalali, jalali_to_gregorian
 from app.models import Expense, ExpenseCategory, Payment, PaymentKind
@@ -93,7 +94,7 @@ def month_of(day: date) -> tuple[int, int]:
 
 
 def current_month() -> tuple[int, int]:
-    return month_of(date.today())
+    return month_of(clock.today())
 
 
 def shift_month(jy: int, jm: int, months: int) -> tuple[int, int]:
@@ -120,7 +121,7 @@ def check_spent_at(spent_at: date) -> date:
     """An expense date: not in the future, and less than a year ago."""
     if isinstance(spent_at, datetime):
         spent_at = spent_at.date()
-    today = date.today()
+    today = clock.today()
     if spent_at > today:
         raise ValidationError(F.DATE_IN_FUTURE)
     if spent_at <= today - timedelta(days=MAX_AGE_DAYS):

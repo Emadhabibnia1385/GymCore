@@ -13,6 +13,7 @@ from app.bots.common import callbacks as cb
 from app.bots.common import grid
 from app.copy import admin_texts as A
 from app.copy import texts
+from app.core import clock
 from app.core.exceptions import ValidationError
 from app.models import (
     AttendanceStatus,
@@ -139,7 +140,7 @@ def test_admin_cannot_mark_future_session(db):
     course = courses_service.create(
         db, client_id=student.id, class_type_id=class_type.id, sessions_total=8,
     )
-    future = date.today() + timedelta(days=14)
+    future = clock.today() + timedelta(days=14)
     token = grid.date_token(future)
 
     # Opening a future session shows a «not yet arrived» notice, no outcome buttons.

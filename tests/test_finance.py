@@ -16,6 +16,7 @@ from sqlalchemy import func, select
 from app.copy import admin_texts as A
 from app.copy import finance_texts as F
 from app.copy import texts
+from app.core import clock
 from app.core.exceptions import ValidationError
 from app.core.jalali import (
     JALALI_MONTHS,
@@ -240,7 +241,7 @@ def test_year_overview_has_twelve_rows_that_match_the_month_reports(db):
 
 
 def test_record_expense_refuses_zero_the_future_and_a_year_back(db):
-    today = date.today()
+    today = clock.today()
     for amount, day in (
         (0, today),
         (100_000, today + timedelta(days=1)),
@@ -299,7 +300,7 @@ def test_recording_an_expense_end_to_end(db):
     assert last_text(client) == F.ASK_CATEGORY.format(amount="2,500,000 تومان")
     assert set(F.CATEGORY_LABELS.values()) <= set(button_texts(last_markup(client)))
     disp.handle_update(callback_update(4, CHAT, OWNER, _data_of(client, F.CATEGORY_LABELS["RENT"])))
-    today = F.BTN_TODAY.format(date=format_jalali(date.today()))
+    today = F.BTN_TODAY.format(date=format_jalali(clock.today()))
     disp.handle_update(callback_update(5, CHAT, OWNER, _data_of(client, today)))
     assert last_text(client) == F.ASK_NOTE
     disp.handle_update(message_update(6, CHAT, OWNER, "اجارهٔ سالن"))
@@ -307,7 +308,7 @@ def test_recording_an_expense_end_to_end(db):
     db.expire_all()
     (expense,) = db.scalars(select(Expense)).all()
     assert (expense.amount, expense.category, expense.spent_at, expense.note) == (
-        2_500_000, ExpenseCategory.RENT, date.today(), "اجارهٔ سالن"
+        2_500_000, ExpenseCategory.RENT, clock.today(), "اجارهٔ سالن"
     )
     assert expense.created_by == str(OWNER)
     # Saved: the month's report, with the result as a flash line on top.
@@ -318,7 +319,7 @@ def test_recording_an_expense_end_to_end(db):
 
 
 def test_a_negative_amount_records_a_correction(db):
-    yesterday = date.today() - timedelta(days=1)
+    yesterday = clock.today() - timedelta(days=1)
     month = finance_service.month_of(yesterday)
     disp, client = make_dispatcher()
     disp.handle_update(callback_update(1, CHAT, OWNER, f"a:fin:new:{_token(month)}"))
@@ -340,7 +341,7 @@ def test_a_negative_amount_records_a_correction(db):
 
 
 def test_the_flow_refuses_bad_input_and_keeps_its_place(db):
-    today = date.today()
+    today = clock.today()
     jy, jm, jd = gregorian_to_jalali(today.year, today.month, today.day)
     disp, client = make_dispatcher()
     disp.handle_update(callback_update(1, CHAT, OWNER, "a:fin:new"))
@@ -426,7 +427,7 @@ def test_year_summary_screen(db):
     month = finance_service.current_month()
     jy, jm = month
     sara, _ = _student(db)
-    _pay(db, sara, 1_200_000, PaymentKind.TUITION, date.today())
+    _pay(db, sara, 1_200_000, PaymentKind.TUITION, clock.today())
     disp, client = make_dispatcher()
     disp.handle_update(callback_update(1, CHAT, OWNER, f"a:fin:m:{_token(month)}"))
     disp.handle_update(callback_update(2, CHAT, OWNER, _data_of(client, F.BTN_YEAR_SUMMARY)))

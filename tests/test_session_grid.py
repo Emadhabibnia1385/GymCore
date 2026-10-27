@@ -14,6 +14,7 @@ from app.bots.common import grid
 from app.bots.common.client import BotApiError
 from app.copy import admin_texts as A
 from app.copy import texts
+from app.core import clock
 from app.core.exceptions import ValidationError
 from app.models import AttendanceEvent, AttendanceStatus, CourseStatus, Platform, Role
 from app.services import attendance as attendance_service
@@ -537,7 +538,7 @@ def test_exhausted_course_reports_on_the_grid_instead_of_erroring(db):
     _record(db, course.id, slots[0].date, AttendanceStatus.PRESENT)  # auto-finishes
 
     # A non-future date so the guard passes and the finished-course notice shows.
-    token = grid.date_token(date.today())
+    token = grid.date_token(clock.today())
     disp.handle_update(callback_update(1, CHAT, OWNER, f"a:attend:set:{course.id}:{token}:P"))
     body = last_text(client)
     assert "⚠️" in body
@@ -562,7 +563,7 @@ def test_tampered_grid_callbacks_do_not_crash(db):
 
 def test_day_view_lists_students_with_a_session_that_day(db):
     disp, client = make_dispatcher()
-    today = date.today()
+    today = clock.today()
     # A course training on today's weekday, started a while back.
     on_day = persons_service.create(db, name="شاگرد امروز", role=Role.CLIENT)
     class_type = classes_service.list_class_types(db, only_active=True)[0]
@@ -606,7 +607,7 @@ def test_day_view_lists_students_with_a_session_that_day(db):
 
 def test_day_view_records_attendance_in_two_taps(db):
     disp, client = make_dispatcher()
-    today = date.today()
+    today = clock.today()
     student = persons_service.create(db, name="ثبت روزانه", role=Role.CLIENT)
     class_type = classes_service.list_class_types(db, only_active=True)[0]
     course = courses_service.create(

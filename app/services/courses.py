@@ -17,6 +17,7 @@ from sqlalchemy import delete as sa_delete
 from sqlalchemy import update as sa_update
 from sqlalchemy.orm import Session, selectinload
 
+from app.core import clock
 from app.core.exceptions import NotFoundError, ValidationError
 from app.models import (
     SESSION_CONSUMING_STATUSES,
@@ -164,7 +165,7 @@ def create(
         gym_fee=gym_fee,
         allowed_absence=allowed_absence,
         travel_declared=travel_declared,
-        start_date=start_date or date.today(),
+        start_date=start_date or clock.today(),
         weekdays=schedule.format_weekdays(schedule.parse_weekdays(weekdays)) or None,
         class_time=(class_time or "").strip() or None,
         class_times=schedule.format_day_times(schedule.parse_day_times(class_times)) or None,
@@ -312,7 +313,7 @@ def renew(
             person_id=old.client_id,
             amount=credit,
             kind=PaymentKind.OTHER,
-            paid_at=date.today(),
+            paid_at=clock.today(),
             course_id=new_course.id,
             note="اعتبار جلسات لغوشدهٔ مربی از دورهٔ قبل",
             notify=False,

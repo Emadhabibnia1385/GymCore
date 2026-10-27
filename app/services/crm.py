@@ -14,15 +14,13 @@ whatever clock the server keeps.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, timedelta, timezone
-from functools import lru_cache
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import exists, func, select
 from sqlalchemy.orm import Session, aliased, selectinload
 
 from app.copy import crm_texts as C
-from app.core.config import get_settings
+from app.core import clock
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.core.jalali import format_jalali
 from app.core.phone import is_valid_phone, normalize_phone
@@ -47,38 +45,15 @@ _NAME_MAX = 150  # Lead.name
 _INTEREST_MAX = 200  # Lead.interest
 # A follow-up is due within a year; past that it is a mistyped Jalali year.
 _MAX_AHEAD = timedelta(days=365)
-# Iran has kept standard time all year since 2022 — the fallback when the
-# server has no tz database.
-_TEHRAN = timezone(timedelta(hours=3, minutes=30), "Asia/Tehran")
 
 
 # --- dates ---
 
 
-@lru_cache
-def _zone(name: str):
-    try:
-        return ZoneInfo(name)
-    except (ZoneInfoNotFoundError, ValueError):
-        return _TEHRAN
-
-
-def local_now(now: datetime | None = None) -> datetime:
-    """`now` in the coach's timezone. A naive datetime is UTC, as stored by the
-    database (CURRENT_TIMESTAMP) and the notification ledger."""
-    moment = now or datetime.now(UTC)
-    if moment.tzinfo is None:
-        moment = moment.replace(tzinfo=UTC)
-    return moment.astimezone(_zone(get_settings().timezone))
-
-
-def local_today(now: datetime | None = None) -> date:
-    return local_now(now).date()
-
-
-def local_date(moment: datetime) -> date:
-    """The coach's calendar day of a stored timestamp."""
-    return local_now(moment).date()
+# The coach's day, from the shared clock (app/core/clock.py).
+local_now = clock.local_now
+local_today = clock.today
+local_date = clock.local_date
 
 
 def _utcnow() -> datetime:

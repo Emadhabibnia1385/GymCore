@@ -9,6 +9,7 @@ from app.admin.common import AdminReq
 from app.bots.common import formatting
 from app.copy import admin_texts as A
 from app.copy import texts
+from app.core import clock
 from app.core.jalali import format_jalali
 from app.models import CourseStatus
 from app.models.setting import KEY_DEFAULT_ALLOWED_ABSENCE
@@ -111,7 +112,7 @@ def handle_callback(req: AdminReq, args: str) -> None:
         if data is None:
             _expired(req)
             return
-        _after_start(req, data, date.today())
+        _after_start(req, data, clock.today())
     else:
         _expired(req)
 
@@ -253,7 +254,7 @@ def _ask_allowed(req: AdminReq, data: dict, warning: str | None = None) -> None:
 def _ask_start(req: AdminReq, data: dict, warning: str | None = None) -> None:
     """The start date, with «📅 امروز» one tap away — a typed Jalali date is where a
     wrong year slips in."""
-    today = A.BTN_START_TODAY.format(date=format_jalali(date.today()))
+    today = A.BTN_START_TODAY.format(date=format_jalali(clock.today()))
     common.prompt(
         req, f"{warning}\n{A.ASK_COURSE_START}" if warning else A.ASK_COURSE_START,
         "courses:start", data,

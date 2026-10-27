@@ -24,6 +24,7 @@ from app.bots.common import callbacks as cb
 from app.bots.common import formatting
 from app.copy import admin_texts as A
 from app.copy import finance_texts as F
+from app.core import clock
 from app.core.exceptions import ValidationError
 from app.core.jalali import JALALI_MONTHS, format_jalali
 from app.models import Expense, ExpenseCategory, PaymentKind
@@ -67,7 +68,7 @@ def handle_callback(req: AdminReq, args: str) -> None:
         if data is None:
             _expired(req)
             return
-        _after_date(req, data, date.today())
+        _after_date(req, data, clock.today())
     elif action == "skip":
         _save(req, note=None)
     else:  # «m», the bare section, and anything unrecognised: a month report
@@ -331,7 +332,7 @@ def _set_category(req: AdminReq, name: str) -> None:
 def _ask_date(req: AdminReq, data: dict, warning: str | None = None) -> None:
     """The date, with «📅 امروز» one tap away — a typed Jalali date is where a
     wrong year slips in."""
-    today = F.BTN_TODAY.format(date=format_jalali(date.today()))
+    today = F.BTN_TODAY.format(date=format_jalali(clock.today()))
     common.prompt(
         req, _ask(warning, F.ASK_DATE), _DATE_STEP, data,
         keyboard=_cancel(data, rows=[[common.button(today, SECTION, "today")]]),
