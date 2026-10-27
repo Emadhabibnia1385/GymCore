@@ -239,6 +239,18 @@ registration, which stays form-free. Phones are normalized to `09xxxxxxxxx`
 - Attendance outcome labels are fixed:
   ✅ حاضر · 🟡 غیبت مجاز · 🔴 غیبت غیرمجاز · 🔵 لغو توسط مربی · ⚪ تعطیلی · 🔀 جایگزین شد
 
+Admin screens (`app/admin/`) follow the same few rules everywhere:
+
+- An input prompt always has a way out: `common.prompt` adds «✖️ لغو» when no
+  keyboard is given; pass `common.cancel_keyboard(<parts>)` to land somewhere
+  more useful than the panel.
+- Deleting anything asks first — «… حذف شود؟» with «🗑 بله، حذف کن» / «✖️ لغو».
+- A result or a refusal is a **flash** line on top of the re-rendered screen,
+  never a separate message sent before it.
+- A screen about one student names them («📄 برنامه‌های {name}»).
+- Money still owed is 🔴 until it is 🟢 zero; on/off settings are 🟢/⚪ toggles,
+  never a typed 0/1.
+
 ---
 
 ## 8. Testing
