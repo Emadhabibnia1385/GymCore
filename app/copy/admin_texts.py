@@ -73,6 +73,7 @@ SESSIONS_LEFT = "{n} جلسه"
 NO_COURSE = "بدون دوره"
 COURSE_ENDED = "🏁 دوره تمام شده"
 PROGRAM_COUNT = "{n} برنامه"
+PACKAGE_COUNT = "📦 {n} پکیج"
 NO_PROGRAM = "بدون برنامه"
 
 # --- classes ---

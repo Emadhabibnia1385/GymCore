@@ -16,6 +16,7 @@ from app.models import CourseStatus, Role, StudentType
 from app.services import courses as courses_service
 from app.services import crm as crm_service
 from app.services import notifications as notify_service
+from app.services import packages as packages_service
 from app.services import persons as persons_service
 from app.services import plans as plans_service
 from app.services import schedule as schedule_service
@@ -227,7 +228,11 @@ def _list(
     for person in req.db.scalars(stmt):
         if person.student_type == StudentType.ONLINE:
             count = len(plans_service.list_assignments(req.db, person_id=person.id))
-            label = A.PROGRAM_COUNT.format(n=count) if count else A.NO_PROGRAM
+            bundles = len(packages_service.list_for_person(req.db, person.id))
+            parts = [A.PROGRAM_COUNT.format(n=count)] if count else []
+            if bundles:
+                parts.append(A.PACKAGE_COUNT.format(n=bundles))
+            label = " · ".join(parts) or A.NO_PROGRAM
             enriched.append((person, (2, 0), label))
             continue
         active = courses_service.active_course(req.db, person.id)

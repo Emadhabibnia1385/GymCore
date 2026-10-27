@@ -192,3 +192,17 @@ def test_student_course_screen_goes_back_and_stays_under_the_ceiling(db):
     disp.handle_update(callback_update(2, 7001, 5001, f"crs:{long.id}"))
     labels = button_texts(last_markup(client))
     assert len(labels) < 100 and texts.BTN_SCHEDULE in labels
+
+
+def test_an_online_student_with_only_a_package_is_not_without_programs(db):
+    from app.models import StudentType
+    from app.services import packages as packages_service
+
+    student = persons_service.create(db, name="نگار", student_type=StudentType.ONLINE)
+    package = packages_service.create(db, title="پکیج کاهش وزن")
+    packages_service.add_item(db, package.id, kind="text", text="روز اول: پیاده‌روی")
+    packages_service.assign(db, package.id, [student.id], notify=False)
+    disp, client = make_dispatcher()
+    disp.handle_update(callback_update(1, CHAT, OWNER, "a:students:tab:O"))
+    labels = button_texts(last_markup(client))
+    assert A.PACKAGE_COUNT.format(n=1) in labels and A.NO_PROGRAM not in labels
