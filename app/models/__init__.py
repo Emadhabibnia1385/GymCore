@@ -21,6 +21,7 @@ from app.models.enums import (
     StudentType,
 )
 from app.models.notification import Notification
+from app.models.package import PackageAssignment, PackageItem, ProgramPackage
 from app.models.payment import Payment
 from app.models.person import Person
 from app.models.plan_assignment import PlanAssignment
@@ -39,12 +40,15 @@ __all__ = [
     "Notification",
     "NotificationKind",
     "NotificationStatus",
+    "PackageAssignment",
+    "PackageItem",
     "Payment",
     "PaymentKind",
     "Person",
     "PlanAssignment",
     "PlanType",
     "Platform",
+    "ProgramPackage",
     "Role",
     "Setting",
     "StudentType",

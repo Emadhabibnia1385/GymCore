@@ -17,6 +17,7 @@ from app.admin import classes as classes_admin
 from app.admin import contacts as contacts_admin
 from app.admin import courses as courses_admin
 from app.admin import notifications as notifications_admin
+from app.admin import packages as packages_admin
 from app.admin import payments as payments_admin
 from app.admin import programs as programs_admin
 from app.admin import settings as settings_admin
@@ -39,6 +40,7 @@ SECTIONS = {
     "courses": courses_admin,
     "attend": attendance_admin,
     "plans": programs_admin,
+    "pkg": packages_admin,
     "pay": payments_admin,
     "notify": notifications_admin,
     "settings": settings_admin,
