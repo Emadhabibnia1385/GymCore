@@ -173,10 +173,22 @@ def session_grid(grid_rows: list[list[dict]], course_id: int, page: int, pages: 
     return _inline(rows)
 
 
-def program_list(items: list[tuple[int, str]]) -> dict:
-    """items: (assignment_id, label) — the label leads with what the program holds."""
-    rows = [[button(label, cb.program(assignment_id))] for assignment_id, label in items]
+def program_list(
+    items: list[tuple[int, str]], packages: list[tuple[int, str]] | None = None
+) -> dict:
+    """items: (assignment_id, label) — the label leads with what the program holds.
+    packages: (package_id, label), listed first."""
+    rows = [[button(label, cb.package(package_id))] for package_id, label in packages or []]
+    rows += [[button(label, cb.program(assignment_id))] for assignment_id, label in items]
     rows.append([_back_home()])
+    return _inline(rows)
+
+
+def package_items(package_id: int, items: list[tuple[int, str]]) -> dict:
+    """A package's screen: items: (item_id, label), one button each, sent on tap."""
+    rows = [[button(label, cb.package_item(package_id, item_id))] for item_id, label in items]
+    rows.append([button(texts.BTN_BACK, cb.PROGRAMS, STYLE_DANGER)])
+    rows.append([_back_home(texts.BTN_HOME, cb.HOME)])
     return _inline(rows)
 
 

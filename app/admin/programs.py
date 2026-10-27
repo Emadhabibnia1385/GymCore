@@ -12,8 +12,10 @@ from app.admin import common
 from app.admin.common import AdminReq
 from app.bots.common import formatting
 from app.copy import admin_texts as A
+from app.copy import packages_texts as P
 from app.core.exceptions import DomainError
 from app.models import Role, StudentType
+from app.services import packages as packages_service
 from app.services import persons as persons_service
 from app.services import plans as plans_service
 
@@ -219,8 +221,11 @@ def _hub(req: AdminReq) -> None:
     rows = [
         [common.button(A.BTN_ASSIGN_PLAN, "plans", "pick")],
         [common.button(A.BTN_PLAN_TYPES, "plans", "types")],
+        [common.button(P.BTN_PACKAGES, "pkg")],
     ]
-    common.render(req, f"{A.PROGRAMS_TITLE}\n{A.PROGRAMS_HUB_HINT}", common.with_back(rows))
+    common.render(
+        req, f"{A.PROGRAMS_TITLE}\n{A.PROGRAMS_HUB_HINT}\n\n{P.HUB_HINT}", common.with_back(rows)
+    )
 
 
 def _types(req: AdminReq, flash: str | None = None) -> None:
@@ -259,17 +264,31 @@ def _pick_student(req: AdminReq, page: int = 1, query: str | None = None) -> Non
     common.prompt_show(req, text, "plans:find", {}, keyboard)
 
 
-def _client(req: AdminReq, client_id: int) -> None:
+def _client(req: AdminReq, client_id: int, flash: str | None = None) -> None:
     person = persons_service.get(req.db, client_id)
     assignments = plans_service.list_assignments(req.db, person_id=client_id)
-    rows = [[common.button(A.BTN_ASSIGN_PLAN, "plans", "assign", client_id)]]
+    packages = packages_service.assignments_for_person(req.db, client_id)
+    rows = [
+        [common.button(A.BTN_ASSIGN_PLAN, "plans", "assign", client_id)],
+        [common.button(P.BTN_GIVE, "pkg", "for", client_id)],
+    ]
+    # Their packages first, as they see them; 🚫 takes one away (it asks first).
+    for given in packages:
+        row = P.CLIENT_PACKAGE_ROW if given.package.active else P.CLIENT_PACKAGE_INACTIVE
+        rows.append([
+            common.button(row.format(title=given.package.title), "pkg", "view", given.package_id),
+            common.button(P.BTN_REVOKE, "pkg", "rvc", given.id, "s"),
+        ])
     for assignment in assignments[:10]:
         rows.append([common.button(
             f"🔁 {formatting.program_label(assignment)}", "plans", "resend", assignment.id
         )])
-    hint = A.PROGRAMS_RESEND_HINT if assignments else A.NO_PROGRAMS_YET
+    hints = [A.PROGRAMS_RESEND_HINT] if assignments else []
+    if packages:
+        hints.append(P.CLIENT_PACKAGES_HINT)
+    body = "\n".join([A.PROGRAMS_OF.format(name=person.name), *(hints or [A.NO_PROGRAMS_YET])])
     common.render(
-        req, f"{A.PROGRAMS_OF.format(name=person.name)}\n{hint}",
+        req, f"{flash}\n\n{body}" if flash else body,
         common.with_back(rows, ("students", "view", client_id)),
     )
 

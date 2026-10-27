@@ -15,11 +15,12 @@ from app.bots.common import callbacks as cb
 from app.bots.common import keyboards
 from app.bots.common.client import BotApiError
 from app.bots.common.context import BotContext
+from app.copy import packages_texts as P
 from app.copy import texts
 from app.core.admin_auth import is_owner
 from app.core.config import get_settings
 from app.core.phone import is_valid_phone, normalize_phone
-from app.models import Person
+from app.models import Person, Platform
 from app.models.setting import (
     KEY_CONTACT_INTRO,
     KEY_MAIN_INTRO,
@@ -31,6 +32,7 @@ from app.services import auth
 from app.services import contact_links as contact_links_service
 from app.services import courses as courses_service
 from app.services import identities as identities_service
+from app.services import packages as packages_service
 from app.services import plans as plans_service
 from app.services import schedule as schedule_service
 from app.services import settings as settings_service
@@ -252,14 +254,72 @@ def my_programs(
 ) -> None:
     from app.bots.common import formatting
 
+    packages = packages_service.list_for_person(db, person.id)
     assignments = plans_service.list_assignments(db, person_id=person.id, only_active=True)
-    if not assignments:
+    if not packages and not assignments:
         # Empty state: the same blue «سفارش برنامه» button to order a program.
         url = settings_service.get_value(db, KEY_SIGNUP_URL) or get_settings().signup_url
         ctx.show(chat_id, texts.NO_PROGRAMS, keyboards.order_prompt(url), message_id)
         return
+    # Packages first — they are the coach's courses — then single programs.
+    counts = packages_service.item_counts(db, [p.id for p in packages])
+    bundles = [
+        (p.id, P.STUDENT_PACKAGE_ROW.format(title=p.title, n=counts[p.id])) for p in packages
+    ]
     items = [(a.id, formatting.program_label(a)) for a in assignments]
-    ctx.show(chat_id, texts.TITLE_MY_PROGRAMS, keyboards.program_list(items), message_id)
+    ctx.show(chat_id, texts.TITLE_MY_PROGRAMS, keyboards.program_list(items, bundles), message_id)
+
+
+def package_detail(
+    ctx: BotContext,
+    db: Session,
+    chat_id: object,
+    person: Person,
+    package_id: int,
+    message_id: int | None,
+) -> None:
+    """A package the student was given: its description, then one button per item."""
+    package = packages_service.open_for(db, package_id, person.id)
+    if package is None:  # authorization: only packages actively theirs, and active
+        ctx.show(chat_id, texts.NOT_FOUND, keyboards.back_to_menu(), message_id)
+        return
+    keyboard, has_items = _package_keyboard(db, package)
+    lines = [f"📦 {package.title}"]
+    if package.description:
+        lines += ["", package.description]
+    lines += ["", P.STUDENT_PACKAGE_HINT if has_items else P.STUDENT_PACKAGE_EMPTY]
+    ctx.show(chat_id, "\n".join(lines), keyboard, message_id)
+
+
+def package_item(
+    ctx: BotContext,
+    db: Session,
+    chat_id: object,
+    person: Person,
+    package_id: int,
+    item_id: int | None,
+    message_id: int | None,
+) -> None:
+    """Deliver one item of the student's package, then its items again below it."""
+    package = packages_service.open_for(db, package_id, person.id)
+    item = packages_service.find_item(db, item_id) if item_id is not None else None
+    if package is None or item is None or item.package_id != package.id:
+        ctx.show(chat_id, texts.NOT_FOUND, keyboards.back_to_menu(), message_id)
+        return
+    _deliver_item(ctx, item, chat_id)
+    # A fresh screen under what was just sent: the next item is one tap away.
+    keyboard, _ = _package_keyboard(db, package)
+    ctx.send(chat_id, P.ITEM_SENT.format(label=packages_service.item_label(item)), keyboard)
+
+
+def _package_keyboard(db: Session, package) -> tuple[dict, bool]:
+    """The package's items as buttons, and whether it has any."""
+    items = packages_service.items(db, package.id)
+    labels = [
+        (item.id, f"{packages_service.item_icon(item)} {packages_service.item_label(item)}")
+        for item in items
+    ]
+    return keyboards.package_items(package.id, labels), bool(items)
 
 
 def program_detail(
@@ -349,8 +409,44 @@ def _deliver_program(ctx: BotContext, assignment, chat_id: object, caption: str)
         texts_after = _chunks(follow_up) if follow_up else []
     else:
         texts_after = _chunks(caption)  # 3. A text-only program (or no file reached).
-    for piece in texts_after:
-        ctx.send(chat_id, piece)
+    _send_content(ctx, chat_id, texts_after)
+
+
+def _send_content(ctx: BotContext, chat_id: object, pieces: list[str]) -> None:
+    """Send what the student came for as messages that stay in the chat.
+
+    Untracked: a tracked send is the chat's one "screen", deleted by the next
+    screen — the nav message sent right after would take the program with it.
+    """
+    for piece in pieces:
+        ctx.send(chat_id, piece, track=False)
+
+
+def _deliver_item(ctx: BotContext, item, chat_id: object) -> None:
+    """Send one package item on THIS platform.
+
+    A file goes out by its kind — one call — with the item's words as caption
+    (or after it, past the caption limit). When this platform holds no copy of
+    the file, the student gets the words and where the file is instead.
+    """
+    words = packages_service.item_caption(item)
+    after = words
+    if item.kind in _FILE_ID_SENDERS:
+        file_id = packages_service.file_id_for(item, ctx.platform)
+        if file_id is None:
+            other = Platform.BALE if ctx.platform == Platform.TELEGRAM else Platform.TELEGRAM
+            note = P.FILE_ON_OTHER.format(platform=P.PLATFORM_LABELS[other.value])
+            after = "\n\n".join(part for part in (words, note) if part)
+        else:
+            caption, after = words, ""
+            if len(words) > _CAPTION_LIMIT:
+                caption, after = (item.title or "")[:_CAPTION_LIMIT], words
+            try:
+                getattr(ctx.client, _FILE_ID_SENDERS[item.kind])(chat_id, file_id, caption)
+            except BotApiError:
+                logger.warning("package item %s: file_id delivery failed", item.id)
+                after = "\n\n".join(part for part in (words, P.FILE_FAILED) if part)
+    _send_content(ctx, chat_id, _chunks(after) if after else [])
 
 
 # --- callback routing ---
@@ -392,6 +488,18 @@ def route(
             program_detail(ctx, db, chat_id, person, assignment_id, message_id)
         else:
             my_programs(ctx, db, chat_id, person, message_id)
+    elif action == cb.PACKAGE:
+        # 'pk:<package>' opens a package, 'pk:<package>:<item>' sends one item.
+        first, _, second = (rest or "").partition(cb.SEP)
+        package_id = cb.parse_int(first or None)
+        if package_id is None:
+            my_programs(ctx, db, chat_id, person, message_id)
+        elif not second:
+            package_detail(ctx, db, chat_id, person, package_id, message_id)
+        else:
+            package_item(
+                ctx, db, chat_id, person, package_id, cb.parse_int(second), message_id
+            )
     elif action == cb.NOOP:
         return
     else:

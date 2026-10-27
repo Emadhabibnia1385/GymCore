@@ -19,6 +19,7 @@ REGISTER = "reg"
 ORDER = "ord"
 COURSES = "crs"
 PROGRAMS = "prg"
+PACKAGE = "pk"
 CONTACT = "con"
 ADMIN = "adm"
 SCHEDULE = "sch"
@@ -44,6 +45,16 @@ def program(assignment_id: int) -> str:
     return f"{PROGRAMS}{SEP}{assignment_id}"
 
 
+def package(package_id: int) -> str:
+    """A package's screen in «برنامه‌های من», e.g. 'pk:3'."""
+    return f"{PACKAGE}{SEP}{package_id}"
+
+
+def package_item(package_id: int, item_id: int) -> str:
+    """One item of a package, delivered on tap, e.g. 'pk:3:17'."""
+    return f"{PACKAGE}{SEP}{package_id}{SEP}{item_id}"
+
+
 def admin(*parts: object) -> str:
     """Build an admin callback, e.g. admin('students', 'page', 2) -> 'a:students:page:2'."""
     return SEP.join([ADMIN_PREFIX, *(str(p) for p in parts)])
@@ -55,6 +66,9 @@ def parse(data: str) -> tuple[str, str | None]:
     return action, (rest or None)
 
 
+_MAX_ID = 2**63 - 1  # past a 64-bit row id the database query itself fails
+
+
 def parse_int(rest: str | None) -> int | None:
     """Parse a positive integer argument, or None if invalid (tamper-safe)."""
     if rest is None:
@@ -63,4 +77,4 @@ def parse_int(rest: str | None) -> int | None:
         value = int(rest)
     except (TypeError, ValueError):
         return None
-    return value if value >= 0 else None
+    return value if 0 <= value <= _MAX_ID else None
