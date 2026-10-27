@@ -16,6 +16,7 @@ from app.models.setting import (
     KEY_CARD_NUMBER,
     KEY_COACH_NAME,
     KEY_CONTACT_INTRO,
+    KEY_COURSE_END_MESSAGE,
     KEY_DEFAULT_ALLOWED_ABSENCE,
     KEY_GYM_NAME,
     KEY_LOW_SESSION_THRESHOLD,
@@ -63,7 +64,19 @@ def _defaults() -> dict[str, str]:
         KEY_TELEGRAM_OWNER_CONTACT: "https://t.me/MahdiSarmad1",
         KEY_BALE_OWNER_CONTACT: "https://ble.ir/mahdisarmad",
         KEY_NOTIFY_ON_ATTENDANCE: "1",
+        # Sent to the student once their course's last paid session is recorded.
+        KEY_COURSE_END_MESSAGE: (
+            "سلام، وقتت بخیر 🌱\n\n"
+            "دوره‌ی تمرینی‌ات به پایان رسیده ❤️\n"
+            "می‌تونی برای دوره‌ی بعدی اقدام کنی. 💪🏻\n\n"
+            "امیدوارم همیشه پرقدرت ادامه بدی! 🌟"
+        ),
     }
+
+
+def default_value(key: str) -> str:
+    """The seeded default for a setting — the fallback when a value is blank."""
+    return _defaults().get(key, "")
 
 
 def start_poster_key(platform: Platform) -> str:

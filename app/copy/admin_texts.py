@@ -257,9 +257,14 @@ NOT_A_PHOTO = "لطفاً یک «عکس» بفرست (نه فایل یا متن)
 
 # --- settings ---
 SETTINGS_TITLE = "⚙️ تنظیمات"
-SETTINGS_HINT = "یک مورد را برای ویرایش انتخاب کن:"
+SETTINGS_HINT = (
+    "یک مورد را برای ویرایش انتخاب کن؛ موارد 🟢/⚪ با یک لمس روشن و خاموش می‌شوند:"
+)
 ASK_SETTING_VALUE = "مقدار تازه را بفرست:"
 SETTING_SAVED = "🟢 تنظیمات ذخیره شد."
+SETTING_NEEDS_TEXT = "⚠️ این‌جا فقط متن ذخیره می‌شود."
+SETTING_ON = "🟢 {label}: روشن"
+SETTING_OFF = "⚪ {label}: خاموش"
 SETTINGS_LABELS = {
     "coach_display_name": "نام مربی",
     "card_number": "شماره کارت",
@@ -267,10 +272,11 @@ SETTINGS_LABELS = {
     "registration_contact_message": "متن ثبت‌نام کلاس",
     "plan_order_message": "متن سفارش برنامه",
     "contact_intro_message": "متن راه‌های ارتباطی",
+    "course_end_message": "پیام پایان دوره",
     "signup_url": "لینک سفارش برنامه",
     "default_allowed_absence": "غیبت مجاز پیش‌فرض",
     "low_session_threshold": "آستانه هشدار جلسات کم",
     "telegram_owner_contact": "تماس مربی (تلگرام)",
     "bale_owner_contact": "تماس مربی (بله)",
-    "notify_on_attendance": "اعلان خودکار حضور (0/1)",
+    "notify_on_attendance": "اعلان خودکار حضور",
 }

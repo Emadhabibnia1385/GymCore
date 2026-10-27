@@ -20,7 +20,7 @@ from app.models import (
     AttendanceStatus,
     CourseStatus,
 )
-from app.models.setting import KEY_NOTIFY_ON_ATTENDANCE
+from app.models.setting import KEY_COURSE_END_MESSAGE, KEY_NOTIFY_ON_ATTENDANCE
 from app.services import courses as courses_service
 from app.services import notifications
 from app.services import settings as settings_service
@@ -196,15 +196,19 @@ def move_session(
 
 
 def _queue_course_ending(db: Session, course) -> None:
-    """Queue a one-time course-ending notification (idempotent per course)."""
+    """Queue the one-time course-ending message (idempotent per course).
+
+    The wording is the coach's own, editable in ⚙️ تنظیمات («پیام پایان دوره»).
+    """
     from app.models import NotificationKind
     from app.notifications import service as notify_service
 
+    body = settings_service.get_value(db, KEY_COURSE_END_MESSAGE).strip()
     notify_service.queue(
         db,
         course.client_id,
         NotificationKind.COURSE_ENDING,
-        f"دورهٔ «{course.class_type.title}» به پایان رسید 🟢\nبرای تمدید با مربی هماهنگ کن.",
+        body or settings_service.default_value(KEY_COURSE_END_MESSAGE),
         idempotency_key=f"ending:{course.id}",
     )
 

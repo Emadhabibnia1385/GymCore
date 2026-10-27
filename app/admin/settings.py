@@ -5,39 +5,57 @@ from __future__ import annotations
 from app.admin import common
 from app.admin.common import AdminReq
 from app.copy import admin_texts as A
+from app.models.setting import KEY_NOTIFY_ON_ATTENDANCE
 from app.services import settings as settings_service
+
+# On/off settings flip in place from the list — nobody should have to type 0 or 1.
+_TOGGLES = {KEY_NOTIFY_ON_ATTENDANCE}
 
 
 def handle_callback(req: AdminReq, args: str) -> None:
     action, _, rest = (args or "").partition(":")
-    if action == "edit" and rest in A.SETTINGS_LABELS:
-        current = settings_service.get_value(req.db, rest)
-        label = A.SETTINGS_LABELS[rest]
-        common.prompt(
-            req,
-            f"{label}\nمقدار فعلی:\n{current or '-'}\n\n{A.ASK_SETTING_VALUE}",
-            f"settings:save:{rest}",
-            {},
-        )
+    if action == "toggle" and rest in _TOGGLES:
+        enabled = settings_service.get_bool(req.db, rest)
+        settings_service.set_value(req.db, rest, "0" if enabled else "1")
+        _list(req, flash=A.SETTING_SAVED)
+    elif action == "edit" and rest in A.SETTINGS_LABELS and rest not in _TOGGLES:
+        _ask(req, rest)
     else:
         _list(req)
 
 
 def handle_message(req: AdminReq, message: dict, substep: str, state) -> None:
     action, _, key = substep.partition(":")
-    if action == "save" and key in A.SETTINGS_LABELS:
-        settings_service.set_value(req.db, key, (message.get("text") or "").strip())
-        common.clear(req)
-        common.send(req, A.SETTING_SAVED)
-        _list(req)
-    else:
+    if action != "save" or key not in A.SETTINGS_LABELS or key in _TOGGLES:
         common.clear(req)
         _list(req)
+        return
+    value = (message.get("text") or "").strip()
+    if not value:  # a photo or a sticker must not wipe the setting
+        _ask(req, key, warning=A.SETTING_NEEDS_TEXT)
+        return
+    settings_service.set_value(req.db, key, value)
+    common.clear(req)
+    _list(req, flash=A.SETTING_SAVED)
 
 
-def _list(req: AdminReq) -> None:
-    rows = [
-        [common.button(label, "settings", "edit", key)]
-        for key, label in A.SETTINGS_LABELS.items()
-    ]
-    common.render(req, f"{A.SETTINGS_TITLE}\n{A.SETTINGS_HINT}", common.with_back(rows))
+def _ask(req: AdminReq, key: str, warning: str | None = None) -> None:
+    current = settings_service.get_value(req.db, key)
+    text = f"{A.SETTINGS_LABELS[key]}\nمقدار فعلی:\n{current or '-'}\n\n{A.ASK_SETTING_VALUE}"
+    if warning:
+        text = f"{warning}\n\n{text}"
+    common.prompt(
+        req, text, f"settings:save:{key}", {}, keyboard=common.cancel_keyboard(("settings",))
+    )
+
+
+def _list(req: AdminReq, flash: str | None = None) -> None:
+    rows = []
+    for key, label in A.SETTINGS_LABELS.items():
+        if key in _TOGGLES:
+            template = A.SETTING_ON if settings_service.get_bool(req.db, key) else A.SETTING_OFF
+            rows.append([common.button(template.format(label=label), "settings", "toggle", key)])
+        else:
+            rows.append([common.button(label, "settings", "edit", key)])
+    body = f"{A.SETTINGS_TITLE}\n{A.SETTINGS_HINT}"
+    common.render(req, f"{flash}\n\n{body}" if flash else body, common.with_back(rows))

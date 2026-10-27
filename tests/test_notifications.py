@@ -138,3 +138,26 @@ def test_course_ending_queued_on_exhaustion(db):
     )
     assert ending is not None
     assert ending.idempotency_key == f"ending:{course.id}"
+    assert ending.body.startswith("سلام، وقتت بخیر 🌱")  # the coach's own wording
+    assert "دوره‌ی تمرینی‌ات به پایان رسیده" in ending.body
+
+
+def test_course_ending_message_is_editable(db):
+    """«پیام پایان دوره» in ⚙️ تنظیمات is what the student receives."""
+    from app.models.setting import KEY_COURSE_END_MESSAGE
+    from app.services import settings as settings_service
+
+    settings_service.set_value(db, KEY_COURSE_END_MESSAGE, "دوره‌ات تمام شد؛ منتظرت هستیم 🌱")
+    person = _client_with_identity(db, "904")
+    class_type = classes_service.list_class_types(db, only_active=True)[0]
+    course = courses_service.create(
+        db, client_id=person.id, class_type_id=class_type.id, sessions_total=1,
+        start_date=date(2026, 7, 1),
+    )
+    attendance_service.record(
+        db, course.id, date(2026, 7, 1), AttendanceStatus.PRESENT, notify=False
+    )
+    ending = db.scalar(
+        select(Notification).where(Notification.kind == NotificationKind.COURSE_ENDING)
+    )
+    assert ending.body == "دوره‌ات تمام شد؛ منتظرت هستیم 🌱"

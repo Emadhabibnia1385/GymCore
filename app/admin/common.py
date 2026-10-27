@@ -45,10 +45,14 @@ def send(req: AdminReq, text: str, keyboard: dict | None = None) -> None:
 
 def prompt(req: AdminReq, text: str, step: str, data: dict | None = None,
            keyboard: dict | None = None) -> None:
-    """Ask for text/file input: store the next step, then send the prompt fresh."""
+    """Ask for text/file input: store the next step, then send the prompt fresh.
+
+    A prompt never strands the admin in an input step: without a keyboard of its
+    own it carries a «✖️ لغو» button back to the panel.
+    """
     state = ChatState(flow="admin", step=step, data=data or {})
     req.store.set(req.ctx.platform, req.chat_id, state)
-    req.ctx.send(req.chat_id, text, keyboard)
+    req.ctx.send(req.chat_id, text, keyboard if keyboard is not None else cancel_keyboard())
 
 
 def prompt_show(req: AdminReq, text: str, step: str, data: dict | None = None,
@@ -131,6 +135,11 @@ def confirm_keyboard(confirm_parts: tuple, cancel_parts: tuple = ("home",)) -> d
     return inline(
         [[button(A.CONFIRM, *confirm_parts), button(A.CANCEL, *cancel_parts)]]
     )
+
+
+def cancel_keyboard(cancel_parts: tuple = ("home",)) -> dict:
+    """The «✖️ لغو» button under an input prompt; tapping it leaves the input step."""
+    return inline([[button(A.CANCEL, *cancel_parts, style=_STYLE_DANGER)]])
 
 
 def skip_keyboard(skip_parts: tuple) -> dict:

@@ -286,6 +286,43 @@ def test_admin_edit_setting(db):
     assert settings_service.get_value(db, KEY_CARD_NUMBER) == "6037-1111-2222-3333"
 
 
+def test_on_off_setting_toggles_with_one_tap(db):
+    """No more typing 0/1: the list shows the state and a tap flips it."""
+    from app.models.setting import KEY_NOTIFY_ON_ATTENDANCE
+
+    disp, client = make_dispatcher()
+    disp.handle_update(callback_update(1, CHAT, OWNER, "a:settings"))
+    assert "🟢 اعلان خودکار حضور: روشن" in button_texts(last_markup(client))
+    disp.handle_update(
+        callback_update(2, CHAT, OWNER, f"a:settings:toggle:{KEY_NOTIFY_ON_ATTENDANCE}")
+    )
+    db.expire_all()
+    assert settings_service.get_bool(db, KEY_NOTIFY_ON_ATTENDANCE) is False
+    assert "⚪ اعلان خودکار حضور: خاموش" in button_texts(last_markup(client))
+
+
+def test_a_photo_never_wipes_a_text_setting(db):
+    disp, client = make_dispatcher()
+    disp.handle_update(callback_update(1, CHAT, OWNER, "a:settings:edit:card_number"))
+    disp.handle_update(photo_message_update(2, CHAT, OWNER))
+    db.expire_all()
+    assert settings_service.get_value(db, KEY_CARD_NUMBER) == ""  # untouched
+    assert A.SETTING_NEEDS_TEXT in last_text(client)  # and asked again
+
+
+def test_every_input_prompt_can_be_cancelled(db):
+    """A prompt without its own keyboard still offers «✖️ لغو»; tapping it leaves
+    the input step, so the next text is not taken as an answer."""
+    disp, client = make_dispatcher()
+    disp.handle_update(callback_update(1, CHAT, OWNER, "a:classes:new"))
+    assert button_texts(last_markup(client)) == [A.CANCEL]
+    disp.handle_update(callback_update(2, CHAT, OWNER, "a:home"))
+    disp.handle_update(message_update(3, CHAT, OWNER, "کلاسی که نباید ساخته شود"))
+    db.expire_all()
+    titles = [c.title for c in classes_service.list_class_types(db)]
+    assert "کلاسی که نباید ساخته شود" not in titles
+
+
 def test_admin_broadcast_records_notification(db):
     disp, client = make_dispatcher()
     identities_service.get_or_create_person(db, Platform.TELEGRAM, "555", "گیرنده")
