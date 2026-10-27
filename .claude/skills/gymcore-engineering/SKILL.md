@@ -70,31 +70,34 @@ every test still passes.
 
 ```
 app/
-  core/          config · logging · exceptions · jalali · phone · admin_auth
+  core/          config · logging · exceptions · jalali · phone · admin_auth · clock
   db/            base · session · init (SQLite create_all; Postgres = Alembic)
   models/        SQLAlchemy 2.0 models + enums
   repositories/  pagination helper
   services/      ALL business logic (see below)
-  copy/          every Persian string
+  copy/          every Persian string (texts · admin_texts · finance_texts ·
+                 crm_texts · packages_texts)
   bots/
     common/      BotClient · runner · router · context · keyboards ·
                  callbacks · state · formatting · grid · client_flow
     telegram/    entrypoint (python -m app.bots.telegram.main)
     bale/        entrypoint (python -m app.bots.bale.main)
   admin/         in-bot admin panel, one module per section
-  notifications/ queued/idempotent notifications + worker
+  notifications/ queued/idempotent notifications + worker + the coach's digest
   api/           FastAPI: /health, /health/ready, optional webhook
-migrations/      Alembic (head: 0014)
+migrations/      Alembic (head: 0017)
 tests/           pytest with fakes — never touches the network
 deploy/systemd/  gymcore-{api,telegram,bale,worker}.service
 ```
 
 **Services** (`app/services/`): `persons` · `identities` · `classes` ·
-`courses` · `attendance` · `schedule` · `payments` · `plans` · `contact_links` ·
-`settings` · `auth` · `notifications` · `stats` · `bootstrap`.
+`courses` · `attendance` · `schedule` · `payments` · `finance` · `plans` ·
+`packages` · `crm` · `contact_links` · `settings` · `auth` · `notifications` ·
+`stats` · `bootstrap`.
 
 **Admin sections** (`app/admin/`), routed by `panel.py::SECTIONS`:
-`students` · `classes` · `courses` · `attend` · `plans` · `pay` · `notify` ·
+`students` · `classes` · `courses` · `attend` · `plans` · `pkg` (packages) ·
+`pay` · `fin` (expenses, monthly report) · `crm` (follow-ups) · `notify` ·
 `settings` · `contacts` · `start` · `week`. Each exposes `handle_callback(req, args)` and
 `handle_message(req, message, substep, state)`.
 
@@ -235,6 +238,9 @@ registration, which stays form-free. Phones are normalized to `09xxxxxxxxx`
 - Green cues (🟢 ✅) for success; keep emoji purposeful, not decorative clutter.
 - Jalali dates everywhere a date is shown (`core/jalali.py`). Never show a
   Gregorian date to a user.
+- "Today" is `core/clock.today()` — the coach's day in `TIMEZONE`
+  (Asia/Tehran). The server keeps UTC; a bare `date.today()` is a day behind
+  from midnight to 03:30 Tehran. Never call `date.today()` in app code.
 - Money formatted with thousands separators plus `تومان`.
 - Attendance outcome labels are fixed:
   ✅ حاضر · 🟡 غیبت مجاز · 🔴 غیبت غیرمجاز · 🔵 لغو توسط مربی · ⚪ تعطیلی · 🔀 جایگزین شد
@@ -314,7 +320,8 @@ reinstalls when it moves.
 
 **Add an admin section** — create `app/admin/<name>.py` with `handle_callback`
 and `handle_message`, register it in `panel.py::SECTIONS`, add a button in
-`keyboards.admin_menu()`, and put every string in `copy/admin_texts.py`.
+`keyboards.admin_menu()` (or a hub button), and put its strings in a
+`copy/<area>_texts.py` module of its own, as finance, crm and packages do.
 
 **Add an editable setting** — add the `KEY_*` constant in `models/setting.py`,
 a default in `services/settings.py::_defaults()`, and a label in

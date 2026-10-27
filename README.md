@@ -18,7 +18,7 @@ Brand — Mahdi Sarmad · primary green `#B2F828` · black `#000000` · white `#
 | 🏋️ ثبت‌نام در کلاس‌ها | Shows the coach's contact links to arrange a class (no form, no phone prompt) |
 | 📋 سفارش برنامه | Opens the signup form (Telegram Mini App / Bale URL) |
 | 🗓 کلاس‌های من | Courses with **remaining sessions derived from attendance**, Jalali history, financials, and the read-only **📋 جدول جلسات** |
-| 📄 برنامه‌های من | Delivered training/nutrition programs (file or text) |
+| 📄 برنامه‌های من | Packages first (📦 bundles the coach built: diet, training videos, text — opened item by item), then single programs (PDF, photo, video or text) |
 | 📞 راه‌های ارتباطی ما | All active contact links |
 
 The **⚙️ ورود به پنل مدیریت** row appears **only** for configured owners.
@@ -37,7 +37,7 @@ the two catalogs, then شاگردان — the hub every per-student action hangs
 ```
 🏋️ مدیریت کلاس‌ها      📄 مدیریت برنامه‌ها
             👥 مدیریت شاگردان
-            🗓 برنامهٔ هفتگی
+🗓 برنامهٔ هفتگی         📇 پیگیری‌ها
 ✅ ثبت حضور و غیاب      💳 مدیریت پرداخت‌ها
 🔔 اعلان‌ها             ⚙️ تنظیمات
 📞 راه‌های ارتباطی      🖼 متن و پوستر استارت
@@ -59,6 +59,28 @@ there is no separate top-level courses section.
 order (time · student · class) — built from the active courses' weekly patterns,
 so it always matches the session grids. Tap a day to see it as a table; tap a row
 to open that student.
+
+**📄 مدیریت برنامه‌ها** sends a program — pick a student (online ones first),
+its type («تغذیه», «برنامه تمرینی», or one made on the spot), then a PDF, photo
+or video — and holds **📦 پکیج‌ها**: bundles built once (a diet plan, training
+videos, text) and sent to one or many students. A package's content is live: an
+item added later reaches everyone who has it. A file only plays on the messenger
+it was uploaded to, so each item can carry a Telegram and a Bale copy.
+
+**📇 پیگیری‌ها** is the coach's follow-up list: students whose course ended and
+haven't renewed (🔔 until someone follows up), leads — people who asked but never
+registered — by status through to «✅ تبدیل به شاگرد», dated follow-ups with
+«فردا / ۳ روز / یک هفته» shortcuts, and a notes timeline on every student. The
+first worker run after 08:00 Tehran sends the coach a one-line digest when
+something is due.
+
+**💳 مدیریت پرداخت‌ها** opens on who still owes, largest first, then
+**📊 گزارش ماه** (income by kind, expenses by category, net profit, month by
+month and a year summary) and **➖ ثبت هزینه** for the gym's own costs. Expenses
+are append-only like payments: a mistake is corrected with a negative entry.
+
+When a course's last session is recorded, the student gets the coach's
+course-end message («⚙️ تنظیمات → پیام پایان دوره»), once per course.
 
 ### 📋 The session grid
 
@@ -247,9 +269,10 @@ alembic downgrade -1                                   # roll back one
 ```
 
 Migrations are forward-only and data-preserving — the schema is never reset.
-The latest revision is `0013` (adds `persons.student_type` — حضوری / غیرحضوری;
-existing clients with programs but no course are backfilled as online, everyone
-else as in-person). The chain runs `0001 → 0013`; run `alembic current` to see
+The latest revision is `0017`. The recent ones: `0013` splits students into
+حضوری / غیرحضوری, `0014` adds `plan_assignments.file_kind` and the «برنامه تمرینی»
+type, `0015` the expenses table, `0016` leads, notes and follow-ups, `0017`
+program packages. The chain runs `0001 → 0017`; run `alembic current` to see
 where a deployment sits.
 
 `reminder_logs` is a retired v1 table. Its rows are kept for audit history, so

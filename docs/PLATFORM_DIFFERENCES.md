@@ -27,6 +27,16 @@ under the access-controlled upload dir, to re-uploading that copy). For programs
 must reach clients on both platforms, upload the file rather than relying only on a
 platform `file_id`.
 
+A `file_id` is also typed: a video's id goes out with `sendVideo`, a photo's with
+`sendPhoto`, a document's with `sendDocument`. A program records how the coach
+uploaded it (`plan_assignments.file_kind`), so delivery makes exactly one call.
+
+**Packages** (📦) solve the other-platform gap per item: each `PackageItem` holds a
+`telegram_file_id` and a `bale_file_id`. The coach uploads an item in one bot, then
+sends the same file (same kind — video for video) from the other bot via
+«📲 افزودن نسخهٔ …» on the item's screen. A student on a platform without a copy
+gets the item's text and a line saying the file is on the other messenger.
+
 ## Identity
 
 A `Person` is the shared human identity and owns all data (courses, programs,
