@@ -20,6 +20,7 @@ from app.models.enums import (
     Role,
     StudentType,
 )
+from app.models.expense import Expense, ExpenseCategory
 from app.models.notification import Notification
 from app.models.payment import Payment
 from app.models.person import Person
@@ -36,6 +37,8 @@ __all__ = [
     "ContactLink",
     "Course",
     "CourseStatus",
+    "Expense",
+    "ExpenseCategory",
     "Notification",
     "NotificationKind",
     "NotificationStatus",
