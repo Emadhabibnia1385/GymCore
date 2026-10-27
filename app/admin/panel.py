@@ -16,6 +16,7 @@ from app.admin import attendance as attendance_admin
 from app.admin import classes as classes_admin
 from app.admin import contacts as contacts_admin
 from app.admin import courses as courses_admin
+from app.admin import crm as crm_admin
 from app.admin import finance as finance_admin
 from app.admin import notifications as notifications_admin
 from app.admin import payments as payments_admin
@@ -47,6 +48,7 @@ SECTIONS = {
     "contacts": contacts_admin,
     "start": start_admin,
     "week": timetable_admin,
+    "crm": crm_admin,
 }
 
 
