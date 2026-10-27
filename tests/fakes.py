@@ -63,6 +63,12 @@ class FakeBotClient:
         )
         return {"message_id": self._next_mid()}
 
+    def send_video_id(self, chat_id, file_id, caption=""):
+        mid = self._next_mid()
+        self.sent.append({"method": "send_video_id", "chat_id": chat_id, "file_id": file_id,
+                          "caption": caption, "message_id": mid})
+        return {"message_id": mid}
+
     def send_photo_id(self, chat_id, file_id, caption="", reply_markup=None):
         self.sent.append(
             {"method": "send_photo_id", "chat_id": chat_id, "file_id": file_id,

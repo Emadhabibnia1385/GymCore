@@ -89,18 +89,37 @@ def format_attendance_report(db: Session, course: Course) -> str | None:
     return "\n".join(lines)
 
 
+# What a program carries, at a glance in a list.
+_PROGRAM_ICONS = {"video": "🎬", "photo": "🖼", "document": "📎"}
+_NOTE_IN_LABEL = 24  # characters of the coach's note that tell two programs apart
+
+
+def program_icon(assignment: PlanAssignment) -> str:
+    if assignment.file_kind in _PROGRAM_ICONS:
+        return _PROGRAM_ICONS[assignment.file_kind]
+    return "📎" if assignment.platform_file_id or assignment.file_path else "📝"
+
+
 def program_label(assignment: PlanAssignment) -> str:
-    """Short label for a program list button."""
-    title = assignment.title or assignment.plan_type.title
-    return f"{title} | {format_jalali(assignment.created_at)}"
+    """Short label for a program list button.
+
+    Two programs of the same type sent on the same day used to read identically;
+    the start of the coach's note now tells them apart.
+    """
+    parts = [f"{program_icon(assignment)} {assignment.title or assignment.plan_type.title}"]
+    note = " ".join((assignment.coach_note or "").split())
+    if note:
+        parts.append(note if len(note) <= _NOTE_IN_LABEL else f"{note[:_NOTE_IN_LABEL]}…")
+    parts.append(format_jalali(assignment.created_at))
+    return " · ".join(parts)
 
 
-def format_program_caption(assignment: PlanAssignment) -> str:
+def format_program_caption(assignment: PlanAssignment, with_note: bool = True) -> str:
     lines = [f"📄 {assignment.plan_type.title}"]
     if assignment.title:
         lines.append(assignment.title)
     lines.append(f"تاریخ: {format_jalali(assignment.created_at)}")
-    if assignment.coach_note:
+    if with_note and assignment.coach_note:
         lines.append("")
         lines.append(f"یادداشت مربی: {assignment.coach_note}")
     return "\n".join(lines)

@@ -33,6 +33,9 @@ class PlanAssignment(Base):
     # Platform file identifier (Telegram/Bale) + which platform it belongs to.
     platform_file_id: Mapped[str | None] = mapped_column(String(300))
     file_platform: Mapped[Platform | None] = mapped_column(Enum(Platform))
+    # How the file was uploaded — "document", "photo" or "video" — which picks the
+    # send method. NULL on programs from before videos were accepted.
+    file_kind: Mapped[str | None] = mapped_column(String(16))
     active: Mapped[bool] = mapped_column(default=True, index=True)
     created_by: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(

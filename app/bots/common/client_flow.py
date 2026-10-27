@@ -274,32 +274,76 @@ def program_detail(
     ctx.send(chat_id, texts.PROGRAM_SENT, keyboards.program_detail_nav())
 
 
+# Both platforms cap a file caption at 1024 characters and a message at 4096;
+# past either, the send fails outright. A long coach note therefore travels as
+# its own message(s) after the file instead of taking the file down with it.
+_CAPTION_LIMIT = 1024
+_MESSAGE_LIMIT = 4096
+
+# file_kind → the BotClient method that re-sends a file_id of that kind.
+_FILE_ID_SENDERS = {
+    "document": "send_document_id",
+    "photo": "send_photo_id",
+    "video": "send_video_id",
+}
+
+
+def _chunks(text: str, limit: int = _MESSAGE_LIMIT) -> list[str]:
+    """Split text into sendable pieces, at line breaks where possible."""
+    pieces: list[str] = []
+    while len(text) > limit:
+        cut = text.rfind("\n", 0, limit)
+        cut = cut if cut > 0 else limit
+        pieces.append(text[:cut])
+        text = text[cut:].lstrip("\n")
+    return [*pieces, text] if text else pieces
+
+
 def _deliver_program(ctx: BotContext, assignment, chat_id: object, caption: str) -> None:
     """Send the program's file (platform file_id or uploaded file), else the caption."""
-    # 1. A platform file_id captured on THIS platform is the cheapest delivery
-    #    (try as a document, then as a photo for image programs).
-    if assignment.platform_file_id and assignment.file_platform == ctx.platform:
-        try:
-            ctx.client.send_document_id(chat_id, assignment.platform_file_id, caption)
-            return
-        except BotApiError:
-            try:
-                ctx.client.send_photo_id(chat_id, assignment.platform_file_id, caption)
-                return
-            except BotApiError:
-                logger.warning("file_id delivery failed; falling back")
-    # 2. An uploaded file under the (access-controlled) upload dir.
-    path = plans_service.attachment_path(assignment)
-    if path is not None:
-        try:
-            ctx.client.send_document_path(
-                chat_id, path, assignment.original_filename or path.name, caption
+    from app.bots.common import formatting
+
+    file_caption, follow_up = caption, None
+    if len(caption) > _CAPTION_LIMIT:
+        file_caption = formatting.format_program_caption(assignment, with_note=False)
+        follow_up = caption
+
+    def _sent_file() -> bool:
+        # 1. A platform file_id captured on THIS platform is the cheapest delivery:
+        #    one call by its kind, or — for programs from before kinds were
+        #    recorded — as a document, then as a photo.
+        if assignment.platform_file_id and assignment.file_platform == ctx.platform:
+            kinds = (
+                [assignment.file_kind] if assignment.file_kind in _FILE_ID_SENDERS
+                else ["document", "photo"]
             )
-            return
-        except BotApiError:
-            logger.warning("file upload delivery failed; sending caption only")
-    # 3. Text-only program (no attachment).
-    ctx.send(chat_id, caption)
+            for kind in kinds:
+                try:
+                    getattr(ctx.client, _FILE_ID_SENDERS[kind])(
+                        chat_id, assignment.platform_file_id, file_caption
+                    )
+                    return True
+                except BotApiError:
+                    continue
+            logger.warning("file_id delivery failed; falling back")
+        # 2. An uploaded file under the (access-controlled) upload dir.
+        path = plans_service.attachment_path(assignment)
+        if path is not None:
+            try:
+                ctx.client.send_document_path(
+                    chat_id, path, assignment.original_filename or path.name, file_caption
+                )
+                return True
+            except BotApiError:
+                logger.warning("file upload delivery failed; sending caption only")
+        return False
+
+    if _sent_file():
+        texts_after = _chunks(follow_up) if follow_up else []
+    else:
+        texts_after = _chunks(caption)  # 3. A text-only program (or no file reached).
+    for piece in texts_after:
+        ctx.send(chat_id, piece)
 
 
 # --- callback routing ---

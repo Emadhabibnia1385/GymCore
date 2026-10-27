@@ -174,8 +174,8 @@ def session_grid(grid_rows: list[list[dict]], course_id: int, page: int, pages: 
 
 
 def program_list(items: list[tuple[int, str]]) -> dict:
-    """items: (assignment_id, label)."""
-    rows = [[button(f"🟢 {label}", cb.program(assignment_id))] for assignment_id, label in items]
+    """items: (assignment_id, label) — the label leads with what the program holds."""
+    rows = [[button(label, cb.program(assignment_id))] for assignment_id, label in items]
     rows.append([_back_home()])
     return _inline(rows)
 

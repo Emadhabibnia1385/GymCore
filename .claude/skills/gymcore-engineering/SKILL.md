@@ -84,7 +84,7 @@ app/
   admin/         in-bot admin panel, one module per section
   notifications/ queued/idempotent notifications + worker
   api/           FastAPI: /health, /health/ready, optional webhook
-migrations/      Alembic (head: 0013)
+migrations/      Alembic (head: 0014)
 tests/           pytest with fakes — never touches the network
 deploy/systemd/  gymcore-{api,telegram,bale,worker}.service
 ```
@@ -174,6 +174,13 @@ Hard constraints on both:
 - Every inbound callback argument is parsed tamper-safely — `cb.parse_int` and
   `grid.parse_date_token` return `None` on anything malformed. Never trust
   callback data.
+- A file **caption** stops at 1024 characters and a **message** at 4096; past
+  either the whole send fails. `client_flow._deliver_program` sends the file
+  with a short caption and the coach's note after it in `_chunks`.
+- A `file_id` only works on the platform that issued it, and is typed: a
+  program's `file_kind` (`document` / `photo` / `video`) picks
+  `send_document_id` / `send_photo_id` / `send_video_id` — one call. NULL
+  (programs from before 0014) falls back to document-then-photo.
 
 Owner IDs are **per platform**: a Telegram owner is not automatically an admin
 on Bale.

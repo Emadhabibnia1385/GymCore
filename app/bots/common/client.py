@@ -161,6 +161,14 @@ class BotClient:
             "sendDocument", {"chat_id": chat_id, "document": file_id, "caption": caption}
         )
 
+    def send_video_id(
+        self, chat_id: int | str, file_id: str, caption: str = ""
+    ) -> dict:
+        """Re-send a video already hosted on the platform by its file_id."""
+        return self._request(
+            "sendVideo", {"chat_id": chat_id, "video": file_id, "caption": caption}
+        )
+
     def send_photo_id(
         self, chat_id: int | str, file_id: str, caption: str = "", reply_markup: dict | None = None
     ) -> dict:

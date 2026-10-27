@@ -20,6 +20,8 @@ from app.services import notifications
 from app.services import persons as persons_service
 
 _ALLOWED_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".webp", ".txt", ".docx", ".xlsx"}
+# How a program file was uploaded through a bot, which picks its send method.
+FILE_KINDS = ("document", "photo", "video")
 
 
 # --- Plan types (catalog) ---
@@ -157,9 +159,12 @@ def create_assignment(
     original_filename: str | None = None,
     platform_file_id: str | None = None,
     file_platform: Platform | None = None,
+    file_kind: str | None = None,
     created_by: str | None = None,
     notify: bool = True,
 ) -> PlanAssignment:
+    if file_kind is not None and file_kind not in FILE_KINDS:
+        raise ValidationError("نوع فایل برنامه نامعتبر است")
     person = persons_service.get(db, person_id)
     plan_type = get_type(db, plan_type_id)
     assignment = PlanAssignment(
@@ -171,6 +176,7 @@ def create_assignment(
         original_filename=original_filename,
         platform_file_id=platform_file_id,
         file_platform=file_platform,
+        file_kind=file_kind,
         created_by=created_by,
     )
     db.add(assignment)
@@ -181,7 +187,7 @@ def create_assignment(
         notifications.notify_person(
             db,
             person,
-            f"{plan_type.title} تازه‌ای برایت آماده شد 📄🟢\n"
+            f"📄 برنامهٔ تازه‌ات آماده شد: «{assignment.title or plan_type.title}» 🟢\n"
             "برای دریافت، از «📄 برنامه‌های من» وارد شو.",
         )
     return assignment
