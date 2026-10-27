@@ -11,7 +11,14 @@ from app.services import classes as classes_service
 from app.services import courses as courses_service
 from app.services import payments as payments_service
 from app.services import persons as persons_service
-from tests.fakes import button_texts, callback_update, last_markup, last_text, make_dispatcher
+from tests.fakes import (
+    button_texts,
+    callback_update,
+    last_markup,
+    last_text,
+    make_dispatcher,
+    message_update,
+)
 
 OWNER = 111
 CHAT = 900
@@ -107,3 +114,80 @@ def test_messaging_a_student_without_the_bot_is_one_screen(db):
     disp.handle_update(callback_update(1, CHAT, OWNER, f"a:students:msg:{person.id}"))
     assert len(client.sent) == 1
     assert last_text(client).startswith(A.STUDENT_NO_ACCOUNT)
+
+
+def test_course_creation_shortcuts(db):
+    """The usual allowance (⚙️ «غیبت مجاز پیش‌فرض») and «📅 امروز» are one tap each —
+    no Jalali date to type, so no year to get wrong."""
+    from app.models.setting import KEY_DEFAULT_ALLOWED_ABSENCE
+    from app.services import settings as settings_service
+
+    settings_service.set_value(db, KEY_DEFAULT_ALLOWED_ABSENCE, "3")
+    student = persons_service.create(db, name="شاگرد جدید")
+    class_type = classes_service.list_class_types(db, only_active=True)[0]
+    disp, client = make_dispatcher()
+    disp.handle_update(
+        callback_update(1, CHAT, OWNER, f"a:courses:cls:{student.id}:{class_type.id}")
+    )
+    for i, answer in enumerate(("12", "1200000", "0"), start=2):  # sessions, tuition, gym fee
+        disp.handle_update(message_update(i, CHAT, OWNER, answer))
+    assert "✅ 3 (پیش‌فرض)" in button_texts(last_markup(client))
+    disp.handle_update(callback_update(5, CHAT, OWNER, "a:courses:allowed_default"))
+    assert any(b.startswith("📅 امروز") for b in button_texts(last_markup(client)))
+    disp.handle_update(callback_update(6, CHAT, OWNER, "a:courses:start_today"))
+    disp.handle_update(callback_update(7, CHAT, OWNER, "a:courses:wd_done"))
+    disp.handle_update(callback_update(8, CHAT, OWNER, "a:courses:times_done"))
+    db.expire_all()
+    (course,) = courses_service.list_courses(db, client_id=student.id)
+    assert course.allowed_absence == 3 and course.start_date == date.today()
+
+
+def test_a_stale_tap_explains_itself(db):
+    """A shortcut from an old prompt (or after a restart) no longer lands on an
+    empty «مدیریت دوره‌ها» screen."""
+    disp, client = make_dispatcher()
+    disp.handle_update(callback_update(1, CHAT, OWNER, "a:courses:start_today"))
+    assert last_text(client) == A.STEP_EXPIRED
+
+
+def test_settings_keep_numbers_and_links_valid(db):
+    from app.models.setting import KEY_LOW_SESSION_THRESHOLD, KEY_SIGNUP_URL
+    from app.services import settings as settings_service
+
+    disp, client = make_dispatcher()
+    disp.handle_update(
+        callback_update(1, CHAT, OWNER, f"a:settings:edit:{KEY_LOW_SESSION_THRESHOLD}")
+    )
+    disp.handle_update(message_update(2, CHAT, OWNER, "دو"))
+    assert A.SETTING_NEEDS_NUMBER in last_text(client)
+    disp.handle_update(message_update(3, CHAT, OWNER, "۳"))  # Persian digits are fine
+    disp.handle_update(callback_update(4, CHAT, OWNER, f"a:settings:edit:{KEY_SIGNUP_URL}"))
+    disp.handle_update(message_update(5, CHAT, OWNER, "mahdisarmad.ir/signup"))
+    assert A.SETTING_NEEDS_LINK in last_text(client)
+    db.expire_all()
+    assert settings_service.get_value(db, KEY_LOW_SESSION_THRESHOLD) == "3"
+    assert settings_service.get_value(db, KEY_SIGNUP_URL).startswith("https://")
+    # The two owner-contact settings nothing reads are gone from the menu.
+    disp.handle_update(callback_update(6, CHAT, OWNER, "a:settings"))
+    assert not any("تماس مربی" in b for b in button_texts(last_markup(client)))
+
+
+def test_student_course_screen_goes_back_and_stays_under_the_ceiling(db):
+    from app.bots.common import grid
+    from app.copy import texts
+    from tests.fakes import register
+
+    student = persons_service.create(db, name="سارا", phone="09121111111")
+    class_type = classes_service.list_class_types(db, only_active=True)[0]
+    short = courses_service.create(db, client_id=student.id, class_type_id=class_type.id,
+                                   sessions_total=12, start_date=START, weekdays="0,2,4")
+    long = courses_service.create(db, client_id=student.id, class_type_id=class_type.id,
+                                  sessions_total=grid.MAX_ROWS_PER_SCREEN + 6,
+                                  start_date=START, weekdays="0,2,4")
+    disp, client = make_dispatcher()
+    register(disp, 7001, 5001, phone="09121111111")
+    disp.handle_update(callback_update(1, 7001, 5001, f"crs:{short.id}"))
+    assert texts.BTN_BACK in button_texts(last_markup(client))
+    disp.handle_update(callback_update(2, 7001, 5001, f"crs:{long.id}"))
+    labels = button_texts(last_markup(client))
+    assert len(labels) < 100 and texts.BTN_SCHEDULE in labels

@@ -204,9 +204,16 @@ def course_detail(
         ctx.show(chat_id, texts.NOT_FOUND, keyboards.back_to_menu(), message_id)
         return
     # Course info (no money, no text history) followed by the colour-coded grid
-    # itself, then a single «منوی اصلی» button.
+    # itself, then back to «کلاس‌های من» and «منوی اصلی».
     body = formatting.format_course_detail(db, course, show_history=False, show_financial=False)
-    rows = grid.client_rows(schedule_service.build(db, course))
+    slots = schedule_service.build(db, course)
+    if len(slots) > grid.MAX_ROWS_PER_SCREEN:
+        # Past ~100 buttons the platforms refuse the whole message: a long course
+        # opens its paged grid from a button instead.
+        ctx.show(chat_id, body, keyboards.course_detail_nav(course.id), message_id)
+        return
+    rows = grid.client_rows(slots)
+    rows.append([keyboards.button(texts.BTN_BACK, cb.COURSES, keyboards.STYLE_DANGER)])
     rows.append([keyboards.home_button()])
     ctx.show(chat_id, body, {"inline_keyboard": rows}, message_id)
 

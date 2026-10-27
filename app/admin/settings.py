@@ -4,12 +4,22 @@ from __future__ import annotations
 
 from app.admin import common
 from app.admin.common import AdminReq
+from app.bots.common import keyboards
 from app.copy import admin_texts as A
-from app.models.setting import KEY_NOTIFY_ON_ATTENDANCE
+from app.models.setting import (
+    KEY_DEFAULT_ALLOWED_ABSENCE,
+    KEY_LOW_SESSION_THRESHOLD,
+    KEY_NOTIFY_ON_ATTENDANCE,
+    KEY_SIGNUP_URL,
+)
 from app.services import settings as settings_service
 
 # On/off settings flip in place from the list — nobody should have to type 0 or 1.
 _TOGGLES = {KEY_NOTIFY_ON_ATTENDANCE}
+# Saved only in the shape their readers expect: a bad number would be ignored
+# in silence, and a bad link drops the «سفارش برنامه» button from the menu.
+_NUMBERS = {KEY_DEFAULT_ALLOWED_ABSENCE, KEY_LOW_SESSION_THRESHOLD}
+_LINKS = {KEY_SIGNUP_URL}
 
 
 def handle_callback(req: AdminReq, args: str) -> None:
@@ -33,6 +43,15 @@ def handle_message(req: AdminReq, message: dict, substep: str, state) -> None:
     value = (message.get("text") or "").strip()
     if not value:  # a photo or a sticker must not wipe the setting
         _ask(req, key, warning=A.SETTING_NEEDS_TEXT)
+        return
+    if key in _NUMBERS:
+        number = common.parse_count(value)
+        if number is None:
+            _ask(req, key, warning=A.SETTING_NEEDS_NUMBER)
+            return
+        value = str(number)
+    if key in _LINKS and not keyboards.is_button_url(value):
+        _ask(req, key, warning=A.SETTING_NEEDS_LINK)
         return
     settings_service.set_value(req.db, key, value)
     common.clear(req)

@@ -100,6 +100,9 @@ ASK_COURSE_ALLOWED = (
     "بیشتر از این تعداد، غیبت مجاز ثبت نمی‌شود. (0 یعنی بدون محدودیت)"
 )
 ASK_COURSE_START = "تاریخ شروع را به‌صورت شمسی بفرست (نمونه: 1405/04/28):"
+BTN_START_TODAY = "📅 امروز — {date}"
+BTN_ALLOWED_DEFAULT = "✅ {n} (پیش‌فرض)"
+STEP_EXPIRED = "⌛ این مرحله دیگر فعال نیست؛ از پروفایل شاگرد دوباره شروع کن 👇"
 ASK_COURSE_TIME = "ساعت کلاس را بفرست (نمونه: 18:30) یا «⏭ رد کردن»:"
 ASK_COURSE_TIMES = "⏰ ساعت هر روز کلاس را تعیین کن (اختیاری)، بعد «✅ تأیید ساعت‌ها»:"
 ASK_DAY_TIME = "⏰ ساعت روز {day} را بفرست (نمونه: 18:30) یا «⏭ رد کردن»:"
@@ -302,6 +305,8 @@ SETTINGS_HINT = (
 ASK_SETTING_VALUE = "مقدار تازه را بفرست:"
 SETTING_SAVED = "🟢 تنظیمات ذخیره شد."
 SETTING_NEEDS_TEXT = "⚠️ این‌جا فقط متن ذخیره می‌شود."
+SETTING_NEEDS_NUMBER = "⚠️ این مقدار باید یک عدد باشد (مثلاً 2)."
+SETTING_NEEDS_LINK = "⚠️ این مقدار باید یک لینک کامل باشد که با https:// شروع شود."
 SETTING_ON = "🟢 {label}: روشن"
 SETTING_OFF = "⚪ {label}: خاموش"
 SETTINGS_LABELS = {
@@ -315,7 +320,5 @@ SETTINGS_LABELS = {
     "signup_url": "لینک سفارش برنامه",
     "default_allowed_absence": "غیبت مجاز پیش‌فرض",
     "low_session_threshold": "آستانه هشدار جلسات کم",
-    "telegram_owner_contact": "تماس مربی (تلگرام)",
-    "bale_owner_contact": "تماس مربی (بله)",
     "notify_on_attendance": "اعلان خودکار حضور",
 }

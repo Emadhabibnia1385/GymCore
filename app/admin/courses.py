@@ -11,10 +11,12 @@ from app.copy import admin_texts as A
 from app.copy import texts
 from app.core.jalali import format_jalali
 from app.models import CourseStatus
+from app.models.setting import KEY_DEFAULT_ALLOWED_ABSENCE
 from app.services import classes as classes_service
 from app.services import courses as courses_service
 from app.services import persons as persons_service
 from app.services import schedule as schedule_service
+from app.services import settings as settings_service
 
 
 def handle_callback(req: AdminReq, args: str) -> None:
@@ -97,8 +99,21 @@ def handle_callback(req: AdminReq, args: str) -> None:
                 "times": schedule_service.parse_day_times(course.class_times),
             },
         )
+    elif action == "allowed_default":
+        data = _pending(req, "courses:allowed")
+        if data is None:
+            _expired(req)
+            return
+        data["allowed_absence"] = _default_allowance(req)
+        _ask_start(req, data)
+    elif action == "start_today":
+        data = _pending(req, "courses:start")
+        if data is None:
+            _expired(req)
+            return
+        _after_start(req, data, date.today())
     else:
-        common.render(req, A.COURSES_TITLE, common.with_back([]))
+        _expired(req)
 
 
 def handle_message(req: AdminReq, message: dict, substep: str, state) -> None:
@@ -130,25 +145,20 @@ def handle_message(req: AdminReq, message: dict, substep: str, state) -> None:
             )
             return
         data["gym_fee"] = amount
-        common.prompt(req, A.ASK_COURSE_ALLOWED, "courses:allowed", data)
+        _ask_allowed(req, data)
     elif substep == "allowed":
         count = common.parse_count(text)
         if count is None:
-            common.prompt(
-                req, f"{A.INVALID_NUMBER}\n{A.ASK_COURSE_ALLOWED}", "courses:allowed", data
-            )
+            _ask_allowed(req, data, warning=A.INVALID_NUMBER)
             return
         data["allowed_absence"] = count
-        common.prompt(req, A.ASK_COURSE_START, "courses:start", data)
+        _ask_start(req, data)
     elif substep == "start":
         start = common.parse_date(text)
         if start is None:
-            common.prompt(req, A.INVALID_DATE, "courses:start", data)
+            _ask_start(req, data, warning=A.INVALID_DATE)
             return
-        data["start_date"] = start.isoformat()
-        # Then the weekly pattern (session grid), pre-selected with the start weekday.
-        data["days"] = [schedule_service.persian_weekday(start)]
-        _ask_weekdays(req, data)
+        _after_start(req, data, start)
     elif substep == "time_input":
         day = data.pop("pending_time_day", None)
         if day is not None:
@@ -208,10 +218,60 @@ def _ask_weekdays(req: AdminReq, data: dict) -> None:
     common.prompt_show(req, body, _WEEKDAY_STEP, data, keyboard=common.inline(rows))
 
 
+def _pending(req: AdminReq, step: str) -> dict | None:
+    """The in-progress data, if the chat is still at `step` — a tap on an older
+    prompt's button is not."""
+    state = req.store.get(req.ctx.platform, req.chat_id)
+    return state.data if state is not None and state.step == step else None
+
+
+def _expired(req: AdminReq) -> None:
+    """Where a tap lands once its step is gone (a restart, or an old message)."""
+    common.render(req, A.STEP_EXPIRED, common.inline([
+        [common.button(texts.BTN_ADMIN_STUDENTS, "students")],
+        [common.home_button()],
+    ]))
+
+
+def _default_allowance(req: AdminReq) -> int:
+    return max(settings_service.get_int(req.db, KEY_DEFAULT_ALLOWED_ABSENCE, 1), 0)
+
+
+def _ask_allowed(req: AdminReq, data: dict, warning: str | None = None) -> None:
+    """The allowance question, with the usual answer (⚙️ «غیبت مجاز پیش‌فرض») one tap away."""
+    default = _default_allowance(req)
+    shortcut = A.BTN_ALLOWED_DEFAULT.format(n=default if default else A.NO_LIMIT)
+    common.prompt(
+        req, f"{warning}\n{A.ASK_COURSE_ALLOWED}" if warning else A.ASK_COURSE_ALLOWED,
+        "courses:allowed", data,
+        keyboard=common.cancel_keyboard(
+            rows=[[common.button(shortcut, "courses", "allowed_default")]]
+        ),
+    )
+
+
+def _ask_start(req: AdminReq, data: dict, warning: str | None = None) -> None:
+    """The start date, with «📅 امروز» one tap away — a typed Jalali date is where a
+    wrong year slips in."""
+    today = A.BTN_START_TODAY.format(date=format_jalali(date.today()))
+    common.prompt(
+        req, f"{warning}\n{A.ASK_COURSE_START}" if warning else A.ASK_COURSE_START,
+        "courses:start", data,
+        keyboard=common.cancel_keyboard(rows=[[common.button(today, "courses", "start_today")]]),
+    )
+
+
+def _after_start(req: AdminReq, data: dict, start: date) -> None:
+    data["start_date"] = start.isoformat()
+    # Then the weekly pattern (session grid), pre-selected with the start weekday.
+    data["days"] = [schedule_service.persian_weekday(start)]
+    _ask_weekdays(req, data)
+
+
 def _toggle_weekday(req: AdminReq, index: int) -> None:
     state = req.store.get(req.ctx.platform, req.chat_id)
     if state is None or state.step != _WEEKDAY_STEP:
-        common.render(req, A.COURSES_TITLE, common.with_back([]))
+        _expired(req)
         return
     days = set(state.data.get("days") or [])
     days.symmetric_difference_update({index})
@@ -223,7 +283,7 @@ def _finish_weekdays(req: AdminReq) -> None:
     """«تأیید» on the day picker → move on to choosing each day's time."""
     state = req.store.get(req.ctx.platform, req.chat_id)
     if state is None or state.step != _WEEKDAY_STEP:
-        common.render(req, A.COURSES_TITLE, common.with_back([]))
+        _expired(req)
         return
     data = state.data
     if not data.get("days"):
@@ -261,7 +321,7 @@ def _ask_times(req: AdminReq, data: dict) -> None:
 def _ask_day_time(req: AdminReq, day: int) -> None:
     state = req.store.get(req.ctx.platform, req.chat_id)
     if state is None or state.step != _TIMES_STEP:
-        common.render(req, A.COURSES_TITLE, common.with_back([]))
+        _expired(req)
         return
     data = state.data
     data["pending_time_day"] = day
@@ -286,7 +346,7 @@ def _finish_course(req: AdminReq) -> None:
     """«تأیید ساعت‌ها» — create the pending course, or save the edited schedule."""
     state = req.store.get(req.ctx.platform, req.chat_id)
     if state is None or state.step != _TIMES_STEP:
-        common.render(req, A.COURSES_TITLE, common.with_back([]))
+        _expired(req)
         return
     data = state.data
     if not data.get("days"):

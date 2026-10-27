@@ -137,9 +137,10 @@ def confirm_keyboard(confirm_parts: tuple, cancel_parts: tuple = ("home",)) -> d
     )
 
 
-def cancel_keyboard(cancel_parts: tuple = ("home",)) -> dict:
-    """The «✖️ لغو» button under an input prompt; tapping it leaves the input step."""
-    return inline([[button(A.CANCEL, *cancel_parts, style=_STYLE_DANGER)]])
+def cancel_keyboard(cancel_parts: tuple = ("home",), rows: list | None = None) -> dict:
+    """«✖️ لغو» under an input prompt, below any one-tap shortcut `rows`; tapping it
+    leaves the input step."""
+    return inline([*(rows or []), [button(A.CANCEL, *cancel_parts, style=_STYLE_DANGER)]])
 
 
 def skip_keyboard(skip_parts: tuple) -> dict:
