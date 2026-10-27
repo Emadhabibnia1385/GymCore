@@ -8,6 +8,7 @@ from app.admin import common
 from app.admin.common import AdminReq
 from app.bots.common import formatting
 from app.copy import admin_texts as A
+from app.copy import finance_texts as F
 from app.core.jalali import format_jalali
 from app.models import PaymentKind
 from app.services import courses as courses_service
@@ -113,7 +114,8 @@ def _save(req: AdminReq, note: str | None) -> None:
 
 
 def _overview(req: AdminReq) -> None:
-    """The section's front page: who still owes, largest first."""
+    """The section's front page: who still owes, largest first — then the way
+    into the month's money report and recording an expense (admin/finance.py)."""
     owing = payments_service.outstanding_courses(req.db)
     lines = [A.PAYMENTS_TITLE]
     if owing:
@@ -130,6 +132,10 @@ def _overview(req: AdminReq) -> None:
         )]
         for course, amount in owing[:_OWING_SHOWN]
     ]
+    rows.append([
+        common.button(F.BTN_MONTH_REPORT, "fin", "m"),
+        common.button(F.BTN_NEW_EXPENSE, "fin", "new"),
+    ])
     common.render(req, "\n".join(lines), common.with_back(rows))
 
 
