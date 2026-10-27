@@ -9,6 +9,7 @@ from app.admin.common import AdminReq
 from app.bots.common import formatting
 from app.copy import admin_texts as A
 from app.copy import texts
+from app.core.jalali import format_jalali
 from app.models import CourseStatus
 from app.services import classes as classes_service
 from app.services import courses as courses_service
@@ -319,19 +320,27 @@ def _finish_course(req: AdminReq) -> None:
     _view(req, course.id, flash=A.COURSE_CREATED)
 
 
+_STATUS_ICONS = {CourseStatus.ACTIVE: "🟢", CourseStatus.PAUSED: "⏸", CourseStatus.FINISHED: "🏁"}
+
+
+def _course_row_label(req: AdminReq, course) -> str:
+    """«🟢 فیتنس · 1405/07/15 · ۶ جلسه مانده» — status, class, start, and what's left."""
+    label = (
+        f"{_STATUS_ICONS.get(course.status, '')} {course.class_type.title} · "
+        f"{format_jalali(course.start_date)}"
+    )
+    if course.status == CourseStatus.FINISHED:
+        return label
+    return f"{label} · {A.COURSE_LEFT.format(n=courses_service.remaining_sessions(req.db, course))}"
+
+
 def _list_for_client(req: AdminReq, client_id: int, flash: str | None = None) -> None:
-    persons_service.get(req.db, client_id)
+    person = persons_service.get(req.db, client_id)
     items = courses_service.list_courses(req.db, client_id=client_id)
-    rows = [
-        [common.button(
-            f"{formatting.course_status_label(c.status)} {c.class_type.title} "
-            f"| {courses_service.remaining_sessions(req.db, c)}",
-            "courses", "view", c.id,
-        )]
-        for c in items
-    ]
+    rows = [[common.button(_course_row_label(req, c), "courses", "view", c.id)] for c in items]
     rows.insert(0, [common.button(A.BTN_NEW_COURSE, "courses", "new", client_id)])
-    body = f"{flash}\n\n{A.COURSES_TITLE}" if flash else A.COURSES_TITLE
+    title = A.COURSES_OF.format(name=person.name)
+    body = f"{flash}\n\n{title}" if flash else title
     common.render(req, body, common.with_back(rows, ("students", "view", client_id)))
 
 

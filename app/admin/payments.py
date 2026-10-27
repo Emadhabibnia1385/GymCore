@@ -14,6 +14,14 @@ from app.services import courses as courses_service
 from app.services import payments as payments_service
 from app.services import persons as persons_service
 
+_OWING_SHOWN = 30
+
+
+def _balance(amount: int) -> str:
+    """An outstanding amount, red while anything is owed and green once settled."""
+    return f"{'🔴' if amount > 0 else '🟢'} {formatting.money(amount)}"
+
+
 _KIND_LABELS = {
     "TUITION": A.KIND_TUITION,
     "GYM_FEE": A.KIND_GYM_FEE,
@@ -38,7 +46,7 @@ def handle_callback(req: AdminReq, args: str) -> None:
     elif action == "note_skip":
         _save(req, note=None)
     else:
-        common.render(req, A.PAYMENTS_TITLE, common.with_back([]))
+        _overview(req)
 
 
 def handle_message(req: AdminReq, message: dict, substep: str, state) -> None:
@@ -104,13 +112,49 @@ def _save(req: AdminReq, note: str | None) -> None:
     common.render(req, A.PAYMENT_SAVED, common.back_home(*back))
 
 
+def _overview(req: AdminReq) -> None:
+    """The section's front page: who still owes, largest first."""
+    owing = payments_service.outstanding_courses(req.db)
+    lines = [A.PAYMENTS_TITLE]
+    if owing:
+        total = sum(amount for _, amount in owing)
+        lines.append(A.PAYMENTS_OWING.format(count=len(owing), total=formatting.money(total)))
+        if len(owing) > _OWING_SHOWN:
+            lines.append(A.PAYMENTS_OWING_MORE.format(n=len(owing) - _OWING_SHOWN))
+    else:
+        lines.append(A.PAYMENTS_ALL_SETTLED)
+    rows = [
+        [common.button(
+            f"{course.client.name} — {course.class_type.title} · {formatting.money(amount)}",
+            "pay", "course", course.id,
+        )]
+        for course, amount in owing[:_OWING_SHOWN]
+    ]
+    common.render(req, "\n".join(lines), common.with_back(rows))
+
+
 def _client(req: AdminReq, client_id: int) -> None:
-    persons_service.get(req.db, client_id)
+    person = persons_service.get(req.db, client_id)
     courses = courses_service.list_courses(req.db, client_id=client_id)
-    rows = [[common.button(c.class_type.title, "pay", "course", c.id)] for c in courses]
-    rows.insert(0, [common.button(A.BTN_NEW_PAYMENT, "pay", "new", client_id, 0)])
+    rows = [[common.button(A.BTN_NEW_PAYMENT, "pay", "new", client_id, 0)]]
+    owed = 0
+    for c in courses:
+        outstanding = payments_service.course_balance(req.db, c)["outstanding"]
+        owed += outstanding
+        state = (
+            A.COURSE_OWES.format(amount=formatting.money(outstanding))
+            if outstanding else A.COURSE_SETTLED
+        )
+        rows.append([common.button(
+            f"{c.class_type.title} · {format_jalali(c.start_date)} · {state}",
+            "pay", "course", c.id,
+        )])
     total = payments_service.total_paid_person(req.db, client_id)
-    body = f"{A.PAYMENTS_TITLE}\n{A.LABEL_PAID}: {formatting.money(total)}"
+    body = (
+        f"{A.PAYMENTS_OF.format(name=person.name)}\n"
+        f"{A.LABEL_PAID}: {formatting.money(total)}\n"
+        f"{A.LABEL_OUTSTANDING}: {_balance(owed)}"
+    )
     common.render(req, body, common.with_back(rows, ("students", "view", client_id)))
 
 
@@ -119,10 +163,10 @@ def _course(req: AdminReq, course_id: int) -> None:
     balance = payments_service.course_balance(req.db, course)
     payments = payments_service.list_payments(req.db, course_id=course_id)
     lines = [
-        f"💳 {course.class_type.title}",
+        f"💳 {course.class_type.title} · 👤 {course.client.name}",
         f"{A.LABEL_TOTAL_DUE}: {formatting.money(balance['total_due'])}",
         f"{A.LABEL_PAID}: {formatting.money(balance['paid'])}",
-        f"{A.LABEL_OUTSTANDING}: 🟢 {formatting.money(balance['outstanding'])}",
+        f"{A.LABEL_OUTSTANDING}: {_balance(balance['outstanding'])}",
     ]
     if payments:
         lines.append("")

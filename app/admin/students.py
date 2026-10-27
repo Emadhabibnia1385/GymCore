@@ -11,7 +11,7 @@ from app.admin.common import AdminReq
 from app.copy import admin_texts as A
 from app.copy import texts
 from app.core.exceptions import ConflictError, ValidationError
-from app.models import Role, StudentType
+from app.models import CourseStatus, Role, StudentType
 from app.services import courses as courses_service
 from app.services import notifications as notify_service
 from app.services import persons as persons_service
@@ -70,8 +70,7 @@ def handle_callback(req: AdminReq, args: str) -> None:
     elif action == "msg" and rest.isdigit():
         person = persons_service.get(req.db, int(rest))
         if not person.identities:
-            common.send(req, A.STUDENT_NO_ACCOUNT)
-            _profile(req, person.id)
+            _profile(req, person.id, flash=A.STUDENT_NO_ACCOUNT)
         else:
             common.prompt(req, A.ASK_STUDENT_MESSAGE, f"students:msg:{person.id}", {})
     elif action == "edit" and rest.isdigit():
@@ -82,7 +81,12 @@ def handle_callback(req: AdminReq, args: str) -> None:
         persons_service.update(req.db, person.id, student_type=new_type)
         _profile(req, person.id, flash=A.TYPE_CHANGED.format(type=A.TYPE_LABELS[new_type.value]))
     elif action in _EDIT_FIELDS and rest.isdigit():
-        common.prompt(req, _EDIT_PROMPTS[action], f"students:{action}", {"id": int(rest)})
+        common.prompt(req, _EDIT_PROMPTS[action], f"students:{action}", {"id": int(rest)},
+                      keyboard=_edit_keyboard(action, int(rest)))
+    elif action == "clear":
+        field, _, id_str = rest.partition(":")
+        if field in ("edit_phone", "edit_phone2") and id_str.isdigit():
+            _apply_edit(req, field, int(id_str), A.CLEAR_WORD)
     elif action == "del" and rest.isdigit():
         kind = persons_service.get(req.db, int(rest)).student_type
         persons_service.delete(req.db, int(rest))
@@ -167,6 +171,15 @@ def _edit_menu(req: AdminReq, person_id: int) -> None:
     common.render(req, body, common.with_back(rows, ("students", "view", person.id)))
 
 
+def _edit_keyboard(field: str, person_id: int) -> dict:
+    """Under an edit prompt: a phone can be removed with a tap; a name cannot."""
+    rows = []
+    if field != "edit_name":
+        rows.append([common.button(A.BTN_CLEAR_PHONE, "students", "clear", field, person_id)])
+    rows.append([common.button(A.CANCEL, "students", "edit", person_id, style="danger")])
+    return common.inline(rows)
+
+
 def _apply_edit(req: AdminReq, field: str, person_id: int | None, text: str) -> None:
     if not person_id:
         common.clear(req)
@@ -176,7 +189,8 @@ def _apply_edit(req: AdminReq, field: str, person_id: int | None, text: str) -> 
     try:
         if field == "edit_name":
             if not value:
-                common.prompt(req, A.ASK_EDIT_NAME, "students:edit_name", {"id": person_id})
+                common.prompt(req, A.ASK_EDIT_NAME, "students:edit_name", {"id": person_id},
+                              keyboard=_edit_keyboard("edit_name", person_id))
                 return
             persons_service.update(req.db, person_id, name=value)
         elif field == "edit_phone":
@@ -185,7 +199,8 @@ def _apply_edit(req: AdminReq, field: str, person_id: int | None, text: str) -> 
             persons_service.update(req.db, person_id, phone2=value)
     except (ValidationError, ConflictError) as exc:
         common.prompt(
-            req, f"⚠️ {exc}\n{_EDIT_PROMPTS[field]}", f"students:{field}", {"id": person_id}
+            req, f"⚠️ {exc}\n{_EDIT_PROMPTS[field]}", f"students:{field}", {"id": person_id},
+            keyboard=_edit_keyboard(field, person_id),
         )
         return
     common.clear(req)
@@ -211,13 +226,18 @@ def _list(
         if person.student_type == StudentType.ONLINE:
             count = len(plans_service.list_assignments(req.db, person_id=person.id))
             label = A.PROGRAM_COUNT.format(n=count) if count else A.NO_PROGRAM
-            enriched.append((person, None, label))
+            enriched.append((person, (2, 0), label))
             continue
         active = courses_service.active_course(req.db, person.id)
-        remaining = courses_service.remaining_sessions(req.db, active) if active else None
-        label = A.SESSIONS_LEFT.format(n=remaining) if remaining is not None else A.NO_COURSE
-        enriched.append((person, remaining, label))
-    enriched.sort(key=lambda row: (row[1] is None, row[1] or 0))
+        if active is not None:
+            remaining = courses_service.remaining_sessions(req.db, active)
+            enriched.append((person, (0, remaining), A.SESSIONS_LEFT.format(n=remaining)))
+        elif req.db.scalar(courses_service.list_stmt(person.id, CourseStatus.FINISHED).limit(1)):
+            # Their course just ended: next in line for a renewal.
+            enriched.append((person, (1, 0), A.COURSE_ENDED))
+        else:
+            enriched.append((person, (2, 0), A.NO_COURSE))
+    enriched.sort(key=lambda row: row[1])
 
     pages = max((len(enriched) + _PER_PAGE - 1) // _PER_PAGE, 1)
     page = max(min(page, pages), 1)

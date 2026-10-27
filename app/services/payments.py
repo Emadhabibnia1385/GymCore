@@ -62,6 +62,17 @@ def total_paid_person(db: Session, person_id: int) -> int:
     )
 
 
+def outstanding_courses(db: Session) -> list[tuple[Course, int]]:
+    """Every course still owed money, largest debt first — the to-collect list."""
+    owing = []
+    for course in db.scalars(select(Course)):
+        outstanding = course_balance(db, course)["outstanding"]
+        if outstanding > 0:
+            owing.append((course, outstanding))
+    owing.sort(key=lambda row: row[1], reverse=True)
+    return owing
+
+
 def course_balance(db: Session, course: Course) -> dict:
     """Financial summary for a course: total due, paid, and outstanding."""
     total_due = (course.tuition or 0) + (course.gym_fee or 0)
