@@ -9,7 +9,7 @@ append-only: a wrong entry is corrected by a negative one, never edited.
 Postgres ALTER TYPE. A new, empty table — nothing existing is touched, so the
 downgrade only has to drop it.
 
-Revision ID: 0015_finance
+Revision ID: 0015
 Revises: 0014
 Create Date: 2026-10-27 00:00:00.000000
 """
@@ -20,7 +20,7 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision: str = '0015_finance'
+revision: str = '0015'
 down_revision: str | None = '0014'
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
