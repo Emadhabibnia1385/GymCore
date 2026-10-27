@@ -14,8 +14,8 @@ off and sending again switches it back on. A student's rows go with the student
 (ON DELETE CASCADE here; the ORM cascade covers SQLite, which enforces no
 foreign keys).
 
-Revision ID: 0015_packages
-Revises: 0014
+Revision ID: 0017
+Revises: 0016
 Create Date: 2026-10-27 00:00:00.000000
 """
 
@@ -25,8 +25,8 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision: str = '0015_packages'
-down_revision: str | None = '0014'
+revision: str = '0017'
+down_revision: str | None = '0016'
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
