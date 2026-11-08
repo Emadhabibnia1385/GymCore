@@ -15,6 +15,21 @@ def test_phone_normalization():
     assert not is_valid_phone("08123456789")
 
 
+def test_foreign_numbers_are_accepted():
+    """Students abroad: any country, in one canonical +<country><number> form."""
+    for raw in ("+44 7700 900123", "0044 7700 900123", "447700900123", "+۴۴۷۷۰۰۹۰۰۱۲۳"):
+        assert normalize_phone(raw) == "+447700900123"
+        assert is_valid_phone(normalize_phone(raw))
+    assert normalize_phone("+1 (202) 555-0123") == "+12025550123"
+    # Iranian numbers keep their old form whichever way they arrive.
+    for raw in ("00989123456789", "989123456789", "+989123456789"):
+        assert normalize_phone(raw) == "09123456789"
+    # Still refused: too short, too long, and a foreign number with no country code.
+    assert not is_valid_phone(normalize_phone("+4477"))
+    assert not is_valid_phone(normalize_phone("+4477009001234567"))
+    assert not is_valid_phone(normalize_phone("07700900123"))
+
+
 def test_jalali_known_value():
     # 2026-07-19 Gregorian == 1405-04-28 Jalali.
     assert gregorian_to_jalali(2026, 7, 19) == (1405, 4, 28)

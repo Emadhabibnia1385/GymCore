@@ -159,7 +159,10 @@ CONVERTED_NOTE_INTEREST = "علاقه: {interest}"
 ERR_NAME_REQUIRED = "نام الزامی است"
 ERR_NAME_TOO_LONG = "نام طولانی است (حداکثر {n} حرف)"
 ERR_INTEREST_TOO_LONG = "متن علاقه طولانی است (حداکثر {n} حرف)"
-ERR_PHONE_INVALID = "شماره موبایل نامعتبر است"
+ERR_PHONE_INVALID = (
+    "شماره موبایل نامعتبر است — نمونه: 09121234567، "
+    "یا شمارهٔ خارج از ایران با کد کشور مثل +447700900123"
+)
 ERR_NOTE_EMPTY = "یادداشت خالی است"
 ERR_LEAD_NOT_FOUND = "سرنخ مورد نظر یافت نشد"
 ERR_FOLLOW_UP_NOT_FOUND = "پیگیری مورد نظر یافت نشد"

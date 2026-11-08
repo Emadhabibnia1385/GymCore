@@ -22,6 +22,7 @@ from app.models import (
     StudentType,
 )
 
+_PHONE_HINT = "نمونه: 09121234567، یا شمارهٔ خارج از ایران با کد کشور مثل +447700900123"
 
 def get(db: Session, person_id: int) -> Person:
     person = db.get(Person, person_id)
@@ -106,7 +107,7 @@ def create(
     if phone:
         normalized = normalize_phone(phone)
         if not is_valid_phone(normalized):
-            raise ValidationError("شماره موبایل نامعتبر است")
+            raise ValidationError(f"شماره موبایل نامعتبر است — {_PHONE_HINT}")
         if get_by_phone(db, normalized) is not None:
             raise ConflictError("این شماره موبایل قبلاً ثبت شده است")
     person = Person(
@@ -141,7 +142,7 @@ def update(
         else:
             normalized = normalize_phone(phone)
             if not is_valid_phone(normalized):
-                raise ValidationError("شماره موبایل نامعتبر است")
+                raise ValidationError(f"شماره موبایل نامعتبر است — {_PHONE_HINT}")
             existing = get_by_phone(db, normalized)
             if existing is not None and existing.id != person.id:
                 raise ConflictError("این شماره موبایل قبلاً ثبت شده است")
@@ -152,7 +153,7 @@ def update(
         else:
             normalized2 = normalize_phone(phone2)
             if not is_valid_phone(normalized2):
-                raise ValidationError("شماره موبایل دوم نامعتبر است")
+                raise ValidationError(f"شماره موبایل دوم نامعتبر است — {_PHONE_HINT}")
             person.phone2 = normalized2
     if role is not None:
         person.role = role

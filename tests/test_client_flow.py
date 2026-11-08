@@ -54,6 +54,17 @@ def test_registration_by_phone_then_menu(db):
     assert person.phone  # phone captured for cross-platform sync
 
 
+def test_a_student_abroad_registers_with_a_foreign_number(db):
+    """Telegram shares a foreign contact without its +; typed ones work too."""
+    disp, client = make_dispatcher(Platform.TELEGRAM)
+    register(disp, 500, 700, phone="447700900123")  # a UK number, as Telegram sends it
+    assert texts.BTN_REGISTER_CLASS in button_texts(last_markup(client))
+    disp.handle_update(message_update(2, 501, 701, "+1 202 555 0123"))  # typed
+    db.expire_all()
+    assert identities_service.find_person(db, Platform.TELEGRAM, "700").phone == "+447700900123"
+    assert identities_service.find_person(db, Platform.TELEGRAM, "701").phone == "+12025550123"
+
+
 def test_owner_bypasses_phone_and_sees_admin_button(db):
     disp, client = make_dispatcher(Platform.TELEGRAM)
     disp.handle_update(message_update(1, 500, 111, "/start"))  # 111 is a configured owner

@@ -57,7 +57,8 @@ class Lead(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(150))
-    # Normalized 09xxxxxxxxx (core/phone.py). Not unique: someone can ask twice.
+    # Canonical — 09xxxxxxxxx or +<country>… (core/phone.py).
+    # Not unique: someone can ask twice.
     phone: Mapped[str | None] = mapped_column(String(20), index=True)
     source: Mapped[LeadSource] = mapped_column(
         Enum(LeadSource, native_enum=False, length=20),

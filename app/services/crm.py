@@ -80,7 +80,8 @@ def clean_name(name: str | None) -> str:
 
 
 def clean_phone(raw: str | None) -> str | None:
-    """A typed phone (Persian digits, +98…) as 09xxxxxxxxx; None when blank."""
+    """A typed phone (Persian digits, +98…, or another country) in canonical form
+    (core/phone.py); None when blank."""
     if raw is None or not raw.strip():
         return None
     phone = normalize_phone(raw)
