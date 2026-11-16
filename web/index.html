@@ -2,9 +2,8 @@
 <html lang="fa" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" content="#f6f8fa" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0a0e12" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#000000" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="جیم‌کور" />
@@ -18,8 +17,8 @@
       (function () {
         try {
           var saved = localStorage.getItem("nasim-theme");
-          var scheme = saved === "light" || saved === "dark" ? saved
-            : matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          // The brand is a black page: dark unless the person chose light.
+          var scheme = saved === "light" ? "light" : "dark";
           document.documentElement.classList.add(scheme);
           document.documentElement.dataset.theme = scheme;
         } catch (e) {}

@@ -24,6 +24,7 @@ CONTACT = "con"
 ADMIN = "adm"
 SCHEDULE = "sch"
 NOOP = "noop"
+WEB_LOGIN = "wl"  # approving or refusing a web-panel sign-in
 
 
 def course(course_id: int) -> str:

@@ -1,0 +1,1 @@
+import{t as e}from"./followups-BQhmrPNC.js";var t=e;export{t as component};

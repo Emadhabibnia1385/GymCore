@@ -4,14 +4,12 @@ import { Button, FilterChips, Notice, SectionCard } from "@nyxon/nasim";
 import { useState } from "react";
 import {
 	loginConfigQuery,
+	BotLoginButton,
 	loginDev,
-	loginWithTelegram,
 	meQuery,
 	PasswordLoginForm,
 	RegisterForm,
-	TelegramLoginButton,
 	type Me,
-	type TelegramUser,
 } from "@/features/auth";
 import { t } from "@/strings";
 
@@ -34,11 +32,7 @@ function Login() {
 		queryClient.setQueryData(meQuery.queryKey, me);
 		await navigate({ to: "/" });
 	}
-	const telegram = useMutation({
-		mutationFn: (user: TelegramUser | "coach" | "student") =>
-			typeof user === "object" ? loginWithTelegram(user) : loginDev(user === "student"),
-		onSuccess: signedIn,
-	});
+	const dev = useMutation({ mutationFn: (who: "coach" | "student") => loginDev(who === "student"), onSuccess: signedIn });
 	const canSignUp = config.data?.registration_open ?? false;
 
 	return (
@@ -70,23 +64,23 @@ function Login() {
 
 						<div className="flex flex-col gap-3 border-t border-separator pt-4">
 							<p className="text-center text-sm text-muted">{t.login.or}</p>
-							{telegram.isError ? (
+							{dev.isError ? (
 								<Notice tone="danger" title={t.login.failed} role="alert">
-									{telegram.error.message}
+									{dev.error.message}
 								</Notice>
 							) : null}
 							{config.data?.dev_login ? (
 								<div className="flex flex-col gap-2">
-									<Button variant="secondary" isPending={telegram.isPending} onPress={() => telegram.mutate("coach")}>
+									<Button variant="secondary" isPending={dev.isPending} onPress={() => dev.mutate("coach")}>
 										{t.login.dev}
 									</Button>
-									<Button variant="secondary" isPending={telegram.isPending} onPress={() => telegram.mutate("student")}>
+									<Button variant="secondary" isPending={dev.isPending} onPress={() => dev.mutate("student")}>
 										{t.login.devStudent}
 									</Button>
 								</div>
-							) : config.data ? (
-								<TelegramLoginButton botUsername={config.data.bot_username} onAuth={(user) => telegram.mutate(user)} />
-							) : null}
+							) : (
+								<BotLoginButton onDone={(me) => void signedIn(me)} />
+							)}
 							<Notice tone="info">{t.login.notice}</Notice>
 						</div>
 					</div>

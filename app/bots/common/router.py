@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 
 from app.admin import panel as admin_panel
-from app.bots.common import callbacks, client_flow
+from app.bots.common import callbacks, client_flow, web_login
 from app.bots.common.context import BotContext
 from app.bots.common.state import StateStore
 from app.copy import texts
@@ -49,6 +49,10 @@ class Dispatcher:
                 person = client_flow.resolve_registered(self.ctx, db, chat_id, from_user, message)
                 if person is None:
                     return  # awaiting phone
+                login_token = web_login.token_from_start(text)
+                if login_token is not None:  # a «log in with the bot» link from the web panel
+                    web_login.offer(self.ctx, db, chat_id, login_token)
+                    return
                 state = self.store.get(self.ctx.platform, chat_id)
                 if state is not None and state.flow == "admin":
                     if auth.is_admin(db, self.ctx.platform, user_id):
@@ -95,6 +99,11 @@ class Dispatcher:
                     admin_panel.handle_callback(
                         self.ctx, db, chat_id, message_id, rest, user_id, person, self.store
                     )
+                return
+
+            if action == callbacks.WEB_LOGIN:
+                self.ctx.answer(callback_id)
+                web_login.answer(self.ctx, db, chat_id, user_id, person, message_id, rest)
                 return
 
             self.ctx.answer(callback_id)

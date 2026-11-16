@@ -59,3 +59,28 @@ class WebCredential(Base):
     person = relationship(
         "Person", backref=backref("web_credential", uselist=False, cascade="all, delete-orphan")
     )
+
+
+class WebLoginRequest(Base):
+    """«Log in with the bot»: the browser asks, the person approves inside Telegram.
+
+    The browser holds `secret` (to poll for the answer) and the bot link carries `token`
+    (so the right person approves the right request). Only hashes are stored. The bot and
+    the API are separate processes, so this table is how they talk. Short-lived.
+    """
+
+    __tablename__ = "web_login_requests"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    secret_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    # PENDING → APPROVED | DENIED → CONSUMED (the browser took its session)
+    status: Mapped[str] = mapped_column(String(12), default="PENDING")
+    person_id: Mapped[int | None] = mapped_column(ForeignKey("persons.id"))
+    telegram_user_id: Mapped[str | None] = mapped_column(String(32))
+    user_agent: Mapped[str | None] = mapped_column(String(200))
+    client_ip: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

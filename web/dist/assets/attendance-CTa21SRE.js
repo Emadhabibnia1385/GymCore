@@ -1,1 +1,0 @@
-import{t as e}from"./attendance-BMiAVKWs.js";var t=e;export{t as component};

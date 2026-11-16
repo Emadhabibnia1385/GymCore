@@ -13,7 +13,7 @@ const sizes: [string, number, number][] = [
 for (const [name, size, padding] of sizes) {
 	const art = Math.round(size * (1 - padding * 2));
 	const icon = await sharp(source).resize(art, art).png().toBuffer();
-	await sharp({ create: { width: size, height: size, channels: 4, background: "#0a0e12" } })
+	await sharp({ create: { width: size, height: size, channels: 4, background: "#000000" } })
 		.composite([{ input: icon, gravity: "centre" }])
 		.png()
 		.toFile(`public/icons/${name}.png`);

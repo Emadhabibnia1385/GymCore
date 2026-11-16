@@ -1,0 +1,1 @@
+import{t as e}from"./plans-D3AYrhlb.js";var t=e;export{t as component};

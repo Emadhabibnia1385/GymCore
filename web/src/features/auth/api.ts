@@ -31,3 +31,8 @@ export const loginDev = (student = false) => post<Me>(`/api/auth/dev?student=${s
 export const setPassword = (body: { username: string; password: string }) => post<Me>("/api/auth/password/set", body);
 export const changePassword = (body: { old_password: string; new_password: string }) => post<Done>("/api/auth/password/change", body);
 export const logout = () => post<unknown>("/api/auth/logout");
+
+export type BotLogin = { url: string; secret: string; expires_in: number };
+export type BotLoginState = { state: "pending" | "approved" | "denied" | "expired"; me: Me | null };
+export const startBotLogin = () => post<BotLogin>("/api/auth/bot-login");
+export const pollBotLogin = (secret: string) => post<BotLoginState>("/api/auth/bot-login/status", { secret });

@@ -70,6 +70,7 @@ class _Window:
 
 failed_logins = _Window(limit=5, seconds=15 * 60)
 signups = _Window(limit=5, seconds=60 * 60)
+bot_logins = _Window(limit=10, seconds=10 * 60)
 
 
 def normalize_username(raw: str) -> str:

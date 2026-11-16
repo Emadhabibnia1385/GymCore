@@ -1,1 +1,0 @@
-import{Fn as e,Pn as t}from"./api-DuS_WnIp.js";import{n}from"./programs-C7JIMxtG.js";import{r}from"./index-D6KoptgR.js";var i=e(),a=t();function o(){let e=(0,i.c)(2),{id:t}=r.useParams(),o=Number(t),s;return e[0]===o?s=e[1]:(s=(0,a.jsx)(n,{id:o}),e[0]=o,e[1]=s),s}export{o as component};

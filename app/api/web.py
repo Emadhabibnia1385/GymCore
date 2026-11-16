@@ -27,7 +27,7 @@ from app.services import payments as payments_service
 from app.services import schedule as schedule_service
 from app.services import settings as settings_service
 from app.services import stats as stats_service
-from app.services import web_accounts, web_auth
+from app.services import web_accounts, web_auth, web_login
 
 _COOKIE_MAX_AGE = 400 * 24 * 3600  # the longest a browser keeps a cookie; the server decides
 
@@ -66,6 +66,21 @@ class PasswordChange(BaseModel):
 class Done(BaseModel):
     ok: bool = True
     message: str
+
+
+class BotLoginStart(BaseModel):
+    url: str
+    secret: str
+    expires_in: int
+
+
+class BotLoginPoll(BaseModel):
+    secret: str = Field(max_length=100)
+
+
+class BotLoginState(BaseModel):
+    state: str  # pending | approved | denied | expired
+    me: Me | None = None
 
 
 class Totals(BaseModel):
@@ -192,6 +207,39 @@ def _open_session(
 
 def _client(request: Request) -> str:
     return request.client.host if request.client else "unknown"
+
+
+@router.post("/auth/bot-login", response_model=BotLoginStart, operation_id="auth_bot_login")
+def bot_login_start(request: Request, db: Session = Depends(get_db)) -> BotLoginStart:
+    """Begin «log in with the bot»: the person opens the link and approves inside Telegram."""
+    client = _client(request)
+    if web_accounts.bot_logins.blocked(client):
+        raise HTTPException(status_code=429, detail=web_accounts.THROTTLED)
+    web_accounts.bot_logins.hit(client)
+    token, secret = web_login.start(db, request.headers.get("user-agent"), client)
+    bot = get_settings().telegram_bot_username
+    return BotLoginStart(
+        url=f"https://t.me/{bot}?start={web_login.START_PREFIX}{token}",
+        secret=secret,
+        expires_in=int(web_login.TTL.total_seconds()),
+    )
+
+
+@router.post(
+    "/auth/bot-login/status", response_model=BotLoginState, operation_id="auth_bot_login_status"
+)
+def bot_login_status(
+    body: BotLoginPoll, request: Request, response: Response, db: Session = Depends(get_db)
+) -> BotLoginState:
+    """The browser polls with its secret; once approved it gets its session, exactly once."""
+    state, found = web_login.claim(db, body.secret)
+    if state != "approved" or found is None:
+        return BotLoginState(state=state)
+    person = db.get(Person, found.person_id)
+    if person is None or not person.is_active:
+        return BotLoginState(state="denied")
+    me = _open_session(db, person, found.telegram_user_id, request, response)
+    return BotLoginState(state="approved", me=me)
 
 
 @router.post("/auth/password", response_model=Me, operation_id="auth_password")

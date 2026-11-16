@@ -29,7 +29,7 @@ from app.models.person import Person
 from app.models.plan_assignment import PlanAssignment
 from app.models.plan_type import PlanType
 from app.models.setting import Setting
-from app.models.web_session import WebCredential, WebSession
+from app.models.web_session import WebCredential, WebLoginRequest, WebSession
 
 __all__ = [
     "OPEN_LEAD_STATUSES",
@@ -64,5 +64,6 @@ __all__ = [
     "Setting",
     "StudentType",
     "WebCredential",
+    "WebLoginRequest",
     "WebSession",
 ]

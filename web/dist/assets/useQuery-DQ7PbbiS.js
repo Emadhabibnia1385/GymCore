@@ -1,1 +1,0 @@
-import{fn as e,un as t}from"./api-DuS_WnIp.js";function n(n,r){return t(n,e,r)}export{n as t};

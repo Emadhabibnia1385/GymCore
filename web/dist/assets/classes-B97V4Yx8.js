@@ -1,0 +1,1 @@
+import{t as e}from"./manage-DpV-QM0Y.js";var t=e;export{t as component};

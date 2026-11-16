@@ -2,9 +2,8 @@
 <html lang="fa" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" content="#f6f8fa" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0a0e12" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#000000" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="جیم‌کور" />
@@ -18,30 +17,30 @@
       (function () {
         try {
           var saved = localStorage.getItem("nasim-theme");
-          var scheme = saved === "light" || saved === "dark" ? saved
-            : matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          // The brand is a black page: dark unless the person chose light.
+          var scheme = saved === "light" ? "light" : "dark";
           document.documentElement.classList.add(scheme);
           document.documentElement.dataset.theme = scheme;
         } catch (e) {}
       })();
     </script>
-    <script type="module" crossorigin src="/assets/index-D6KoptgR.js"></script>
+    <script type="module" crossorigin src="/assets/index-D3c0tkwh.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-WkwZ5CU-.js">
-    <link rel="modulepreload" crossorigin href="/assets/api-DuS_WnIp.js">
-    <link rel="modulepreload" crossorigin href="/assets/useRouter-Du7rXoCV.js">
-    <link rel="modulepreload" crossorigin href="/assets/link-CpVK3e9f.js">
-    <link rel="modulepreload" crossorigin href="/assets/binding-UJfrSWSh.js">
-    <link rel="modulepreload" crossorigin href="/assets/preload-helper-DhKsxmaO.js">
-    <link rel="modulepreload" crossorigin href="/assets/useNavigate-D4w12Eet.js">
-    <link rel="modulepreload" crossorigin href="/assets/lazyRouteComponent-DouJ2eHA.js">
-    <link rel="modulepreload" crossorigin href="/assets/Notice-yKcmgdjb.js">
-    <link rel="modulepreload" crossorigin href="/assets/Spinner-CCTddae5.js">
+    <link rel="modulepreload" crossorigin href="/assets/api-BffBzNFf.js">
+    <link rel="modulepreload" crossorigin href="/assets/useRouter-BofaVNNa.js">
+    <link rel="modulepreload" crossorigin href="/assets/link-caOfK3Vg.js">
+    <link rel="modulepreload" crossorigin href="/assets/binding-CzoQltIq.js">
+    <link rel="modulepreload" crossorigin href="/assets/preload-helper-BfXQNihL.js">
+    <link rel="modulepreload" crossorigin href="/assets/useNavigate-r1PE-UyE.js">
+    <link rel="modulepreload" crossorigin href="/assets/lazyRouteComponent-BPKX8401.js">
+    <link rel="modulepreload" crossorigin href="/assets/Notice-CYhsrxDZ.js">
+    <link rel="modulepreload" crossorigin href="/assets/Spinner-Hv6ICh55.js">
     <link rel="modulepreload" crossorigin href="/assets/queryOptions-Dfvzj6n2.js">
-    <link rel="modulepreload" crossorigin href="/assets/schemas-B5z4z1h1.js">
-    <link rel="modulepreload" crossorigin href="/assets/TextField-ChyLzKM9.js">
-    <link rel="modulepreload" crossorigin href="/assets/KeyValueList-C51G0oQV.js">
-    <link rel="modulepreload" crossorigin href="/assets/SectionCard-CIQ4qFGU.js">
-    <link rel="modulepreload" crossorigin href="/assets/auth-_pS5wM88.js">
+    <link rel="modulepreload" crossorigin href="/assets/schemas-CtXaBPg8.js">
+    <link rel="modulepreload" crossorigin href="/assets/TextField-BFKXMl0d.js">
+    <link rel="modulepreload" crossorigin href="/assets/KeyValueList-QwPVfQsF.js">
+    <link rel="modulepreload" crossorigin href="/assets/SectionCard-Cgldq_PG.js">
+    <link rel="modulepreload" crossorigin href="/assets/auth-C3wz6l5g.js">
     <link rel="stylesheet" crossorigin href="/assets/index-BKO1MKnj.css">
   </head>
   <body>
