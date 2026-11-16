@@ -5,6 +5,7 @@ import DownloadIcon from "~icons/solar/download-minimalistic-linear";
 import UserIcon from "~icons/solar/user-circle-linear";
 import LogoutIcon from "~icons/solar/logout-2-linear";
 import { logout, type Me } from "@/features/auth";
+import { BrandMark } from "@/features/brand";
 import { useInstall } from "@/features/pwa";
 import { t } from "@/strings";
 import { navFor } from "./nav";
@@ -31,7 +32,7 @@ export function AppFrame({ me }: { me: Me }) {
 	return (
 		<>
 			<AppShell
-				brand={<span className="text-lg font-bold text-accent">{t.brand}</span>}
+				brand={<BrandMark />}
 				navLabel={t.nav.label}
 				nav={navFor(me.role).map(({ to, label, Icon }) => ({
 					href: to,

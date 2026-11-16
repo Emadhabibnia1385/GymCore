@@ -13,6 +13,7 @@ from app.core.config import get_settings
 from app.models import Platform, Setting
 from app.models.setting import (
     KEY_BALE_OWNER_CONTACT,
+    KEY_BRAND_VERSION,
     KEY_CARD_NUMBER,
     KEY_COACH_NAME,
     KEY_CONTACT_INTRO,
@@ -25,6 +26,7 @@ from app.models.setting import (
     KEY_PLAN_ORDER_TEXT,
     KEY_REGISTER_CONTACT_TEXT,
     KEY_SIGNUP_URL,
+    KEY_SITE_TITLE,
     KEY_TELEGRAM_OWNER_CONTACT,
     KEY_WEB_REGISTRATION,
 )
@@ -34,6 +36,8 @@ def _defaults() -> dict[str, str]:
     cfg = get_settings()
     return {
         KEY_GYM_NAME: "GymCore",
+        KEY_SITE_TITLE: "GymCore",
+        KEY_BRAND_VERSION: "0",
         KEY_COACH_NAME: "مهدی سرمد",
         KEY_CARD_NUMBER: "",
         KEY_MAIN_INTRO: (

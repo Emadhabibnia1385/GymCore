@@ -1,7 +1,7 @@
 {
-  "name": "جیم‌کور — مهدی سرمد",
-  "short_name": "جیم‌کور",
-  "description": "پنل مدیریت و شاگرد جیم‌کور",
+  "name": "GymCore",
+  "short_name": "GymCore",
+  "description": "GymCore — gym management and student panel",
   "lang": "fa",
   "dir": "rtl",
   "start_url": "/",

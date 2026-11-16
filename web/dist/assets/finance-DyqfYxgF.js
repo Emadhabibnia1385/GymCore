@@ -1,0 +1,1 @@
+import{t as e}from"./money-DAUdP07I.js";var t=e;export{t as component};

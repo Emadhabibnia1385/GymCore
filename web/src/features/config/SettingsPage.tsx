@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BottomSheet, Button, ErrorState, Notice, PageHeader, PageSkeleton, SectionCard, TextAreaField, TextField } from "@nyxon/nasim";
 import { useState } from "react";
+import { BrandCard } from "@/features/brand";
 import { fill, t } from "@/strings";
 import { contactsQuery, moveContact, patchContact, saveSetting, settingsQuery, type Contact, type Setting } from "./api";
 
@@ -25,6 +26,7 @@ export function SettingsPage() {
 		<div className="flex flex-col gap-6">
 			<PageHeader title={s.title} description={s.hint} />
 			{error ? <Notice tone="danger" role="alert">{error.message}</Notice> : null}
+			<BrandCard />
 			<SectionCard title={s.title}>
 				<ul className="flex flex-col gap-2">
 					{settings.data.map((row) => (

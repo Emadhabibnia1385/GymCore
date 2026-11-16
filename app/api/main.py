@@ -24,6 +24,7 @@ from app import __version__
 from app.api import web as web_api
 from app.api import (
     web_admin,
+    web_brand,
     web_coach,
     web_config,
     web_crm,
@@ -71,6 +72,8 @@ app.include_router(web_manage.router)
 app.include_router(web_crm.router)
 app.include_router(web_config.router)
 app.include_router(web_programs.router)
+app.include_router(web_brand.public)
+app.include_router(web_brand.admin)
 
 _DOMAIN_STATUS = {
     NotFoundError: 404, ValidationError: 422, ConflictError: 409, AuthError: 403,

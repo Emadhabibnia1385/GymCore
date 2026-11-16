@@ -11,6 +11,7 @@ import {
 	RegisterForm,
 	type Me,
 } from "@/features/auth";
+import { BrandMark } from "@/features/brand";
 import { t } from "@/strings";
 
 export const Route = createFileRoute("/login")({
@@ -38,7 +39,7 @@ function Login() {
 	return (
 		<main className="grid min-h-dvh place-items-center px-page py-8">
 			<div className="flex w-full max-w-md flex-col gap-4">
-				<h1 className="text-center text-3xl font-bold text-accent">{t.brand}</h1>
+				<h1 className="flex justify-center"><BrandMark size="hero" /></h1>
 				<SectionCard title={t.login.title} description={t.login.hint}>
 					<div className="flex flex-col gap-5">
 						{canSignUp ? (

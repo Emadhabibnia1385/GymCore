@@ -1,0 +1,1 @@
+import{t as e}from"./config-ByeQDrGJ.js";var t=e;export{t as component};

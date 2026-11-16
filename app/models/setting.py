@@ -31,5 +31,7 @@ KEY_LOW_SESSION_THRESHOLD = "low_session_threshold"
 KEY_TELEGRAM_OWNER_CONTACT = "telegram_owner_contact"
 KEY_BALE_OWNER_CONTACT = "bale_owner_contact"
 KEY_NOTIFY_ON_ATTENDANCE = "notify_on_attendance"
+KEY_SITE_TITLE = "site_title"  # the web panel's browser-tab title
+KEY_BRAND_VERSION = "brand_version"  # bumped when a logo changes, so browsers refetch it
 KEY_WEB_REGISTRATION = "web_registration_open"  # may a student sign up on the web panel
 KEY_COURSE_END_MESSAGE = "course_end_message"  # sent when a course's last session is recorded

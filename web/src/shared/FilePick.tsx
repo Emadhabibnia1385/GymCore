@@ -3,7 +3,7 @@ import { Button } from "@nyxon/nasim";
 import { t } from "@/strings";
 
 /** A file chosen from the computer or phone; shows the chosen name. */
-export function FilePick({ label, file, onChange }: { label: string; file: File | null; onChange: (file: File | null) => void }) {
+export function FilePick({ label, file, onChange, accept = ".pdf,.jpg,.jpeg,.png,.webp,.txt,.docx,.xlsx" }: { label: string; file: File | null; onChange: (file: File | null) => void; accept?: string }) {
 	const input = useRef<HTMLInputElement>(null);
 	return (
 		<div className="flex flex-col gap-2">
@@ -12,7 +12,7 @@ export function FilePick({ label, file, onChange }: { label: string; file: File 
 				<Button size="sm" variant="secondary" onPress={() => input.current?.click()}>{t.plans.pickFile}</Button>
 				<span className="min-w-0 truncate text-sm text-muted" dir="auto">{file?.name ?? t.plans.noFile}</span>
 			</div>
-			<input ref={input} type="file" className="sr-only" tabIndex={-1} accept=".pdf,.jpg,.jpeg,.png,.webp,.txt,.docx,.xlsx" onChange={(event) => onChange(event.target.files?.[0] ?? null)} />
+			<input ref={input} type="file" className="sr-only" tabIndex={-1} accept={accept} onChange={(event) => onChange(event.target.files?.[0] ?? null)} />
 		</div>
 	);
 }
