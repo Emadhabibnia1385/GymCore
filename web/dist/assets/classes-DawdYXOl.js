@@ -1,0 +1,1 @@
+import{t as e}from"./manage-DSDo8ImY.js";var t=e;export{t as component};

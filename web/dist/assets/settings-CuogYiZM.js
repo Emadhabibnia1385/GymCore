@@ -1,0 +1,1 @@
+import{t as e}from"./config-LIClfjBo.js";var t=e;export{t as component};

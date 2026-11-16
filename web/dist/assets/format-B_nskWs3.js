@@ -1,0 +1,1 @@
+import{i as e}from"./api-DuS_WnIp.js";var t=new Intl.NumberFormat(`fa-IR`);function n(e){return t.format(e)}function r(t){return`${n(t)} ${e.units.toman}`}export{r as n,n as t};

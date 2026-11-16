@@ -1,0 +1,1 @@
+import{t as e}from"./plans-LDpz6hug.js";var t=e;export{t as component};

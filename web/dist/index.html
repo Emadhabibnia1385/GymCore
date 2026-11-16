@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f6f8fa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0e12" media="(prefers-color-scheme: dark)" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="جیم‌کور" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180.png" />
+    <link rel="preload" href="/fonts/webfonts/Vazirmatn[wght].woff2" as="font" type="font/woff2" crossorigin />
+    <title>جیم‌کور</title>
+    <!-- Picks light or dark before the first paint so neither theme flashes the other. -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem("nasim-theme");
+          var scheme = saved === "light" || saved === "dark" ? saved
+            : matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          document.documentElement.classList.add(scheme);
+          document.documentElement.dataset.theme = scheme;
+        } catch (e) {}
+      })();
+    </script>
+    <script type="module" crossorigin src="/assets/index-D6KoptgR.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-WkwZ5CU-.js">
+    <link rel="modulepreload" crossorigin href="/assets/api-DuS_WnIp.js">
+    <link rel="modulepreload" crossorigin href="/assets/useRouter-Du7rXoCV.js">
+    <link rel="modulepreload" crossorigin href="/assets/link-CpVK3e9f.js">
+    <link rel="modulepreload" crossorigin href="/assets/binding-UJfrSWSh.js">
+    <link rel="modulepreload" crossorigin href="/assets/preload-helper-DhKsxmaO.js">
+    <link rel="modulepreload" crossorigin href="/assets/useNavigate-D4w12Eet.js">
+    <link rel="modulepreload" crossorigin href="/assets/lazyRouteComponent-DouJ2eHA.js">
+    <link rel="modulepreload" crossorigin href="/assets/Notice-yKcmgdjb.js">
+    <link rel="modulepreload" crossorigin href="/assets/Spinner-CCTddae5.js">
+    <link rel="modulepreload" crossorigin href="/assets/queryOptions-Dfvzj6n2.js">
+    <link rel="modulepreload" crossorigin href="/assets/schemas-B5z4z1h1.js">
+    <link rel="modulepreload" crossorigin href="/assets/TextField-ChyLzKM9.js">
+    <link rel="modulepreload" crossorigin href="/assets/KeyValueList-C51G0oQV.js">
+    <link rel="modulepreload" crossorigin href="/assets/SectionCard-CIQ4qFGU.js">
+    <link rel="modulepreload" crossorigin href="/assets/auth-_pS5wM88.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-BKO1MKnj.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

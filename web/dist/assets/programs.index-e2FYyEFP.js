@@ -1,0 +1,1 @@
+import{t as e}from"./programs-C7JIMxtG.js";var t=e;export{t as component};

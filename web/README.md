@@ -33,3 +33,15 @@ bun run typecheck && bun run test && bun run build
 
 Sign-in: Telegram's widget → `POST /api/auth/telegram` verifies the signature → an httpOnly cookie
 keeps the browser signed in for 180 days of use. Admin rights are the bot's own owner whitelist.
+
+## Shipping a change
+
+`web/dist` is committed: the server has no build tools and serves it as it is (nginx,
+`deploy/nginx/gym.nyxon.tech.conf`). So a change to the panel is:
+
+```bash
+cd web && bun run build && cd .. && git add -A web && git commit && git push
+```
+
+The server picks it up within a minute, like any other update. A change to `src/` without a
+rebuilt `dist/` reaches nobody.
