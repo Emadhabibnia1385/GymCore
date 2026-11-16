@@ -173,6 +173,11 @@ def list_expenses(db: Session, jy: int, jm: int) -> list[Expense]:
 def month_report(db: Session, jy: int, jm: int) -> MonthReport:
     """Income (by payment kind) and expenses (by category) of one Jalali month."""
     first, last = jalali_month_bounds(jy, jm)
+    return report_between(db, first, last, jy, jm)
+
+
+def report_between(db: Session, first: date, last: date, jy: int = 0, jm: int = 0) -> MonthReport:
+    """The same report over any run of days, ends included (a month, a year, a custom range)."""
 
     income_by_kind = dict.fromkeys(PaymentKind, 0)
     payment_count = correction_count = 0

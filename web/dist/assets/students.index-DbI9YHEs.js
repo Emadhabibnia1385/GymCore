@@ -1,0 +1,1 @@
+import{n as e}from"./students-H_rptwxg.js";var t=e;export{t as component};

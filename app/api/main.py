@@ -29,6 +29,7 @@ from app.api import (
     web_config,
     web_crm,
     web_manage,
+    web_period,
     web_programs,
     web_reports,
     web_sheet,
@@ -73,6 +74,7 @@ app.include_router(web_coach.router)
 app.include_router(web_manage.router)
 app.include_router(web_crm.router)
 app.include_router(web_config.router)
+app.include_router(web_period.router)
 app.include_router(web_programs.router)
 app.include_router(web_reports.router)
 app.include_router(web_sheet.router)

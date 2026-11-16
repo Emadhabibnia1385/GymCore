@@ -1,0 +1,1 @@
+import{Bn as e,Vn as t}from"./api-bJqGKSNC.js";import{n}from"./programs-uhx386RK.js";import{r}from"./index-z4_CHDHD.js";var i=t(),a=e();function o(){let e=(0,i.c)(2),{id:t}=r.useParams(),o=Number(t),s;return e[0]===o?s=e[1]:(s=(0,a.jsx)(n,{id:o}),e[0]=o,e[1]=s),s}export{o as component};

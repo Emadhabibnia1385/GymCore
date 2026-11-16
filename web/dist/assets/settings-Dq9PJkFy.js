@@ -1,0 +1,1 @@
+import{t as e}from"./config-DzcXm9iF.js";var t=e;export{t as component};

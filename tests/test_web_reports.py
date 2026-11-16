@@ -82,3 +82,43 @@ def test_the_sheet_lays_a_month_out_by_day_and_student(db, coach):
     assert sum(1 for d in sheet["days"] if d["today"]) == 1
     last = coach.get("/api/admin/attendance/sheet?year=1390&month=1").json()
     assert last["columns"] == [] and len(last["days"]) == 31  # a month before anyone started
+
+
+def test_money_over_a_month_a_year_a_run_of_days_and_a_custom_range(db, coach):
+    from datetime import timedelta
+
+    student = persons_service.create(db, name="سارا")
+    kind = classes_service.list_class_types(db, only_active=True)[0]
+    course = courses_service.create(
+        db, client_id=student.id, class_type_id=kind.id, sessions_total=12, tuition=1_000_000,
+        start_date=clock.today(), weekdays="0", class_times="0@18:00",
+    )
+    today = clock.today()
+    payments_service.record(db, student.id, 400_000, PaymentKind.TUITION, today,
+                            course_id=course.id, notify=False)
+    finance_service.record_expense(db, 150_000, ExpenseCategory.BILLS, today)
+
+    month = coach.get("/api/admin/finance/period").json()
+    assert (month["kind"], month["income"], month["expenses"], month["net"]) == (
+        "month", 400_000, 150_000, 250_000)
+    assert month["next_month"] is None and month["previous"]["income"] == 0
+    assert month["expense_rows"][0]["amount"] == 150_000
+    assert month["income_by_kind"][0]["amount"] == 400_000
+
+    last = coach.get("/api/admin/finance/period?last=7").json()
+    assert last["kind"] == "last" and last["days"] == 7 and last["income"] == 400_000
+    assert len(last["series"]) == 7 and sum(p["income"] for p in last["series"]) == 400_000
+
+    year = coach.get(f"/api/admin/finance/period?jy={month['jy']}").json()
+    assert year["kind"] == "year" and year["income"] == 400_000 and len(year["series"]) <= 12
+
+    span = f"start={(today - timedelta(days=2)).isoformat()}&end={today.isoformat()}"
+    custom = coach.get(f"/api/admin/finance/period?{span}").json()
+    assert custom["kind"] == "range" and custom["income"] == 400_000 and custom["days"] == 3
+    outside = coach.get(
+        f"/api/admin/finance/period?start={(today - timedelta(days=30)).isoformat()}"
+        f"&end={(today - timedelta(days=10)).isoformat()}").json()
+    assert outside["income"] == 0 and outside["previous"]["income"] == 0
+
+    backwards = f"start={today}&end={today - timedelta(days=1)}"
+    assert coach.get(f"/api/admin/finance/period?{backwards}").status_code == 422

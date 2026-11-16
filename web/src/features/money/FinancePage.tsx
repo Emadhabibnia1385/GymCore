@@ -1,34 +1,35 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { BarTable, Button, EmptyState, ErrorState, PageHeader, PageSkeleton, SectionCard, StatCard, StaticTable, StatusChip, TrendChip } from "@nyxon/nasim";
+import { AreaChart, BarTable, Button, EmptyState, ErrorState, PageHeader, PageSkeleton, SectionCard, StatCard, StaticTable, StatusChip, TrendChip } from "@nyxon/nasim";
 import { useState } from "react";
-import { YearChart } from "@/features/dashboard/YearChart";
+import { yTicks } from "@/features/dashboard/chart";
 import { formatNumber, formatToman } from "@/shared/format";
 import { TINT, tintStyle } from "@/shared/personColor";
 import { fill, t } from "@/strings";
-import { expensesQuery, monthQuery, owingQuery, yearQuery, type Line } from "./api";
+import { owingQuery, periodQuery, yearQuery, type Line, type Period, type PeriodQuery } from "./api";
 import { ExpenseSheet } from "./ExpenseSheet";
 import { PaymentSheet, type PaymentTarget } from "./PaymentSheet";
+import { type Mode, PeriodBar } from "./PeriodBar";
 
 const m = t.money;
 const change = (now: number, before: number | undefined) => (before ? (now - before) / before : null);
 const lines = (rows: Line[]) => rows.map((line) => ({ key: line.key, label: line.label, value: Math.max(line.amount, 0), cells: [formatToman(line.amount)] }));
 
 export function FinancePage() {
-	const [month, setMonth] = useState<[number, number] | null>(null);
+	const [mode, setMode] = useState<Mode>("month");
+	const [query, setQuery] = useState<PeriodQuery>({});
 	const [payment, setPayment] = useState<PaymentTarget | null>(null);
 	const [expenseOpen, setExpenseOpen] = useState(false);
-	const report = useQuery({ ...monthQuery(month?.[0] ?? null, month?.[1] ?? null), placeholderData: keepPreviousData });
+	const report = useQuery({ ...periodQuery(query), placeholderData: keepPreviousData });
 	const jy = report.data?.jy ?? 0;
 	const year = useQuery({ ...yearQuery(jy), enabled: jy > 0 });
-	const expenses = useQuery({ ...expensesQuery(jy, report.data?.jm ?? 1), enabled: jy > 0 });
 	const owing = useQuery(owingQuery);
 
 	if (report.isPending) return <PageSkeleton />;
 	if (report.isError) return <ErrorState as="h1" onRetry={() => void report.refetch()} />;
 	const data = report.data;
-	const before = year.data?.rows.find((row) => row.jm === data.jm - 1);
-	const incomeChange = change(data.income, before?.income);
-	const expenseChange = change(data.expenses, before?.expenses);
+	const incomeChange = change(data.income, data.previous.income);
+	const expenseChange = change(data.expenses, data.previous.expenses);
+	const vs = data.kind === "year" ? t.money.vsLastYear : data.kind === "month" ? t.dashboard.vsLast : t.money.vsBefore;
 	const owed = (owing.data ?? []).reduce((sum, row) => sum + row.amount, 0);
 	const kept = data.income > 0 ? Math.round((data.net / data.income) * 100) : null;
 
@@ -36,15 +37,11 @@ export function FinancePage() {
 		<div className="flex flex-col gap-6">
 			<PageHeader title={m.title} description={data.label} actions={<Button size="sm" onPress={() => setExpenseOpen(true)}>{m.recordExpense}</Button>} />
 
-			<div className="flex items-center justify-between gap-2 rounded-box border border-border bg-surface p-2">
-				<Button size="sm" variant="secondary" onPress={() => setMonth(data.prev)}>{m.prevMonth}</Button>
-				<span className="font-semibold">{data.label}</span>
-				{data.next ? <Button size="sm" variant="secondary" onPress={() => setMonth(data.next)}>{m.nextMonth}</Button> : <span className="w-20" />}
-			</div>
+			<PeriodBar mode={mode} onMode={setMode} data={data} query={query} onQuery={setQuery} />
 
 			<div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-				<StatCard label={m.income} value={formatToman(data.income)} hint={`${fill(m.payments, { n: formatNumber(data.payments) })}${data.corrections ? ` ${fill(m.corrections, { n: formatNumber(data.corrections) })}` : ""}`} trend={incomeChange === null ? undefined : <TrendChip change={incomeChange} suffix={t.dashboard.vsLast} />} />
-				<StatCard label={m.expenses} value={formatToman(data.expenses)} hint={fill(m.expenseCount, { n: formatNumber(expenses.data?.length ?? 0) })} trend={expenseChange === null ? undefined : <TrendChip change={expenseChange} isInverse suffix={t.dashboard.vsLast} />} />
+				<StatCard label={m.income} value={formatToman(data.income)} hint={`${fill(m.payments, { n: formatNumber(data.payments) })}${data.corrections ? ` ${fill(m.corrections, { n: formatNumber(data.corrections) })}` : ""}`} trend={incomeChange === null ? undefined : <TrendChip change={incomeChange} suffix={vs} />} />
+				<StatCard label={m.expenses} value={formatToman(data.expenses)} hint={fill(m.expenseCount, { n: formatNumber(data.expense_rows.length) })} trend={expenseChange === null ? undefined : <TrendChip change={expenseChange} isInverse suffix={vs} />} />
 				<StatCard label={m.net} value={formatToman(data.net)} hint={kept === null || kept < 0 ? undefined : fill(m.kept, { p: formatNumber(kept) })} />
 				<StatCard label={m.owing} value={formatToman(owed)} hint={fill(t.reports.kpi.owingHint, { n: formatNumber(owing.data?.length ?? 0) })} />
 			</div>
@@ -78,12 +75,12 @@ export function FinancePage() {
 					)}
 				</SectionCard>
 
-				<SectionCard title={m.expensesOfMonth}>
-					{expenses.data && expenses.data.length > 0 ? (
+				<SectionCard title={m.expensesOfPeriod}>
+					{data.expense_rows.length > 0 ? (
 						<StaticTable
-							caption={m.expensesOfMonth}
+							caption={m.expensesOfPeriod}
 							columns={[m.date, m.category, m.amount]}
-							rows={expenses.data.map((row) => ({
+							rows={data.expense_rows.map((row) => ({
 								id: String(row.id),
 								cells: [row.date, `${row.category_label}${row.note ? ` · ${row.note}` : ""}`, row.amount < 0 ? <StatusChip key="c" size="sm" tone="warning" label={`${m.correctionMark} ${formatToman(row.amount)}`} /> : formatToman(row.amount)],
 							}))}
@@ -103,7 +100,9 @@ export function FinancePage() {
 
 			{year.data ? (
 				<div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
-					<YearChart year={String(year.data.jy)} months={year.data.rows.map((row) => ({ month: row.jm, label: row.label, income: row.income, expenses: row.expenses }))} />
+					<SectionCard title={fill(m.chartOf, { label: data.label })}>
+						<PeriodChart data={data} />
+					</SectionCard>
 					<SectionCard title={fill(m.year, { year: String(year.data.jy) })}>
 						<StaticTable
 							caption={m.yearCaption}
@@ -121,5 +120,25 @@ export function FinancePage() {
 			<PaymentSheet target={payment} onClose={() => setPayment(null)} />
 			<ExpenseSheet isOpen={expenseOpen} onClose={() => setExpenseOpen(false)} />
 		</div>
+	);
+}
+
+function PeriodChart({ data }: { data: Period }) {
+	const peak = data.series.reduce((best, row) => (row.income > best.income ? row : best), data.series[0]);
+	const ceiling = Math.max(0, ...data.series.flatMap((row) => [row.income, row.expenses]));
+	const figure = (value: number) => ({ value, text: formatToman(value) });
+	return (
+		<AreaChart
+			title={fill(m.chartOf, { label: data.label })}
+			summary={fill(m.chartSummary, { peak: peak?.label ?? "—" })}
+			empty={t.dashboard.chartEmpty}
+			ticks={data.series.map((row) => ({ key: row.key, label: row.label, title: row.label }))}
+			series={[
+				{ key: "income", label: t.dashboard.chartIncome, points: data.series.map((row) => figure(row.income)) },
+				{ key: "expenses", label: t.dashboard.chartExpenses, points: data.series.map((row) => figure(row.expenses)) },
+			]}
+			yTicks={yTicks(ceiling)}
+			table={{ showLabel: t.dashboard.chartShowTable, label: t.dashboard.chartTableLabel, stepHeader: m.step }}
+		/>
 	);
 }

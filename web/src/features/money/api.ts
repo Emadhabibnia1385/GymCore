@@ -24,3 +24,35 @@ export const categoriesQuery = queryOptions({ queryKey: ["admin", "categories"],
 const post = <T>(path: string, body: unknown) => apiFetch<T>(path, { method: "POST", body: JSON.stringify(body) });
 export const recordPayment = (body: { person_id: number; course_id: number | null; amount: number; kind: string; paid_at: string; note: string | null }) => post<Saved>("/api/admin/payments", body);
 export const recordExpense = (body: { amount: number; category: string; spent_at: string; note: string | null }) => post<Saved>("/api/admin/expenses", body);
+
+export type PeriodQuery = { jy?: number; jm?: number; last?: number; start?: string; end?: string };
+export type Period = {
+	kind: "month" | "year" | "last" | "range";
+	label: string;
+	start: string;
+	end: string;
+	days: number;
+	jy: number;
+	jm: number;
+	income: number;
+	income_by_kind: Line[];
+	payments: number;
+	corrections: number;
+	expenses: number;
+	expenses_by_category: Line[];
+	net: number;
+	previous: { income: number; expenses: number; net: number };
+	series: { key: string; label: string; income: number; expenses: number }[];
+	expense_rows: ExpenseRow[];
+	prev_month: [number, number] | null;
+	next_month: [number, number] | null;
+};
+export const periodQuery = (query: PeriodQuery) =>
+	queryOptions({
+		queryKey: ["admin", "finance", "period", query],
+		queryFn: () => {
+			const params = new URLSearchParams();
+			for (const [key, value] of Object.entries(query)) if (value !== undefined) params.set(key, String(value));
+			return apiFetch<Period>(`/api/admin/finance/period?${params}`);
+		},
+	});
