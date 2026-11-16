@@ -1,0 +1,1 @@
+import{n as e}from"./students-D5r274sP.js";var t=e;export{t as component};

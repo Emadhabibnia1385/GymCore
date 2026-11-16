@@ -1,0 +1,1 @@
+import{t as e}from"./manage-n3lpsRET.js";var t=e;export{t as component};

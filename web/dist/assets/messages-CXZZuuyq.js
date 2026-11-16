@@ -1,0 +1,1 @@
+import{n as e}from"./config-Cu3APY4x.js";var t=e;export{t as component};
