@@ -78,6 +78,9 @@ class WebLoginRequest(Base):
     status: Mapped[str] = mapped_column(String(12), default="PENDING")
     person_id: Mapped[int | None] = mapped_column(ForeignKey("persons.id"))
     telegram_user_id: Mapped[str | None] = mapped_column(String(32))
+    # Set when a signed-in web account asks to connect a Telegram account to itself
+    # (rather than a browser asking to be signed in): the person that asked.
+    link_person_id: Mapped[int | None] = mapped_column()
     user_agent: Mapped[str | None] = mapped_column(String(200))
     client_ip: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(

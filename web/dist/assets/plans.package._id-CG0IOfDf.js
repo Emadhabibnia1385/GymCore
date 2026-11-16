@@ -1,0 +1,1 @@
+import{Fn as e,In as t}from"./api-CCneC8pg.js";import{n}from"./plans-DK05y9UI.js";import{t as r}from"./index-ByLoxx8Y.js";var i=t(),a=e();function o(){let e=(0,i.c)(2),{id:t}=r.useParams(),o=Number(t),s;return e[0]===o?s=e[1]:(s=(0,a.jsx)(n,{id:o}),e[0]=o,e[1]=s),s}export{o as component};

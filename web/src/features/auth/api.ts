@@ -36,3 +36,11 @@ export type BotLogin = { url: string; secret: string; expires_in: number };
 export type BotLoginState = { state: "pending" | "approved" | "denied" | "expired"; me: Me | null };
 export const startBotLogin = () => post<BotLogin>("/api/auth/bot-login");
 export const pollBotLogin = (secret: string) => post<BotLoginState>("/api/auth/bot-login/status", { secret });
+
+export type TelegramLink = { url: string; expires_in: number };
+export const telegramLinkQuery = queryOptions({
+	queryKey: ["telegram-link"],
+	queryFn: () => apiFetch<{ linked: boolean }>("/api/auth/telegram-link"),
+	staleTime: 0,
+});
+export const startTelegramLink = () => post<TelegramLink>("/api/auth/telegram-link");

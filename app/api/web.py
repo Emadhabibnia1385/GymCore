@@ -27,7 +27,7 @@ from app.services import payments as payments_service
 from app.services import schedule as schedule_service
 from app.services import settings as settings_service
 from app.services import stats as stats_service
-from app.services import web_accounts, web_auth, web_login
+from app.services import web_accounts, web_auth, web_link, web_login
 
 _COOKIE_MAX_AGE = 400 * 24 * 3600  # the longest a browser keeps a cookie; the server decides
 
@@ -240,6 +240,49 @@ def bot_login_status(
         return BotLoginState(state="denied")
     me = _open_session(db, person, found.telegram_user_id, request, response)
     return BotLoginState(state="approved", me=me)
+
+
+class TelegramLinkStart(BaseModel):
+    url: str
+    expires_in: int
+
+
+class TelegramLinkState(BaseModel):
+    linked: bool
+
+
+@router.post(
+    "/auth/telegram-link", response_model=TelegramLinkStart, operation_id="auth_telegram_link"
+)
+def telegram_link_start(
+    request: Request, session: WebSession = Depends(current_session), db: Session = Depends(get_db)
+) -> TelegramLinkStart:
+    """A signed-in password account asks to connect Telegram; the person approves in the bot."""
+    if web_accounts.username_of(db, session.person_id) is None:
+        raise HTTPException(status_code=409, detail="اول برای حساب‌ت نام کاربری و گذرواژه بساز")
+    if web_link.has_telegram(db, session.person_id):
+        raise HTTPException(status_code=409, detail="تلگرام از قبل به این حساب وصل است")
+    client = _client(request)
+    if web_accounts.bot_logins.blocked(client):
+        raise HTTPException(status_code=429, detail=web_accounts.THROTTLED)
+    web_accounts.bot_logins.hit(client)
+    token = web_login.start_link(
+        db, session.person_id, request.headers.get("user-agent"), client
+    )
+    bot = get_settings().telegram_bot_username
+    return TelegramLinkStart(
+        url=f"https://t.me/{bot}?start={web_login.LINK_PREFIX}{token}",
+        expires_in=int(web_login.TTL.total_seconds()),
+    )
+
+
+@router.get(
+    "/auth/telegram-link", response_model=TelegramLinkState, operation_id="auth_telegram_state"
+)
+def telegram_link_state(
+    session: WebSession = Depends(current_session), db: Session = Depends(get_db)
+) -> TelegramLinkState:
+    return TelegramLinkState(linked=web_link.has_telegram(db, session.person_id))
 
 
 @router.post("/auth/password", response_model=Me, operation_id="auth_password")

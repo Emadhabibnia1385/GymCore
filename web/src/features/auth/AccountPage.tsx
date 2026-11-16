@@ -3,6 +3,7 @@ import { KeyValueList, PageHeader, SectionCard } from "@nyxon/nasim";
 import { t } from "@/strings";
 import { meQuery } from "./api";
 import { ChangePasswordForm, CreatePasswordForm } from "./forms";
+import { TelegramLinkCard } from "./TelegramLinkCard";
 
 const a = t.account;
 
@@ -16,6 +17,7 @@ export function AccountPage() {
 					<SectionCard title={a.username}>
 						<KeyValueList items={[{ label: a.username, value: me.username, ltr: true }]} />
 					</SectionCard>
+					<TelegramLinkCard />
 					<SectionCard title={a.changeTitle}>
 						<ChangePasswordForm />
 					</SectionCard>

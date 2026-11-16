@@ -53,6 +53,10 @@ class Dispatcher:
                 if login_token is not None:  # a «log in with the bot» link from the web panel
                     web_login.offer(self.ctx, db, chat_id, login_token)
                     return
+                link_token = web_login.link_token_from_start(text)
+                if link_token is not None:  # «connect Telegram» from a signed-in web account
+                    web_login.offer_link(self.ctx, db, chat_id, link_token)
+                    return
                 state = self.store.get(self.ctx.platform, chat_id)
                 if state is not None and state.flow == "admin":
                     if auth.is_admin(db, self.ctx.platform, user_id):

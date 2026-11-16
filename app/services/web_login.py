@@ -24,6 +24,7 @@ from app.models import Person, WebLoginRequest
 TTL = timedelta(minutes=5)
 PENDING, APPROVED, DENIED, CONSUMED = "PENDING", "APPROVED", "DENIED", "CONSUMED"
 START_PREFIX = "wl_"
+LINK_PREFIX = "wk_"  # «connect Telegram», started from a signed-in web account
 
 
 def _hash(value: str) -> str:
@@ -66,7 +67,7 @@ def pending(db: Session, token: str) -> WebLoginRequest | None:
 
 def approve(db: Session, token: str, person: Person, telegram_user_id: str) -> bool:
     request = pending(db, token)
-    if request is None or not person.is_active:
+    if request is None or request.link_person_id is not None or not person.is_active:
         return False
     request.status = APPROVED
     request.person_id = person.id
@@ -123,3 +124,26 @@ def describe_device(user_agent: str | None) -> str:
         None,
     )
     return f"{browser} روی {system}" if system else browser
+
+
+# --- connecting Telegram to a username/password account ---
+
+
+def start_link(db: Session, person_id: int, user_agent: str | None, client_ip: str | None) -> str:
+    """Open a «connect Telegram» request for a signed-in web account; returns the bot token."""
+    now = _now()
+    db.execute(delete(WebLoginRequest).where(WebLoginRequest.expires_at < now - TTL))
+    token = secrets.token_urlsafe(18)
+    db.add(WebLoginRequest(
+        token_hash=_hash(token), secret_hash=_hash(secrets.token_urlsafe(32)),  # nobody polls it
+        status=PENDING, link_person_id=person_id,
+        user_agent=(user_agent or "")[:200] or None,
+        client_ip=(client_ip or "")[:64] or None, expires_at=now + TTL,
+    ))
+    db.commit()
+    return token
+
+
+def pending_link(db: Session, token: str) -> WebLoginRequest | None:
+    request = pending(db, token)
+    return request if request is not None and request.link_person_id is not None else None
