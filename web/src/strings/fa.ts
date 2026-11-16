@@ -1,0 +1,73 @@
+// Every word the person sees. Screens take their copy from here, never inline.
+export const t = {
+	brand: "جیم‌کور",
+	theme: { light: "حالت روشن", dark: "حالت تیره" },
+	nav: {
+		label: "منوی اصلی",
+		home: "خانه",
+	},
+	account: { logout: "خروج", install: "نصب برنامه", coach: "مربی", student: "شاگرد" },
+	login: {
+		title: "ورود به جیم‌کور",
+		hint: "با حساب تلگرامت وارد شو. بعد از اولین ورود، این دستگاه یادش می‌ماند و دیگر لازم نیست دوباره وارد شوی.",
+		notice: "برای ورود، حساب تلگرامت باید قبلاً ربات را استارت کرده باشد.",
+		failed: "ورود انجام نشد",
+		loading: "در حال آماده‌سازی دکمهٔ ورود…",
+		widgetFailed: "دکمهٔ ورود تلگرام بارگیری نشد. اینترنت را بررسی کن (در ایران ممکن است فیلترشکن لازم باشد).",
+	},
+	errors: {
+		generic: "مشکلی پیش آمد؛ دوباره امتحان کن.",
+		retry: "تلاش دوباره",
+		notFoundTitle: "این صفحه پیدا نشد",
+		notFoundHint: "آدرس را بررسی کن یا به خانه برگرد.",
+		backHome: "رفتن به خانه",
+		offline: "اینترنت قطع است؛ آخرین اطلاعات دیده‌شده نمایش داده می‌شود.",
+	},
+	dashboard: {
+		title: "داشبورد",
+		income: "درآمد این ماه",
+		expenses: "هزینهٔ این ماه",
+		net: "سود خالص",
+		paymentsHint: "{n} پرداخت",
+		students: "شاگردان",
+		activeCourses: "دورهٔ فعال",
+		programs: "برنامهٔ ارسال‌شده",
+		chartTitle: "درآمد و هزینهٔ سال {year}",
+		chartIncome: "درآمد",
+		chartExpenses: "هزینه",
+		chartEmpty: "هنوز پرداخت یا هزینه‌ای در این سال ثبت نشده.",
+		chartShowTable: "نمایش جدول ارقام",
+		chartTableLabel: "درآمد و هزینهٔ هر ماه",
+		chartStep: "ماه",
+		chartSummary: "درآمد و هزینهٔ ماه‌های سال {year}؛ بیشترین درآمد در {peak}.",
+		owingTitle: "بدهکارها",
+		owingHint: "{count} دوره، جمعاً {total}",
+		owingNone: "همهٔ دوره‌ها تسویه‌اند.",
+		owingCaption: "بزرگ‌ترین بدهی‌ها",
+		student: "شاگرد",
+		course: "کلاس",
+		amount: "مبلغ",
+		todayTitle: "کلاس‌های امروز",
+		todayNone: "امروز کلاسی در برنامه نیست.",
+		todayCaption: "کلاس‌های امروز",
+		time: "ساعت",
+		noTime: "بدون ساعت",
+		followUps: "پیگیری‌ها",
+		dueToday: "پیگیری امروز",
+		renewals: "نیازمند تمدید",
+		openLeads: "سرنخ باز",
+		followUpsHint: "هر کدام در ربات: «📇 پیگیری‌ها»",
+	},
+	student: {
+		title: "پنل شاگرد",
+		hello: "سلام {name}",
+		soonTitle: "کلاس‌ها و برنامه‌هایت به‌زودی اینجاست",
+		soonHint: "فعلاً کلاس‌ها، جدول جلسات و برنامه‌هایت را در ربات تلگرام ببین.",
+	},
+	units: { toman: "تومان" },
+} as const;
+
+/** Fill `{name}` slots in a string from `t`. */
+export function fill(text: string, values: Record<string, string | number>): string {
+	return text.replace(/\{(\w+)\}/g, (_, key: string) => String(values[key] ?? ""));
+}

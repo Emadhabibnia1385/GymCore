@@ -1,0 +1,46 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { Notice, SectionCard } from "@nyxon/nasim";
+import { loginConfigQuery, loginWithTelegram, meQuery, TelegramLoginButton } from "@/features/auth";
+import { t } from "@/strings";
+
+export const Route = createFileRoute("/login")({
+	// Already signed in on this device: straight to the app.
+	beforeLoad: async ({ context }) => {
+		const me = await context.queryClient.fetchQuery(meQuery).catch(() => null);
+		if (me) throw redirect({ to: "/" });
+	},
+	component: Login,
+});
+
+function Login() {
+	const queryClient = useQueryClient();
+	const navigate = useNavigate();
+	const config = useQuery(loginConfigQuery);
+	const signIn = useMutation({
+		mutationFn: loginWithTelegram,
+		onSuccess: async (me) => {
+			queryClient.setQueryData(meQuery.queryKey, me);
+			await navigate({ to: "/" });
+		},
+	});
+
+	return (
+		<main className="grid min-h-dvh place-items-center px-page py-8">
+			<div className="flex w-full max-w-md flex-col gap-4">
+				<h1 className="text-center text-3xl font-bold text-accent">{t.brand}</h1>
+				<SectionCard title={t.login.title} description={t.login.hint}>
+					<div className="flex flex-col gap-4">
+						{signIn.isError ? (
+							<Notice tone="danger" title={t.login.failed}>
+								{signIn.error.message}
+							</Notice>
+						) : null}
+						{config.data ? <TelegramLoginButton botUsername={config.data.bot_username} onAuth={(user) => signIn.mutate(user)} /> : null}
+						<Notice tone="info">{t.login.notice}</Notice>
+					</div>
+				</SectionCard>
+			</div>
+		</main>
+	);
+}
