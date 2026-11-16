@@ -59,7 +59,7 @@ export function CourseDetailPage({ role, id, backHref }: { role: "admin" | "stud
 				actions={<Link to="/students/$id" params={{ id: String(data.client_id) }} className="text-sm text-accent underline">{c.studentProfile}</Link>}
 			/>
 
-			<div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+			<div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 xl:grid-cols-4">
 				<StatCard label={c.remainingLabel} value={formatNumber(data.remaining)} hint={fill(c.used, { used: formatNumber(data.consumed), total: formatNumber(data.total) })} />
 				<StatCard label={c.nextSession} value={next ? `${next.weekday} ${next.date}` : "—"} hint={data.schedule} />
 				<StatCard label={c.paid} value={formatToman(data.paid ?? 0)} hint={fill(c.ofTotal, { total: formatToman((data.tuition ?? 0) + (data.gym_fee ?? 0)) })} />

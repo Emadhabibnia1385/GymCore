@@ -1,0 +1,1 @@
+import{t as e}from"./plans-CF41SaOT.js";var t=e;export{t as component};

@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Button, EmptyState, ErrorState, FilterChips, PageHeader, PageSkeleton, SearchBox, StatCard, StatusChip, type StatusTone, UsageBar } from "@nyxon/nasim";
+import { Button, EmptyState, ErrorState, PageHeader, PageSkeleton, SearchBox, StatCard, StatusChip, type StatusTone, UsageBar } from "@nyxon/nasim";
+import { ScrollChips } from "@/shared/ScrollChips";
 import { useDeferredValue, useState } from "react";
 import { emptyStudent, StudentFormSheet, type StudentDraft } from "@/features/manage";
 import { formatNumber, formatToman } from "@/shared/format";
@@ -86,7 +87,7 @@ export function StudentListPage() {
 					<SearchBox label={s.search} value={query} onChange={setQuery} />
 				</div>
 				<div className="min-w-0 flex-1">
-					<FilterChips
+					<ScrollChips
 						label={s.title}
 						value={filter}
 						onChange={(value) => setFilter(value as Filter)}

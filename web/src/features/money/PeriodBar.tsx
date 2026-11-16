@@ -1,4 +1,5 @@
-import { Button, FilterChips, SelectField } from "@nyxon/nasim";
+import { Button, SelectField } from "@nyxon/nasim";
+import { ScrollChips } from "@/shared/ScrollChips";
 import { DatePick } from "@/shared/DatePick";
 import { formatNumber } from "@/shared/format";
 import { t } from "@/strings";
@@ -15,7 +16,8 @@ export function PeriodBar({ mode, onMode, data, query, onQuery }: { mode: Mode; 
 	const jy = query.jy ?? data.jy;
 	return (
 		<div className="flex flex-col gap-3 rounded-box border border-border bg-surface p-3">
-			<FilterChips
+			<ScrollChips
+				inset="card"
 				label={m.period}
 				value={mode}
 				onChange={(value) => {
@@ -37,13 +39,15 @@ export function PeriodBar({ mode, onMode, data, query, onQuery }: { mode: Mode; 
 			/>
 
 			{mode === "month" ? (
-				<div className="flex flex-wrap items-end gap-2">
-					<Button size="sm" variant="secondary" isDisabled={!data.prev_month} onPress={() => data.prev_month && onQuery({ jy: data.prev_month[0], jm: data.prev_month[1] })}>{m.prevMonth}</Button>
-					<div className="grid min-w-0 flex-1 grid-cols-2 gap-2">
+				<div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+					<div className="grid min-w-0 grid-cols-2 gap-2 sm:order-2 sm:flex-1">
 						<SelectField label={m.pickMonth} value={String(query.jm ?? data.jm)} onChange={(value) => value && onQuery({ jy, jm: Number(value) })} options={MONTHS.map((name, index) => ({ value: String(index + 1), label: name }))} />
 						<SelectField label={m.pickYear} value={String(jy)} onChange={(value) => value && onQuery({ jy: Number(value), jm: query.jm ?? data.jm })} options={years.map((year) => ({ value: String(year), label: formatNumber(year).replace(/٬/g, "") }))} />
 					</div>
-					<Button size="sm" variant="secondary" isDisabled={!data.next_month} onPress={() => data.next_month && onQuery({ jy: data.next_month[0], jm: data.next_month[1] })}>{m.nextMonth}</Button>
+					<div className="grid grid-cols-2 gap-2 sm:contents">
+						<Button size="sm" variant="secondary" className="sm:order-1" isDisabled={!data.prev_month} onPress={() => data.prev_month && onQuery({ jy: data.prev_month[0], jm: data.prev_month[1] })}>{m.prevMonth}</Button>
+						<Button size="sm" variant="secondary" className="sm:order-3" isDisabled={!data.next_month} onPress={() => data.next_month && onQuery({ jy: data.next_month[0], jm: data.next_month[1] })}>{m.nextMonth}</Button>
+					</div>
 				</div>
 			) : null}
 

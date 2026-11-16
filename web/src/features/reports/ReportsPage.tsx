@@ -60,7 +60,7 @@ export function ReportsPage() {
 				}
 			/>
 
-			<div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+			<div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-4">
 				<StatCard label={r.kpi.income} value={formatToman(k.income_year)} trend={incomeChange === null ? undefined : <TrendChip change={incomeChange} suffix={r.kpi.vsLast} />} />
 				<StatCard label={r.kpi.expenses} value={formatToman(k.expenses_year)} trend={expenseChange === null ? undefined : <TrendChip change={expenseChange} isInverse suffix={r.kpi.vsLast} />} />
 				<StatCard label={r.kpi.net} value={formatToman(k.net_year)} />

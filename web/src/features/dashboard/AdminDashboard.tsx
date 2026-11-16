@@ -60,7 +60,7 @@ export function AdminDashboard() {
 				}
 			/>
 
-			<div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+			<div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 xl:grid-cols-4">
 				<StatCard label={d.income} value={formatToman(data.month.income)} hint={`${data.month.label} · ${fill(d.paymentsHint, { n: formatNumber(data.month.payments) })}`} trend={incomeChange === null ? undefined : <TrendChip change={incomeChange} suffix={d.vsLast} />} />
 				<StatCard label={d.expenses} value={formatToman(data.month.expenses)} hint={data.month.label} trend={expenseChange === null ? undefined : <TrendChip change={expenseChange} isInverse suffix={d.vsLast} />} />
 				<StatCard label={d.net} value={formatToman(data.month.net)} hint={data.month.label} />

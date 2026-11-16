@@ -12,6 +12,7 @@ import { SheetView } from "./SheetView";
 const a = t.attend;
 const TONES: Record<string, StatusTone> = { PRESENT: "success", ABSENT_UNAUTHORIZED: "danger", ABSENT_ALLOWED: "info", COACH_CANCELLED: "info", HOLIDAY: "neutral" };
 const DAY = 24 * 3600 * 1000;
+const SHORT = ["ش", "ی", "د", "س", "چ", "پ", "ج"] as const; // the week from Saturday
 const persianDay = new Intl.DateTimeFormat("fa-IR-u-ca-persian", { day: "numeric" });
 const weekdayName = new Intl.DateTimeFormat("fa-IR", { weekday: "short" });
 
@@ -22,7 +23,7 @@ function weekOf(iso: string) {
 	return Array.from({ length: 7 }, (_, index) => {
 		const day = new Date(start.getTime() + index * DAY);
 		const stamp = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
-		return { iso: stamp, label: persianDay.format(day), name: weekdayName.format(day), friday: index === 6 };
+		return { iso: stamp, label: persianDay.format(day), name: weekdayName.format(day), short: SHORT[index], friday: index === 6 };
 	});
 }
 
@@ -53,25 +54,27 @@ function DayView() {
 
 	return (
 		<div className="flex flex-col gap-4">
-			<div className="flex items-center gap-2">
-				<Button variant="secondary" size="sm" onPress={() => setIso(data.prev)} aria-label={a.prev}>›</Button>
-				<ul className="grid min-w-0 flex-1 grid-cols-7 gap-1" aria-label={a.week}>
-					{weekOf(data.iso).map((day) => (
-						<li key={day.iso}>
-							<button
-								type="button"
-								aria-current={day.iso === data.iso ? "date" : undefined}
-								onClick={() => setIso(day.iso)}
-								className={`flex w-full flex-col items-center rounded-field border py-1.5 text-xs outline-none focus-visible:ring-2 focus-visible:ring-accent ${day.iso === data.iso ? "border-accent bg-accent text-accent-foreground" : day.friday ? "border-border bg-danger/10" : "border-border bg-surface hover:bg-surface-secondary"}`}
-							>
-								<span className="opacity-80">{day.name}</span>
-								<span className="text-base font-semibold tabular-nums">{day.label}</span>
-							</button>
-						</li>
-					))}
-				</ul>
-				<Button variant="secondary" size="sm" onPress={() => setIso(data.next)} aria-label={a.next}>‹</Button>
+			{/* The week is its own full-width row so seven days never fight the buttons for room. */}
+			<ul className="grid grid-cols-7 gap-1 sm:gap-2" aria-label={a.week}>
+				{weekOf(data.iso).map((day) => (
+					<li key={day.iso} className="min-w-0">
+						<button
+							type="button"
+							aria-current={day.iso === data.iso ? "date" : undefined}
+							aria-label={`${day.name} ${day.label}`}
+							onClick={() => setIso(day.iso)}
+							className={`flex w-full flex-col items-center rounded-field border py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-accent sm:py-2 ${day.iso === data.iso ? "border-accent bg-accent text-accent-foreground" : day.friday ? "border-border bg-danger/10" : "border-border bg-surface hover:bg-surface-secondary"}`}
+						>
+							<span className="text-[11px] opacity-80 sm:text-xs"><span className="sm:hidden">{day.short}</span><span className="hidden sm:inline">{day.name}</span></span>
+							<span className="text-base font-semibold tabular-nums">{day.label}</span>
+						</button>
+					</li>
+				))}
+			</ul>
+			<div className="grid grid-cols-3 gap-2">
+				<Button variant="secondary" size="sm" onPress={() => setIso(data.prev)}>{a.prev}</Button>
 				<Button variant={data.is_today ? "primary" : "secondary"} size="sm" onPress={() => setIso(null)}>{t.common.today}</Button>
+				<Button variant="secondary" size="sm" onPress={() => setIso(data.next)}>{a.next}</Button>
 			</div>
 
 			<div className="flex flex-wrap items-center justify-between gap-2">

@@ -1,1 +1,0 @@
-import{t as e}from"./courses-B_b0dbEs.js";var t=e;export{t as component};

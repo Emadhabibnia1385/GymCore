@@ -39,7 +39,7 @@ export function FinancePage() {
 
 			<PeriodBar mode={mode} onMode={setMode} data={data} query={query} onQuery={setQuery} />
 
-			<div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+			<div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 xl:grid-cols-4">
 				<StatCard label={m.income} value={formatToman(data.income)} hint={`${fill(m.payments, { n: formatNumber(data.payments) })}${data.corrections ? ` ${fill(m.corrections, { n: formatNumber(data.corrections) })}` : ""}`} trend={incomeChange === null ? undefined : <TrendChip change={incomeChange} suffix={vs} />} />
 				<StatCard label={m.expenses} value={formatToman(data.expenses)} hint={fill(m.expenseCount, { n: formatNumber(data.expense_rows.length) })} trend={expenseChange === null ? undefined : <TrendChip change={expenseChange} isInverse suffix={vs} />} />
 				<StatCard label={m.net} value={formatToman(data.net)} hint={kept === null || kept < 0 ? undefined : fill(m.kept, { p: formatNumber(kept) })} />

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { BottomSheet, Button, ConfirmDialog, EmptyState, ErrorState, FilterChips, Notice, PageHeader, PageSkeleton, SectionCard, SelectField, StatusChip, TextAreaField, TextField } from "@nyxon/nasim";
+import { BottomSheet, Button, ConfirmDialog, EmptyState, ErrorState, Notice, PageHeader, PageSkeleton, SectionCard, SelectField, StatusChip, TextAreaField, TextField } from "@nyxon/nasim";
+import { ScrollChips } from "@/shared/ScrollChips";
 import { useState } from "react";
 import { studentsQuery } from "@/features/students";
 import { CardLink } from "@/shared/CardLink";
@@ -17,7 +18,7 @@ export function PlansPage() {
 	return (
 		<div className="flex flex-col gap-4">
 			<PageHeader title={p.title} description={p.hint} />
-			<FilterChips label={p.title} value={tab} onChange={(value) => setTab(value as Tab)} options={[{ value: "send", label: p.tabSend }, { value: "packages", label: p.tabPackages }, { value: "types", label: p.tabTypes }]} />
+			<ScrollChips label={p.title} value={tab} onChange={(value) => setTab(value as Tab)} options={[{ value: "send", label: p.tabSend }, { value: "packages", label: p.tabPackages }, { value: "types", label: p.tabTypes }]} />
 			{tab === "send" ? <SendProgram /> : tab === "packages" ? <Packages /> : <Types />}
 		</div>
 	);

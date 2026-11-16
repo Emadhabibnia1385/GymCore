@@ -1,1 +1,0 @@
-import{t as e}from"./manage-ChYkMlSG.js";var t=e;export{t as component};

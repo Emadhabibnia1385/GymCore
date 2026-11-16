@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Button, EmptyState, ErrorState, FilterChips, PageHeader, PageSkeleton, StatusChip } from "@nyxon/nasim";
+import { Button, EmptyState, ErrorState, PageHeader, PageSkeleton, StatusChip } from "@nyxon/nasim";
+import { ScrollChips } from "@/shared/ScrollChips";
 import { useState } from "react";
 import { formatNumber } from "@/shared/format";
 import { fill, t } from "@/strings";
@@ -18,7 +19,7 @@ export function FollowUpsPage() {
 	return (
 		<div className="flex flex-col gap-4">
 			<PageHeader title={f.title} description={f.hint} />
-			<FilterChips
+			<ScrollChips
 				label={f.title}
 				value={tab}
 				onChange={(value) => setTab(value as Tab)}
@@ -106,7 +107,7 @@ function Leads() {
 	return (
 		<>
 			<div className="flex items-center justify-between gap-2">
-				<FilterChips
+				<ScrollChips
 					label={f.tabLeads}
 					value={status}
 					onChange={setStatus}
