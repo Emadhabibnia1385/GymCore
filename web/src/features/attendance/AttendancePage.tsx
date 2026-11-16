@@ -1,10 +1,11 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, EmptyState, ErrorState, Notice, PageHeader, PageSkeleton, StatusChip, Tabs, type StatusTone } from "@nyxon/nasim";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { Button, EmptyState, ErrorState, PageHeader, PageSkeleton, StatusChip, Tabs, type StatusTone } from "@nyxon/nasim";
 import { useState } from "react";
 import { formatNumber } from "@/shared/format";
 import { TINT, tintStyle } from "@/shared/personColor";
 import { fill, t } from "@/strings";
-import { dayQuery, recordAttendance, type DayRow } from "./api";
+import { dayQuery, type DayRow } from "./api";
+import { OutcomeButtons } from "./OutcomeButtons";
 import { OutcomeSheet, type Target } from "./OutcomeSheet";
 import { SheetView } from "./SheetView";
 
@@ -41,14 +42,9 @@ export function AttendancePage() {
 }
 
 function DayView() {
-	const queryClient = useQueryClient();
 	const [iso, setIso] = useState<string | null>(null);
 	const [target, setTarget] = useState<Target | null>(null);
 	const { data, isPending, isError, refetch } = useQuery({ ...dayQuery(iso), placeholderData: keepPreviousData });
-	const quick = useMutation({
-		mutationFn: ({ row, status }: { row: DayRow; status: string }) => recordAttendance({ course_id: row.course_id, date: data!.iso, status }),
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin"] }),
-	});
 	if (isPending) return <PageSkeleton />;
 	if (isError) return <ErrorState as="h1" onRetry={() => void refetch()} />;
 
@@ -82,7 +78,6 @@ function DayView() {
 				<h2 className="font-semibold">{data.label}</h2>
 				{data.rows.length > 0 ? <span className="text-sm text-muted">{fill(a.summary, { done: formatNumber(done), total: formatNumber(data.rows.length) })}</span> : null}
 			</div>
-			{quick.isError ? <Notice tone="danger" role="alert">{quick.error.message}</Notice> : null}
 
 			{data.rows.length === 0 ? (
 				<EmptyState title={a.none} description={a.noneHint} />
@@ -100,11 +95,7 @@ function DayView() {
 								</span>
 								<StatusChip size="sm" tone={row.status ? (TONES[row.status] ?? "neutral") : "neutral"} label={row.status ? row.label : a.pending} />
 							</div>
-							<div className="grid grid-cols-3 gap-2">
-								<Button size="sm" variant={row.status === "PRESENT" ? "primary" : "secondary"} isDisabled={data.is_future || quick.isPending} onPress={() => quick.mutate({ row, status: "PRESENT" })}>{a.quickPresent}</Button>
-								<Button size="sm" variant={row.status === "ABSENT_UNAUTHORIZED" ? "danger" : "danger-soft"} isDisabled={data.is_future || quick.isPending} onPress={() => quick.mutate({ row, status: "ABSENT_UNAUTHORIZED" })}>{a.quickAbsent}</Button>
-								<Button size="sm" variant="ghost" onPress={() => open(row)}>{a.more}</Button>
-							</div>
+							<OutcomeButtons row={row} iso={data.iso} isFuture={data.is_future} onMore={() => open(row)} />
 						</li>
 					))}
 				</ul>

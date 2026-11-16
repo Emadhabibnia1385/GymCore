@@ -31,7 +31,16 @@ export type Slot = {
 	note: string | null;
 };
 
-export type CourseDetail = CourseSummary & { slots: Slot[]; tuition?: number; gym_fee?: number };
+export type CoursePayment = { id: number; amount: number; date: string; kind: string; note: string | null };
+export type CourseDetail = CourseSummary & {
+	slots: Slot[];
+	tuition?: number;
+	gym_fee?: number;
+	paid?: number;
+	outstanding?: number;
+	payments?: CoursePayment[];
+	notes?: number;
+};
 
 export const myCoursesQuery = queryOptions({
 	queryKey: ["me", "courses"],

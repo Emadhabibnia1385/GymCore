@@ -1,0 +1,1 @@
+import{t as e}from"./courses-BV_uCOrx.js";var t=e;export{t as component};

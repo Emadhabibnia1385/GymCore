@@ -1,0 +1,1 @@
+import{t as e}from"./money-l5g_GHon.js";var t=e;export{t as component};

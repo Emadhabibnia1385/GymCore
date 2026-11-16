@@ -17,6 +17,7 @@ export const coach = {
 		amount: "مبلغ (تومان)",
 	},
 	attend: {
+		opt: { present: "حاضر", allowed: "مجاز", absent: "غایب", cancelled: "لغو", holiday: "تعطیل" },
 		tabDay: "روز",
 		tabMonth: "جدول ماه",
 		quickPresent: "حاضر",

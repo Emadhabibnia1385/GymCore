@@ -1,0 +1,1 @@
+import{t as e}from"./manage-CEVwp7gU.js";var t=e;export{t as component};

@@ -150,6 +150,10 @@ class AdminCourseDetail(CourseDetail):
 
     tuition: int
     gym_fee: int
+    paid: int
+    outstanding: int
+    payments: list[PaymentRow]
+    notes: int
 
 
 @router.get(
@@ -159,8 +163,18 @@ def course(course_id: int, db: Session = Depends(get_db)) -> AdminCourseDetail:
     found = db.get(Course, course_id)
     if found is None:
         raise HTTPException(status_code=404, detail="موردی پیدا نشد")
+    balance = payments_service.course_balance(db, found)
     return AdminCourseDetail(
-        **course_detail(db, found).model_dump(), tuition=found.tuition, gym_fee=found.gym_fee
+        **course_detail(db, found).model_dump(), tuition=found.tuition, gym_fee=found.gym_fee,
+        paid=balance["paid"], outstanding=balance["outstanding"],
+        payments=[
+            PaymentRow(
+                id=p.id, amount=p.amount, date=format_jalali(p.paid_at), kind=p.kind.value,
+                note=p.note,
+            )
+            for p in payments_service.list_payments(db, course_id=found.id)
+        ],
+        notes=crm_service.count_notes(db, found.client_id),
     )
 
 

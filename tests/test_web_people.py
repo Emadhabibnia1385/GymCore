@@ -217,3 +217,34 @@ def test_the_student_list_carries_phone_class_and_what_is_owed(db):
             "09120000000", kind.title, 12, 900_000)
     finally:
         get_settings().web_dev_login = False
+
+
+def test_the_course_page_carries_what_was_paid_and_what_is_left(db):
+    from fastapi.testclient import TestClient
+
+    from app.api.main import app
+    from app.core import clock
+    from app.core.config import get_settings
+    from app.models import PaymentKind
+    from app.services import classes as classes_service
+    from app.services import courses as courses_service
+    from app.services import payments as payments_service
+
+    get_settings().web_cookie_secure = False
+    get_settings().web_dev_login = True
+    try:
+        client = TestClient(app)
+        assert client.post("/api/auth/dev").status_code == 200
+        student = persons_service.create(db, name="سارا")
+        kind = classes_service.list_class_types(db, only_active=True)[0]
+        course = courses_service.create(
+            db, client_id=student.id, class_type_id=kind.id, sessions_total=12, tuition=900_000,
+            start_date=clock.today(), weekdays="0", class_times="0@18:00",
+        )
+        payments_service.record(db, student.id, 300_000, PaymentKind.TUITION, clock.today(),
+                                course_id=course.id, notify=False)
+        data = client.get(f"/api/admin/courses/{course.id}").json()
+        assert (data["paid"], data["outstanding"]) == (300_000, 600_000)
+        assert [p["amount"] for p in data["payments"]] == [300_000]
+    finally:
+        get_settings().web_dev_login = False

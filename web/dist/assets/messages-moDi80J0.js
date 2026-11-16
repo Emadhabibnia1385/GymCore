@@ -1,0 +1,1 @@
+import{n as e}from"./config-Ddxa-S9w.js";var t=e;export{t as component};
