@@ -22,8 +22,15 @@ from starlette.concurrency import run_in_threadpool
 
 from app import __version__
 from app.api import web as web_api
-from app.api import web_admin, web_student
+from app.api import web_admin, web_coach, web_student
 from app.core.config import get_settings
+from app.core.exceptions import (
+    AuthError,
+    ConflictError,
+    DomainError,
+    NotFoundError,
+    ValidationError,
+)
 from app.core.logging import setup_logging
 from app.db.init import init_dev_schema
 from app.db.session import engine, session_scope
@@ -51,6 +58,19 @@ app = FastAPI(
 app.include_router(web_api.router)
 app.include_router(web_student.router)
 app.include_router(web_admin.router)
+app.include_router(web_coach.router)
+
+_DOMAIN_STATUS = {
+    NotFoundError: 404, ValidationError: 422, ConflictError: 409, AuthError: 403,
+}
+
+
+@app.exception_handler(DomainError)
+async def domain_error(_: Request, exc: DomainError) -> JSONResponse:
+    """A rule the services enforce, reported as the HTTP error that fits it."""
+    status = next((code for kind, code in _DOMAIN_STATUS.items() if isinstance(exc, kind)), 400)
+    return JSONResponse(status_code=status, content={"detail": str(exc)})
+
 
 _STATUS_PAGE = """<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

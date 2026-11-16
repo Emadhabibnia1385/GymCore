@@ -54,6 +54,7 @@ class CourseSummary(BaseModel):
 
 
 class SlotView(BaseModel):
+    iso: str
     date: str
     weekday: str
     status: str | None
@@ -144,6 +145,7 @@ def course_detail(db: Session, course: Course) -> CourseDetail:
         **course_summary(db, course).model_dump(),
         slots=[
             SlotView(
+                iso=slot.date.isoformat(),
                 date=format_jalali(slot.date),
                 weekday=slot.weekday,
                 status=slot.status.value if slot.status else None,

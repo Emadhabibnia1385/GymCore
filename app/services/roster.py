@@ -9,14 +9,16 @@ students.py) predates this and orders the same way.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 
 from sqlalchemy.orm import Session
 
-from app.models import CourseStatus, Person, Role, StudentType
+from app.models import Course, CourseStatus, Person, Role, StudentType
 from app.services import courses as courses_service
 from app.services import packages as packages_service
 from app.services import persons as persons_service
 from app.services import plans as plans_service
+from app.services import schedule as schedule_service
 
 
 @dataclass(frozen=True)
@@ -55,3 +57,16 @@ def list_students(
 def counts(db: Session) -> dict[StudentType, int]:
     return persons_service.count_by_type(db)
 
+
+
+def sessions_on(db: Session, day: date) -> list[Course]:
+    """Active courses with a session on `day`: the weekly pattern, plus any session
+    rescheduled onto it, minus one moved away from it. By student name."""
+    courses = [
+        course
+        for course in courses_service.list_courses(db, status=CourseStatus.ACTIVE)
+        if day >= course.start_date
+        and schedule_service.find_slot(schedule_service.build(db, course), day) is not None
+    ]
+    courses.sort(key=lambda c: c.client.name)
+    return courses
