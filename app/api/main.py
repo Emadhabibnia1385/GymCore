@@ -22,7 +22,7 @@ from starlette.concurrency import run_in_threadpool
 
 from app import __version__
 from app.api import web as web_api
-from app.api import web_admin, web_coach, web_manage, web_student
+from app.api import web_admin, web_coach, web_config, web_crm, web_manage, web_student
 from app.core.config import get_settings
 from app.core.exceptions import (
     AuthError,
@@ -60,6 +60,8 @@ app.include_router(web_student.router)
 app.include_router(web_admin.router)
 app.include_router(web_coach.router)
 app.include_router(web_manage.router)
+app.include_router(web_crm.router)
+app.include_router(web_config.router)
 
 _DOMAIN_STATUS = {
     NotFoundError: 404, ValidationError: 422, ConflictError: 409, AuthError: 403,
