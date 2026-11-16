@@ -3,7 +3,7 @@ import { useBottomBar } from "@nyxon/nasim";
 import { tv } from "tailwind-variants";
 import type { Me } from "@/features/auth";
 import { t } from "@/strings";
-import { navFor } from "./nav";
+import { navFor, PHONE_TABS } from "./nav";
 
 const tab = tv({
 	slots: {
@@ -21,7 +21,7 @@ export function PhoneTabBar({ role }: { role: Me["role"] }) {
 	return (
 		<nav ref={bar} aria-label={t.nav.label} className={slots.bar()}>
 			<ul className={slots.list()}>
-				{navFor(role).map(({ to, label, Icon }) => (
+				{navFor(role).slice(0, PHONE_TABS).map(({ to, label, Icon }) => (
 					<li key={to} className="flex flex-1">
 						<Link to={to} activeOptions={{ exact: to === "/" }} className={slots.link()} activeProps={{ className: slots.current(), "aria-current": "page" }}>
 							<Icon className="size-6" aria-hidden />

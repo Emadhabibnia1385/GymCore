@@ -40,7 +40,12 @@ _STATUS_LABELS = {
 
 class CourseSummary(BaseModel):
     id: int
+    client_id: int
+    client_name: str
     class_title: str
+    class_type_id: int
+    weekdays: list[int]
+    class_times: dict[int, str]
     status: str
     status_label: str
     start: str
@@ -125,7 +130,12 @@ def course_summary(db: Session, course: Course) -> CourseSummary:
     stats = schedule_service.summary(db, course)
     return CourseSummary(
         id=course.id,
+        client_id=course.client_id,
+        client_name=course.client.name,
         class_title=course.class_type.title,
+        class_type_id=course.class_type_id,
+        weekdays=schedule_service.parse_weekdays(course.weekdays),
+        class_times=schedule_service.parse_day_times(course.class_times),
         status=course.status.value,
         status_label=_STATUS_LABELS[course.status],
         start=format_jalali(course.start_date),

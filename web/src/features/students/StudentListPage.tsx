@@ -1,6 +1,8 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { EmptyState, ErrorState, FilterChips, PageHeader, PageSkeleton, SearchBox, StatusChip, type StatusTone } from "@nyxon/nasim";
+import { useNavigate } from "@tanstack/react-router";
+import { Button, EmptyState, ErrorState, FilterChips, PageHeader, PageSkeleton, SearchBox, StatusChip, type StatusTone } from "@nyxon/nasim";
 import { useDeferredValue, useState } from "react";
+import { emptyStudent, StudentFormSheet, type StudentDraft } from "@/features/manage";
 import { CardLink } from "@/shared/CardLink";
 import { formatNumber } from "@/shared/format";
 import { fill, t } from "@/strings";
@@ -22,11 +24,13 @@ export function StudentListPage() {
 	const [filter, setFilter] = useState<"all" | Kind>("all");
 	const [query, setQuery] = useState("");
 	const search = useDeferredValue(query);
+	const [draft, setDraft] = useState<StudentDraft | null>(null);
+	const navigate = useNavigate();
 	const { data, isPending, isError, refetch } = useQuery({ ...studentsQuery(filter === "all" ? null : filter, search), placeholderData: keepPreviousData });
 
 	return (
 		<div className="flex flex-col gap-4">
-			<PageHeader title={s.title} />
+			<PageHeader title={s.title} actions={<Button size="sm" onPress={() => setDraft(emptyStudent)}>{t.manage.addStudent}</Button>} />
 			<SearchBox label={s.search} value={query} onChange={setQuery} />
 			<FilterChips
 				label={s.title}
@@ -59,6 +63,7 @@ export function StudentListPage() {
 					})}
 				</ul>
 			)}
+					<StudentFormSheet draft={draft} onClose={() => setDraft(null)} onSaved={(id) => void navigate({ to: "/students/$id", params: { id: String(id) } })} />
 		</div>
 	);
 }

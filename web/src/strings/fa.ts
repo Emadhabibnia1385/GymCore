@@ -1,11 +1,17 @@
+import { coach } from "./coach";
+
 // Every word the person sees. Screens take their copy from here, never inline.
 export const t = {
+	...coach,
 	brand: "جیم‌کور",
 	theme: { light: "حالت روشن", dark: "حالت تیره" },
 	nav: {
 		label: "منوی اصلی",
 		home: "خانه",
 		students: "شاگردان",
+		attendance: "حضور و غیاب",
+		finance: "مالی",
+		classes: "کلاس‌ها",
 		courses: "کلاس‌های من",
 		programs: "برنامه‌ها",
 		request: "درخواست دوره",
@@ -105,7 +111,7 @@ export const t = {
 		library: "آموزش‌ها و برنامه‌های من",
 		libraryHint: "برنامهٔ غذایی، تمرینی و ویدیوهایی که مربی برایت فرستاده.",
 	},
-	common: { back: "بازگشت", loading: "در حال بارگیری…" },
+	shared: { back: "بازگشت", loading: "در حال بارگیری…" },
 	students: {
 		title: "شاگردان",
 		search: "جست‌وجوی نام یا شماره",
@@ -173,6 +179,7 @@ export const t = {
 		statusFinished: "تمام‌شده",
 		statusPaused: "متوقف",
 		back: "همهٔ کلاس‌ها",
+		manage: "جدول و مدیریت دوره",
 	},
 	programs: {
 		title: "برنامه‌ها و پکیج‌ها",

@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import {
-	AreaChart,
 	EmptyState,
 	ErrorState,
 	PageHeader,
@@ -12,7 +11,7 @@ import {
 import { formatNumber, formatToman } from "@/shared/format";
 import { fill, t } from "@/strings";
 import { dashboardQuery } from "./api";
-import { yTicks } from "./chart";
+import { YearChart } from "./YearChart";
 
 const d = t.dashboard;
 
@@ -31,9 +30,6 @@ export function AdminDashboard() {
 	if (isPending) return <PageSkeleton />;
 	if (isError) return <ErrorState as="h1" onRetry={() => void refetch()} />;
 
-	const peak = data.months.reduce((best, row) => (row.income > best.income ? row : best), data.months[0]);
-	const ceiling = Math.max(...data.months.flatMap((row) => [row.income, row.expenses]));
-	const figure = (value: number) => ({ value, text: formatToman(value) });
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -51,19 +47,7 @@ export function AdminDashboard() {
 				<StatCard label={d.programs} value={formatNumber(data.totals.programs)} />
 			</div>
 
-			<AreaChart
-				data-testid="year-chart"
-				title={fill(d.chartTitle, { year: data.year_label })}
-				summary={fill(d.chartSummary, { year: data.year_label, peak: peak.label })}
-				empty={d.chartEmpty}
-				ticks={data.months.map((row) => ({ key: String(row.month), label: row.label, title: `${row.label} ${data.year_label}` }))}
-				series={[
-					{ key: "income", label: d.chartIncome, points: data.months.map((row) => figure(row.income)) },
-					{ key: "expenses", label: d.chartExpenses, points: data.months.map((row) => figure(row.expenses)) },
-				]}
-				yTicks={yTicks(ceiling)}
-				table={{ showLabel: d.chartShowTable, label: d.chartTableLabel, stepHeader: d.chartStep }}
-			/>
+			<YearChart year={data.year_label} months={data.months} />
 
 			<div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 				<SectionCard title={d.owingTitle} description={data.owing.count ? fill(d.owingHint, { count: formatNumber(data.owing.count), total: formatToman(data.owing.total) }) : undefined}>

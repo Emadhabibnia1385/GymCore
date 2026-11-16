@@ -3,7 +3,12 @@ import { apiFetch } from "@/shared/api";
 
 export type CourseSummary = {
 	id: number;
+	client_id: number;
+	client_name: string;
 	class_title: string;
+	class_type_id: number;
+	weekdays: number[];
+	class_times: Record<string, string>;
 	status: "ACTIVE" | "FINISHED" | "PAUSED";
 	status_label: string;
 	start: string;
@@ -17,6 +22,7 @@ export type CourseSummary = {
 };
 
 export type Slot = {
+	iso: string;
 	date: string;
 	weekday: string;
 	status: string | null;
@@ -25,7 +31,7 @@ export type Slot = {
 	note: string | null;
 };
 
-export type CourseDetail = CourseSummary & { slots: Slot[] };
+export type CourseDetail = CourseSummary & { slots: Slot[]; tuition?: number; gym_fee?: number };
 
 export const myCoursesQuery = queryOptions({
 	queryKey: ["me", "courses"],

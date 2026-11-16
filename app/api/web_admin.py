@@ -140,12 +140,23 @@ def student(person_id: int, db: Session = Depends(get_db)) -> StudentProfile:
     )
 
 
-@router.get("/courses/{course_id}", response_model=CourseDetail, operation_id="admin_course")
-def course(course_id: int, db: Session = Depends(get_db)) -> CourseDetail:
+class AdminCourseDetail(CourseDetail):
+    """A course as the coach sees it: with the fees, which a student never gets."""
+
+    tuition: int
+    gym_fee: int
+
+
+@router.get(
+    "/courses/{course_id}", response_model=AdminCourseDetail, operation_id="admin_course"
+)
+def course(course_id: int, db: Session = Depends(get_db)) -> AdminCourseDetail:
     found = db.get(Course, course_id)
     if found is None:
         raise HTTPException(status_code=404, detail="موردی پیدا نشد")
-    return course_detail(db, found)
+    return AdminCourseDetail(
+        **course_detail(db, found).model_dump(), tuition=found.tuition, gym_fee=found.gym_fee
+    )
 
 
 class WebAccess(BaseModel):

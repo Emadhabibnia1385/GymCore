@@ -13,6 +13,9 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAccountRouteImport } from './routes/_app/account'
+import { Route as AppAttendanceRouteImport } from './routes/_app/attendance'
+import { Route as AppClassesRouteImport } from './routes/_app/classes'
+import { Route as AppFinanceRouteImport } from './routes/_app/finance'
 import { Route as AppRequestRouteImport } from './routes/_app/request'
 import { Route as AppCoursesIndexRouteImport } from './routes/_app/courses.index'
 import { Route as AppCoursesIdRouteImport } from './routes/_app/courses.$id'
@@ -38,6 +41,21 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const AppAccountRoute = AppAccountRouteImport.update({
   id: '/account',
   path: '/account',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAttendanceRoute = AppAttendanceRouteImport.update({
+  id: '/attendance',
+  path: '/attendance',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppClassesRoute = AppClassesRouteImport.update({
+  id: '/classes',
+  path: '/classes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFinanceRoute = AppFinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
   getParentRoute: () => AppRoute,
 } as any)
 const AppRequestRoute = AppRequestRouteImport.update({
@@ -80,6 +98,9 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
   '/account': typeof AppAccountRoute
+  '/attendance': typeof AppAttendanceRoute
+  '/classes': typeof AppClassesRoute
+  '/finance': typeof AppFinanceRoute
   '/request': typeof AppRequestRoute
   '/courses/$id': typeof AppCoursesIdRoute
   '/programs/$id': typeof AppProgramsIdRoute
@@ -91,6 +112,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/account': typeof AppAccountRoute
+  '/attendance': typeof AppAttendanceRoute
+  '/classes': typeof AppClassesRoute
+  '/finance': typeof AppFinanceRoute
   '/request': typeof AppRequestRoute
   '/': typeof AppIndexRoute
   '/courses/$id': typeof AppCoursesIdRoute
@@ -105,6 +129,9 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/_app/account': typeof AppAccountRoute
+  '/_app/attendance': typeof AppAttendanceRoute
+  '/_app/classes': typeof AppClassesRoute
+  '/_app/finance': typeof AppFinanceRoute
   '/_app/request': typeof AppRequestRoute
   '/_app/': typeof AppIndexRoute
   '/_app/courses/$id': typeof AppCoursesIdRoute
@@ -120,6 +147,9 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/account'
+    | '/attendance'
+    | '/classes'
+    | '/finance'
     | '/request'
     | '/courses/$id'
     | '/programs/$id'
@@ -131,6 +161,9 @@ export interface FileRouteTypes {
   to:
     | '/login'
     | '/account'
+    | '/attendance'
+    | '/classes'
+    | '/finance'
     | '/request'
     | '/'
     | '/courses/$id'
@@ -144,6 +177,9 @@ export interface FileRouteTypes {
     | '/_app'
     | '/login'
     | '/_app/account'
+    | '/_app/attendance'
+    | '/_app/classes'
+    | '/_app/finance'
     | '/_app/request'
     | '/_app/'
     | '/_app/courses/$id'
@@ -187,6 +223,27 @@ declare module '@tanstack/react-router' {
       path: '/account'
       fullPath: '/account'
       preLoaderRoute: typeof AppAccountRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/attendance': {
+      id: '/_app/attendance'
+      path: '/attendance'
+      fullPath: '/attendance'
+      preLoaderRoute: typeof AppAttendanceRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/classes': {
+      id: '/_app/classes'
+      path: '/classes'
+      fullPath: '/classes'
+      preLoaderRoute: typeof AppClassesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/finance': {
+      id: '/_app/finance'
+      path: '/finance'
+      fullPath: '/finance'
+      preLoaderRoute: typeof AppFinanceRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/request': {
@@ -243,6 +300,9 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAccountRoute: typeof AppAccountRoute
+  AppAttendanceRoute: typeof AppAttendanceRoute
+  AppClassesRoute: typeof AppClassesRoute
+  AppFinanceRoute: typeof AppFinanceRoute
   AppRequestRoute: typeof AppRequestRoute
   AppIndexRoute: typeof AppIndexRoute
   AppCoursesIdRoute: typeof AppCoursesIdRoute
@@ -255,6 +315,9 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAccountRoute: AppAccountRoute,
+  AppAttendanceRoute: AppAttendanceRoute,
+  AppClassesRoute: AppClassesRoute,
+  AppFinanceRoute: AppFinanceRoute,
   AppRequestRoute: AppRequestRoute,
   AppIndexRoute: AppIndexRoute,
   AppCoursesIdRoute: AppCoursesIdRoute,
