@@ -90,6 +90,8 @@ mkdir -p "$APP_DIR"
 rsync -a --delete \
   --exclude '.git' --exclude '.venv' --exclude '.env' \
   --exclude '__pycache__' --exclude '*.db' --exclude 'uploads' \
+  --exclude 'web/node_modules' --exclude 'web/dist' --exclude 'web/dist.new' \
+  --exclude '.bun-cache' \
   "$SRC_DIR"/ "$APP_DIR"/
 
 # --- 4. virtualenv + pinned dependencies ---
@@ -134,6 +136,10 @@ if ss -tulpn 2>/dev/null | grep -q ":${APP_PORT} "; then
 else
   green "==> Port ${APP_PORT} on ${APP_HOST} is free."
 fi
+
+# --- 6b. web panel (best effort — never blocks the bots or the API) ---
+green "==> Building the web panel (web/dist)..."
+GYMCORE_APP_DIR="$APP_DIR" GYMCORE_APP_USER="$APP_USER" bash "$APP_DIR/deploy/build_web.sh" || true
 
 # --- 7. database migrations ---
 green "==> Applying database migrations (alembic upgrade head)..."
