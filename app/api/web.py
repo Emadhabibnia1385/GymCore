@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.web_deps import COOKIE, current_session, require_admin
@@ -18,7 +19,7 @@ from app.core.config import get_settings
 from app.core.exceptions import AuthError
 from app.core.jalali import JALALI_MONTHS, format_jalali
 from app.db.session import get_db
-from app.models import Person, Platform, WebSession
+from app.models import ChannelIdentity, Person, Platform, WebSession
 from app.services import auth as auth_service
 from app.services import crm as crm_service
 from app.services import finance as finance_service
@@ -127,13 +128,30 @@ def login_telegram(
 
 
 @router.post("/auth/dev", response_model=Me, operation_id="auth_dev", include_in_schema=False)
-def login_dev(request: Request, response: Response, db: Session = Depends(get_db)) -> Me:
-    """Local development only (WEB_DEV_LOGIN=true): sign in as the first owner."""
+def login_dev(
+    request: Request, response: Response, student: bool = False, db: Session = Depends(get_db)
+) -> Me:
+    """Local development only (WEB_DEV_LOGIN=true): sign in as the first owner, or
+    with `?student=true` as the first student the bot knows."""
     owners = get_settings().telegram_owner_id_list
     if not get_settings().web_dev_login or not owners:
         raise HTTPException(status_code=404, detail="یافت نشد")
-    user_id = str(owners[0])
-    person = web_auth.person_for_login(db, {"id": user_id, "first_name": "مربی"})
+    if student:
+        identity = db.scalar(
+            select(ChannelIdentity)
+            .where(
+                ChannelIdentity.platform == Platform.TELEGRAM,
+                ChannelIdentity.platform_user_id.notin_([str(o) for o in owners]),
+            )
+            .order_by(ChannelIdentity.id)
+        )
+        if identity is None:
+            raise HTTPException(status_code=404, detail="شاگردی برای ورود آزمایشی نیست")
+        user_id = identity.platform_user_id
+        person = db.get(Person, identity.person_id)
+    else:
+        user_id = str(owners[0])
+        person = web_auth.person_for_login(db, {"id": user_id, "first_name": "مربی"})
     return _open_session(db, person, user_id, request, response)
 
 

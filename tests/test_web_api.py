@@ -139,3 +139,12 @@ def test_the_dev_login_is_off_unless_asked_for(db, client, monkeypatch):
     res = client.post("/api/auth/dev")
     assert res.status_code == 200 and res.json()["role"] == "admin"
     assert client.get("/api/admin/dashboard").status_code == 200
+
+
+def test_the_dev_login_can_enter_as_a_student_too(db, client, monkeypatch):
+    monkeypatch.setattr(get_settings(), "web_dev_login", True)
+    assert client.post("/api/auth/dev?student=true").status_code == 404  # nobody to be yet
+    student = persons_service.create(db, name="سارا")
+    identities_service.link_identity(db, student.id, Platform.TELEGRAM, "5001")
+    res = client.post("/api/auth/dev?student=true")
+    assert res.json() == {"name": "سارا", "role": "student"}

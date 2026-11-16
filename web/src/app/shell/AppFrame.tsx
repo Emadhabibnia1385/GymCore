@@ -6,7 +6,7 @@ import LogoutIcon from "~icons/solar/logout-2-linear";
 import { logout, type Me } from "@/features/auth";
 import { useInstall } from "@/features/pwa";
 import { t } from "@/strings";
-import { NAV } from "./nav";
+import { navFor } from "./nav";
 import { PhoneTabBar } from "./PhoneTabBar";
 
 export function AppFrame({ me }: { me: Me }) {
@@ -31,7 +31,7 @@ export function AppFrame({ me }: { me: Me }) {
 			<AppShell
 				brand={<span className="text-lg font-bold text-accent">{t.brand}</span>}
 				navLabel={t.nav.label}
-				nav={NAV.map(({ to, label, Icon }) => ({
+				nav={navFor(me.role).map(({ to, label, Icon }) => ({
 					href: to,
 					label,
 					icon: <Icon className="size-5" />,
@@ -53,7 +53,7 @@ export function AppFrame({ me }: { me: Me }) {
 					<Outlet />
 				</div>
 			</AppShell>
-			<PhoneTabBar />
+			<PhoneTabBar role={me.role} />
 		</>
 	);
 }

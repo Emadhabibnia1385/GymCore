@@ -7,5 +7,5 @@ export const Route = createFileRoute("/_app/")({ component: Home });
 
 function Home() {
 	const { data: me } = useSuspenseQuery(meQuery);
-	return me.role === "admin" ? <AdminDashboard /> : <StudentHome name={me.name} />;
+	return me.role === "admin" ? <AdminDashboard /> : <StudentHome />;
 }

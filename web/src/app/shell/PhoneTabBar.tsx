@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { useBottomBar } from "@nyxon/nasim";
 import { tv } from "tailwind-variants";
+import type { Me } from "@/features/auth";
 import { t } from "@/strings";
-import { NAV } from "./nav";
+import { navFor } from "./nav";
 
 const tab = tv({
 	slots: {
@@ -14,13 +15,13 @@ const tab = tv({
 });
 
 // The phone's main menu, at the bottom within thumb reach and clear of the home indicator.
-export function PhoneTabBar() {
+export function PhoneTabBar({ role }: { role: Me["role"] }) {
 	const bar = useBottomBar<HTMLElement>();
 	const slots = tab();
 	return (
 		<nav ref={bar} aria-label={t.nav.label} className={slots.bar()}>
 			<ul className={slots.list()}>
-				{NAV.map(({ to, label, Icon }) => (
+				{navFor(role).map(({ to, label, Icon }) => (
 					<li key={to} className="flex flex-1">
 						<Link to={to} activeOptions={{ exact: to === "/" }} className={slots.link()} activeProps={{ className: slots.current(), "aria-current": "page" }}>
 							<Icon className="size-6" aria-hidden />

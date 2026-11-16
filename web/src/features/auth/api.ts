@@ -2,7 +2,7 @@ import { queryOptions } from "@tanstack/react-query";
 import { apiFetch } from "@/shared/api";
 
 export type Me = { name: string; role: "admin" | "student" };
-export type LoginConfig = { bot_username: string };
+export type LoginConfig = { bot_username: string; dev_login: boolean };
 
 /** What Telegram's widget hands over; the server verifies the signature. */
 export type TelegramUser = Record<string, string | number>;
@@ -22,6 +22,10 @@ export const loginConfigQuery = queryOptions({
 
 export function loginWithTelegram(user: TelegramUser): Promise<Me> {
 	return apiFetch<Me>("/api/auth/telegram", { method: "POST", body: JSON.stringify(user) });
+}
+
+export function loginDev(student = false): Promise<Me> {
+	return apiFetch<Me>(`/api/auth/dev?student=${student}`, { method: "POST" });
 }
 
 export function logout(): Promise<unknown> {

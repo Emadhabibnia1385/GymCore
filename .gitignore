@@ -61,3 +61,4 @@ Thumbs.db
 
 # Agent worktrees (Claude Code)
 /.claude/worktrees/
+.demo/

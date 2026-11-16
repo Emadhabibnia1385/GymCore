@@ -26,6 +26,9 @@ known-first-party = ["app"]
 # genuinely cannot all sit at the top of the file (E402), and must not be
 # reordered above that setup (I001).
 "tests/conftest.py" = ["E402", "I001"]
+# The demo seed sets its environment before importing the app, like conftest, and is a
+# throwaway data script rather than application code.
+"scripts/seed_demo.py" = ["E402", "E501", "I001"]
 
 [tool.ruff.lint.flake8-bugbear]
 # FastAPI dependency-injection markers are call-in-default by design, not a bug.

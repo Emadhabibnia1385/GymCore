@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { Notice, SectionCard } from "@nyxon/nasim";
-import { loginConfigQuery, loginWithTelegram, meQuery, TelegramLoginButton } from "@/features/auth";
+import { Button, Notice, SectionCard } from "@nyxon/nasim";
+import { loginConfigQuery, loginDev, loginWithTelegram, meQuery, TelegramLoginButton, type TelegramUser } from "@/features/auth";
 import { t } from "@/strings";
 
 export const Route = createFileRoute("/login")({
@@ -18,7 +18,7 @@ function Login() {
 	const navigate = useNavigate();
 	const config = useQuery(loginConfigQuery);
 	const signIn = useMutation({
-		mutationFn: loginWithTelegram,
+		mutationFn: (user: TelegramUser | "coach" | "student") => (typeof user === "object" ? loginWithTelegram(user) : loginDev(user === "student")),
 		onSuccess: async (me) => {
 			queryClient.setQueryData(meQuery.queryKey, me);
 			await navigate({ to: "/" });
@@ -36,7 +36,18 @@ function Login() {
 								{signIn.error.message}
 							</Notice>
 						) : null}
-						{config.data ? <TelegramLoginButton botUsername={config.data.bot_username} onAuth={(user) => signIn.mutate(user)} /> : null}
+						{config.data?.dev_login ? (
+							<div className="flex flex-col gap-2">
+								<Button isPending={signIn.isPending} onPress={() => signIn.mutate("coach")}>
+									{t.login.dev}
+								</Button>
+								<Button variant="secondary" isPending={signIn.isPending} onPress={() => signIn.mutate("student")}>
+									{t.login.devStudent}
+								</Button>
+							</div>
+						) : config.data ? (
+							<TelegramLoginButton botUsername={config.data.bot_username} onAuth={(user) => signIn.mutate(user)} />
+						) : null}
 						<Notice tone="info">{t.login.notice}</Notice>
 					</div>
 				</SectionCard>
