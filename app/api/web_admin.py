@@ -7,7 +7,7 @@ Reads come from the same services as the in-bot panel. Every route needs an admi
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.api.web_deps import require_admin
@@ -20,6 +20,7 @@ from app.api.web_student import (
     course_summary,
     program_view,
 )
+from app.core.exceptions import ConflictError, ValidationError
 from app.core.jalali import format_jalali
 from app.db.session import get_db
 from app.models import Course, Person, Platform, Role, StudentType
@@ -29,6 +30,7 @@ from app.services import packages as packages_service
 from app.services import payments as payments_service
 from app.services import plans as plans_service
 from app.services import roster as roster_service
+from app.services import web_accounts
 
 router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
@@ -72,6 +74,7 @@ class StudentProfile(BaseModel):
     programs: list[ProgramView]
     packages: list[PackageView]
     notes: int
+    username: str | None
 
 
 @router.get("/students", response_model=StudentList, operation_id="admin_students")
@@ -133,6 +136,7 @@ def student(person_id: int, db: Session = Depends(get_db)) -> StudentProfile:
             )
         ],
         notes=crm_service.count_notes(db, person.id),
+        username=web_accounts.username_of(db, person.id),
     )
 
 
@@ -142,3 +146,28 @@ def course(course_id: int, db: Session = Depends(get_db)) -> CourseDetail:
     if found is None:
         raise HTTPException(status_code=404, detail="موردی پیدا نشد")
     return course_detail(db, found)
+
+
+class WebAccess(BaseModel):
+    username: str = Field(max_length=64)
+    password: str = Field(max_length=200)
+
+
+class Done(BaseModel):
+    ok: bool = True
+    message: str
+
+
+@router.post(
+    "/students/{person_id}/web-access", response_model=Done, operation_id="admin_web_access"
+)
+def give_web_access(person_id: int, body: WebAccess, db: Session = Depends(get_db)) -> Done:
+    """The coach creates a student's panel login, or resets it (the student then changes it)."""
+    person = _student(db, person_id)
+    try:
+        web_accounts.set_credentials(db, person.id, body.username, body.password)
+    except ConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return Done(message="دسترسی پنل برای این شاگرد ساخته شد.")

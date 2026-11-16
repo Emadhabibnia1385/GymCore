@@ -18,3 +18,6 @@ pydantic-settings>=2.3
 
 # --- HTTP client (Telegram / Bale Bot API) ---
 httpx>=0.27
+
+# --- Web panel passwords (Argon2id) ---
+argon2-cffi>=23.1

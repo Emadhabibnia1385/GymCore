@@ -41,7 +41,7 @@ def _signed(user_id, first_name="کاربر", auth_date=None, token=BOT_TOKEN, *
 
 def test_the_login_button_knows_the_bot(client):
     assert client.get("/api/auth/config").json() == {
-        "bot_username": "MahdiSarmad_BOT", "dev_login": False,
+        "bot_username": "MahdiSarmad_BOT", "dev_login": False, "registration_open": True,
     }
 
 
@@ -58,7 +58,8 @@ def test_a_forged_or_stale_signature_is_refused(client):
 
 def test_the_coach_signs_in_and_stays_signed_in(db, client):
     res = client.post("/api/auth/telegram", json=_signed(OWNER, "مهدی"))
-    assert res.status_code == 200 and res.json() == {"name": "مهدی", "role": "admin"}
+    assert res.status_code == 200
+    assert res.json() == {"name": "مهدی", "role": "admin", "username": None}
     cookie = res.headers["set-cookie"]
     assert "HttpOnly" in cookie and "SameSite=lax" in cookie
     # The cookie alone keeps him in — no second login.
@@ -72,7 +73,7 @@ def test_a_known_student_is_a_student_and_not_an_admin(db, client):
     student = persons_service.create(db, name="سارا")
     identities_service.link_identity(db, student.id, Platform.TELEGRAM, "5001")
     res = client.post("/api/auth/telegram", json=_signed(5001, "سارا"))
-    assert res.json() == {"name": "سارا", "role": "student"}
+    assert res.json() == {"name": "سارا", "role": "student", "username": None}
     assert client.get("/api/admin/dashboard").status_code == 403
 
 
@@ -147,4 +148,4 @@ def test_the_dev_login_can_enter_as_a_student_too(db, client, monkeypatch):
     student = persons_service.create(db, name="سارا")
     identities_service.link_identity(db, student.id, Platform.TELEGRAM, "5001")
     res = client.post("/api/auth/dev?student=true")
-    assert res.json() == {"name": "سارا", "role": "student"}
+    assert res.json() == {"name": "سارا", "role": "student", "username": None}

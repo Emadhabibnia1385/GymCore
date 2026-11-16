@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.core import admin_auth
 from app.core.exceptions import AuthError
-from app.models import Person, Platform, WebSession
+from app.models import Person, Platform, Role, WebSession
 from app.services import auth as auth_service
 from app.services import identities as identities_service
 
@@ -89,7 +89,7 @@ def _hash(token: str) -> str:
 
 
 def start_session(
-    db: Session, person: Person, telegram_user_id: str, user_agent: str | None = None
+    db: Session, person: Person, telegram_user_id: str | None, user_agent: str | None = None
 ) -> str:
     """Open a session and return the cookie token (shown once, never stored)."""
     token = secrets.token_urlsafe(32)
@@ -126,6 +126,19 @@ def end_session(db: Session, token: str | None) -> None:
     if token:
         db.execute(delete(WebSession).where(WebSession.token_hash == _hash(token)))
         db.commit()
+
+
+def is_admin(db: Session, person_id: int, telegram_user_id: str | None) -> bool:
+    """Coach rights for a signed-in person.
+
+    A Telegram sign-in is the bot's own check (owner whitelist or a COACH/ADMIN role).
+    A password sign-in has no Telegram id, so it relies on that role — which only a
+    configured owner ever holds, so a student can never be promoted by registering.
+    """
+    if telegram_user_id:
+        return auth_service.is_admin(db, Platform.TELEGRAM, telegram_user_id)
+    person = db.get(Person, person_id)
+    return person is not None and person.role in (Role.COACH, Role.ADMIN)
 
 
 def _aware(moment: datetime) -> datetime:

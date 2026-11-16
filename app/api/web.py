@@ -9,24 +9,25 @@ login (services/web_auth.py); admin rights are the bot's own rule
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.web_deps import COOKIE, current_session, require_admin
 from app.core import clock
 from app.core.config import get_settings
-from app.core.exceptions import AuthError
+from app.core.exceptions import AuthError, ConflictError, ValidationError
 from app.core.jalali import JALALI_MONTHS, format_jalali
 from app.db.session import get_db
 from app.models import ChannelIdentity, Person, Platform, WebSession
-from app.services import auth as auth_service
+from app.models.setting import KEY_WEB_REGISTRATION
 from app.services import crm as crm_service
 from app.services import finance as finance_service
 from app.services import payments as payments_service
 from app.services import schedule as schedule_service
+from app.services import settings as settings_service
 from app.services import stats as stats_service
-from app.services import web_auth
+from app.services import web_accounts, web_auth
 
 _COOKIE_MAX_AGE = 400 * 24 * 3600  # the longest a browser keeps a cookie; the server decides
 
@@ -39,11 +40,32 @@ router = APIRouter(prefix="/api", tags=["web"])
 class LoginConfig(BaseModel):
     bot_username: str
     dev_login: bool = False
+    registration_open: bool = True
 
 
 class Me(BaseModel):
     name: str
     role: str  # "admin" | "student"
+    username: str | None = None
+
+
+class PasswordLogin(BaseModel):
+    username: str = Field(max_length=64)
+    password: str = Field(max_length=200)
+
+
+class Registration(PasswordLogin):
+    name: str = Field(min_length=1, max_length=80)
+
+
+class PasswordChange(BaseModel):
+    old_password: str = Field(max_length=200)
+    new_password: str = Field(max_length=200)
+
+
+class Done(BaseModel):
+    ok: bool = True
+    message: str
 
 
 class Totals(BaseModel):
@@ -107,10 +129,12 @@ class AdminDashboard(BaseModel):
 
 
 @router.get("/auth/config", response_model=LoginConfig, operation_id="auth_config")
-def login_config() -> LoginConfig:
+def login_config(db: Session = Depends(get_db)) -> LoginConfig:
     settings = get_settings()
     return LoginConfig(
-        bot_username=settings.telegram_bot_username, dev_login=settings.web_dev_login
+        bot_username=settings.telegram_bot_username,
+        dev_login=settings.web_dev_login,
+        registration_open=settings_service.get_bool(db, KEY_WEB_REGISTRATION, True),
     )
 
 
@@ -156,7 +180,7 @@ def login_dev(
 
 
 def _open_session(
-    db: Session, person: Person, user_id: str, request: Request, response: Response
+    db: Session, person: Person, user_id: str | None, request: Request, response: Response
 ) -> Me:
     token = web_auth.start_session(db, person, user_id, request.headers.get("user-agent"))
     response.set_cookie(
@@ -164,6 +188,79 @@ def _open_session(
         secure=get_settings().web_cookie_secure, path="/",
     )
     return _me(db, person, user_id)
+
+
+def _client(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
+
+
+@router.post("/auth/password", response_model=Me, operation_id="auth_password")
+def login_password(
+    body: PasswordLogin, request: Request, response: Response, db: Session = Depends(get_db)
+) -> Me:
+    try:
+        person = web_accounts.authenticate(db, body.username, body.password, _client(request))
+    except web_accounts.Throttled as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+    except AuthError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    return _open_session(db, person, None, request, response)
+
+
+@router.post("/auth/register", response_model=Me, operation_id="auth_register")
+def register(
+    body: Registration, request: Request, response: Response, db: Session = Depends(get_db)
+) -> Me:
+    if not settings_service.get_bool(db, KEY_WEB_REGISTRATION, True):
+        raise HTTPException(status_code=403, detail="ثبت‌نام در پنل وب فعلاً بسته است")
+    try:
+        person = web_accounts.register(
+            db, body.name, body.username, body.password, _client(request)
+        )
+    except web_accounts.Throttled as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+    except ConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    # The coach sees the new student on today's follow-ups, with everything else he chases.
+    crm_service.add_follow_up(
+        db, clock.today(), person_id=person.id, note="ثبت‌نام تازه از پنل وب", created_by="web"
+    )
+    return _open_session(db, person, None, request, response)
+
+
+@router.post("/auth/password/change", response_model=Done, operation_id="auth_password_change")
+def change_password(
+    body: PasswordChange,
+    session: WebSession = Depends(current_session),
+    db: Session = Depends(get_db),
+) -> Done:
+    try:
+        web_accounts.change_password(db, session.person_id, body.old_password, body.new_password)
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except AuthError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    return Done(message="گذرواژه عوض شد.")
+
+
+@router.post("/auth/password/set", response_model=Me, operation_id="auth_password_set")
+def set_password(
+    body: PasswordLogin,
+    session: WebSession = Depends(current_session),
+    db: Session = Depends(get_db),
+) -> Me:
+    """Someone who signed in with Telegram adds a username and password of their own."""
+    if web_accounts.username_of(db, session.person_id) is not None:
+        raise HTTPException(status_code=409, detail="برای این حساب قبلاً گذرواژه تعریف شده")
+    try:
+        web_accounts.set_credentials(db, session.person_id, body.username, body.password)
+    except ConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return _me(db, db.get(Person, session.person_id), session.telegram_user_id)
 
 
 @router.get("/auth/me", response_model=Me, operation_id="auth_me")
@@ -178,9 +275,13 @@ def logout(request: Request, response: Response, db: Session = Depends(get_db)) 
     return {"ok": True}
 
 
-def _me(db: Session, person: Person, telegram_user_id: str) -> Me:
-    admin = auth_service.is_admin(db, Platform.TELEGRAM, telegram_user_id)
-    return Me(name=person.name, role="admin" if admin else "student")
+def _me(db: Session, person: Person, telegram_user_id: str | None) -> Me:
+    admin = web_auth.is_admin(db, person.id, telegram_user_id)
+    return Me(
+        name=person.name,
+        role="admin" if admin else "student",
+        username=web_accounts.username_of(db, person.id),
+    )
 
 
 # --- admin dashboard ---

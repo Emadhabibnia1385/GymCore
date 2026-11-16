@@ -6,8 +6,7 @@ from fastapi import Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.models import Person, Platform, WebSession
-from app.services import auth as auth_service
+from app.models import Person, WebSession
 from app.services import web_auth
 
 COOKIE = "gc_session"
@@ -23,7 +22,7 @@ def current_session(request: Request, db: Session = Depends(get_db)) -> WebSessi
 def require_admin(
     session: WebSession = Depends(current_session), db: Session = Depends(get_db)
 ) -> WebSession:
-    if not auth_service.is_admin(db, Platform.TELEGRAM, session.telegram_user_id):
+    if not web_auth.is_admin(db, session.person_id, session.telegram_user_id):
         raise HTTPException(status_code=403, detail="دسترسی به این بخش مجاز نیست")
     return session
 

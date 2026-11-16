@@ -11,11 +11,12 @@ from app.models.setting import (
     KEY_LOW_SESSION_THRESHOLD,
     KEY_NOTIFY_ON_ATTENDANCE,
     KEY_SIGNUP_URL,
+    KEY_WEB_REGISTRATION,
 )
 from app.services import settings as settings_service
 
 # On/off settings flip in place from the list — nobody should have to type 0 or 1.
-_TOGGLES = {KEY_NOTIFY_ON_ATTENDANCE}
+_TOGGLES = {KEY_NOTIFY_ON_ATTENDANCE, KEY_WEB_REGISTRATION}
 # Saved only in the shape their readers expect: a bad number would be ignored
 # in silence, and a bad link drops the «سفارش برنامه» button from the menu.
 _NUMBERS = {KEY_DEFAULT_ALLOWED_ABSENCE, KEY_LOW_SESSION_THRESHOLD}

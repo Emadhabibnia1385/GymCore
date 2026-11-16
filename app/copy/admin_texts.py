@@ -322,4 +322,5 @@ SETTINGS_LABELS = {
     "default_allowed_absence": "غیبت مجاز پیش‌فرض",
     "low_session_threshold": "آستانه هشدار جلسات کم",
     "notify_on_attendance": "اعلان خودکار حضور",
+    "web_registration_open": "ثبت‌نام شاگرد در پنل وب",
 }

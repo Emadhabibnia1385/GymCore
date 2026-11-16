@@ -26,6 +26,7 @@ from app.models.setting import (
     KEY_REGISTER_CONTACT_TEXT,
     KEY_SIGNUP_URL,
     KEY_TELEGRAM_OWNER_CONTACT,
+    KEY_WEB_REGISTRATION,
 )
 
 
@@ -64,6 +65,7 @@ def _defaults() -> dict[str, str]:
         KEY_TELEGRAM_OWNER_CONTACT: "https://t.me/MahdiSarmad1",
         KEY_BALE_OWNER_CONTACT: "https://ble.ir/mahdisarmad",
         KEY_NOTIFY_ON_ATTENDANCE: "1",
+        KEY_WEB_REGISTRATION: "1",
         # Sent to the student once their course's last paid session is recorded.
         KEY_COURSE_END_MESSAGE: (
             "سلام، وقتت بخیر 🌱\n\n"
