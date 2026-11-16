@@ -34,6 +34,8 @@ known-first-party = ["app"]
 # FastAPI dependency-injection markers are call-in-default by design, not a bug.
 extend-immutable-calls = [
     "fastapi.Depends",
+    "fastapi.File",
+    "fastapi.Form",
     "fastapi.Query",
     "fastapi.Path",
     "fastapi.Body",
