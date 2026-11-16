@@ -4,6 +4,7 @@ import { Button, ConfirmDialog, EmptyState, Notice, ErrorState, KeyValueList, Pa
 import { CourseSummaryCard } from "@/features/courses";
 import { CourseFormSheet, deleteStudent, StudentFormSheet, type CourseDraft, type StudentDraft } from "@/features/manage";
 import { PaymentSheet, type PaymentTarget } from "@/features/money";
+import { AvatarEditor } from "@/features/avatar";
 import { NotesCard } from "./NotesCard";
 import { WebAccessCard } from "./WebAccessCard";
 import { useState } from "react";
@@ -144,6 +145,9 @@ export function StudentProfilePage({ id }: { id: number }) {
 				</div>
 
 				<div className="flex flex-col gap-6">
+					<SectionCard title={t.avatar.studentTitle}>
+						<AvatarEditor base={`/api/admin/students/${data.id}/avatar`} version={data.avatar} id={data.id} name={data.name} onChange={() => void queryClient.invalidateQueries({ queryKey: ["admin"] })} />
+					</SectionCard>
 					<SectionCard title={p.contact}>
 						<KeyValueList
 							items={[

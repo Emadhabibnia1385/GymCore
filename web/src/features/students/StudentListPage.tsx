@@ -5,7 +5,8 @@ import { ScrollChips } from "@/shared/ScrollChips";
 import { useDeferredValue, useState } from "react";
 import { emptyStudent, StudentFormSheet, type StudentDraft } from "@/features/manage";
 import { formatNumber, formatToman } from "@/shared/format";
-import { TINT, tintStyle } from "@/shared/personColor";
+import { PersonAvatar } from "@/shared/PersonAvatar";
+import { tintStyle } from "@/shared/personColor";
 import { fill, t } from "@/strings";
 import { studentsQuery, type StudentRow } from "./api";
 
@@ -39,7 +40,7 @@ function Card({ row }: { row: StudentRow }) {
 	return (
 		<Link to="/students/$id" params={{ id: String(row.id) }} style={tintStyle(row.id)} className="flex h-full flex-col gap-3 rounded-box border border-border bg-surface p-4 outline-none transition-colors hover:bg-surface-secondary focus-visible:ring-2 focus-visible:ring-accent">
 			<span className="flex items-start gap-3">
-				<span aria-hidden className={`flex size-10 shrink-0 items-center justify-center rounded-full text-base font-bold ${TINT}`}>{row.name.trim().charAt(0)}</span>
+				<PersonAvatar id={row.id} name={row.name} src={row.avatar ? `/api/admin/students/${row.id}/avatar?v=${row.avatar}` : null} />
 				<span className="flex min-w-0 flex-1 flex-col">
 					<span className="truncate font-semibold">{row.name}</span>
 					<span className="truncate text-xs text-muted" dir="ltr" style={{ textAlign: "start" }}>{row.phone ?? "—"}</span>

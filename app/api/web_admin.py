@@ -47,6 +47,7 @@ class StudentRow(BaseModel):
     class_title: str | None = None
     total: int | None = None
     owing: int = 0
+    avatar: int = 0
 
 
 class StudentList(BaseModel):
@@ -79,6 +80,7 @@ class StudentProfile(BaseModel):
     packages: list[PackageView]
     notes: int
     username: str | None
+    avatar: int = 0
 
 
 @router.get("/students", response_model=StudentList, operation_id="admin_students")
@@ -97,6 +99,7 @@ def students(
                 id=r.person.id, name=r.person.name, kind=r.person.student_type.value,
                 state=r.state, remaining=r.remaining, programs=r.programs, packages=r.packages,
                 phone=r.person.phone, class_title=r.class_title, total=r.total, owing=r.owing,
+                avatar=r.person.avatar_version or 0,
             )
             for r in rows
         ],
@@ -142,6 +145,7 @@ def student(person_id: int, db: Session = Depends(get_db)) -> StudentProfile:
         ],
         notes=crm_service.count_notes(db, person.id),
         username=web_accounts.username_of(db, person.id),
+        avatar=person.avatar_version or 0,
     )
 
 

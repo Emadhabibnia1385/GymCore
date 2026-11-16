@@ -1,0 +1,1 @@
+import{t as e}from"./attendance-D_a2BkEy.js";var t=e;export{t as component};

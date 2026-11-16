@@ -34,6 +34,8 @@ class Person(Base):
         index=True,
     )
     is_active: Mapped[bool] = mapped_column(default=True)
+    # The profile photo's version (services/avatars.py); 0 means none.
+    avatar_version: Mapped[int] = mapped_column(default=0, server_default="0")
     note: Mapped[str | None] = mapped_column(String(500))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { AccountMenu, AppShell, OfflineBanner, ThemeToggle } from "@nyxon/nasim";
 import DownloadIcon from "~icons/solar/download-minimalistic-linear";
 import UserIcon from "~icons/solar/user-circle-linear";
@@ -23,6 +24,13 @@ export function AppFrame({ me }: { me: Me }) {
 		await navigate({ to: "/login" });
 	}
 
+	// The phone's menu drawer closes whenever the page changes, whatever in it was chosen (a page link, the
+	// account menu, ...): the shell only closed it for its own links.
+	useEffect(() => {
+		const drawer = document.querySelector(`[role="dialog"][aria-label="${t.nav.label}"]`);
+		if (drawer) document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+	}, [pathname]);
+
 	const items = [
 		{ id: "account", label: t.account.menu, href: "/account", icon: <UserIcon /> },
 		...(install ? [{ id: "install", label: t.role.install, icon: <DownloadIcon /> }] : []),
@@ -33,6 +41,8 @@ export function AppFrame({ me }: { me: Me }) {
 		<>
 			<AppShell
 				brand={<BrandMark />}
+				// On a phone the logo sits in the middle of the top bar; from lg up it lives atop the sidebar.
+				header={<div className="flex w-full justify-center lg:hidden"><BrandMark /></div>}
 				navLabel={t.nav.label}
 				nav={navFor(me.role).map(({ to, label, Icon }) => ({
 					href: to,
@@ -44,6 +54,7 @@ export function AppFrame({ me }: { me: Me }) {
 				sidebarFooter={
 					<AccountMenu
 						name={me.name}
+						avatarSrc={me.avatar ? `/api/me/avatar?v=${me.avatar}` : undefined}
 						description={me.role === "admin" ? t.role.coach : t.role.student}
 						items={items}
 						onAction={(id) => (id === "logout" ? void signOut() : void install?.())}

@@ -1,0 +1,1 @@
+import{t as e}from"./queryOptions-Dfvzj6n2.js";import{n as t}from"./api-BaWp7Xz9.js";var n=n=>e({queryKey:[`admin`,`reports`,n],queryFn:()=>t(`/api/admin/reports${n?`?year=${n}`:``}`)});export{n as t};

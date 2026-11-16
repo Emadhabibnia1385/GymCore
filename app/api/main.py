@@ -24,6 +24,7 @@ from app import __version__
 from app.api import web as web_api
 from app.api import (
     web_admin,
+    web_avatar,
     web_brand,
     web_coach,
     web_config,
@@ -78,6 +79,7 @@ app.include_router(web_period.router)
 app.include_router(web_programs.router)
 app.include_router(web_reports.router)
 app.include_router(web_sheet.router)
+app.include_router(web_avatar.router)
 app.include_router(web_brand.public)
 app.include_router(web_brand.admin)
 

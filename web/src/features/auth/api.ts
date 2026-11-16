@@ -1,7 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import { apiFetch } from "@/shared/api";
 
-export type Me = { name: string; role: "admin" | "student"; username: string | null };
+export type Me = { name: string; role: "admin" | "student"; username: string | null; avatar: number | null };
 export type LoginConfig = { bot_username: string; dev_login: boolean; registration_open: boolean };
 export type Done = { ok: boolean; message: string };
 

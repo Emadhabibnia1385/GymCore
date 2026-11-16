@@ -1,0 +1,1 @@
+import{n as e}from"./rolldown-runtime-WkwZ5CU-.js";import{t}from"./useRouter-Br6TBE2b.js";import{Un as n}from"./api-BaWp7Xz9.js";var r=e(n(),1);function i(e){let n=t();return r.useCallback(t=>n.navigate({...t,from:t.from??e?.from}),[e?.from,n])}export{i as t};

@@ -12,6 +12,7 @@ export type StudentRow = {
 	programs: number;
 	packages: number;
 	phone: string | null;
+	avatar: number;
 	class_title: string | null;
 	total: number | null;
 	owing: number;
@@ -36,6 +37,7 @@ export type StudentProfile = {
 	packages: PackageSummary[];
 	notes: number;
 	username: string | null;
+	avatar: number;
 };
 
 export const studentsQuery = (kind: Kind | null, q: string) =>

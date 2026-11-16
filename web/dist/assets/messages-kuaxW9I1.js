@@ -1,1 +1,0 @@
-import{n as e}from"./config-yWMK8aek.js";var t=e;export{t as component};

@@ -47,6 +47,7 @@ class Me(BaseModel):
     name: str
     role: str  # "admin" | "student"
     username: str | None = None
+    avatar: int | None = None  # the photo's version, None without one
 
 
 class PasswordLogin(BaseModel):
@@ -372,6 +373,7 @@ def _me(db: Session, person: Person, telegram_user_id: str | None) -> Me:
         name=person.name,
         role="admin" if admin else "student",
         username=web_accounts.username_of(db, person.id),
+        avatar=person.avatar_version or None,
     )
 
 

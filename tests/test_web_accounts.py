@@ -32,7 +32,7 @@ def _register(api, name="سارا", username="sara", password="correct-horse"):
 def test_a_student_signs_up_and_is_signed_in_at_once(db, api):
     res = _register(api)
     assert res.status_code == 200
-    assert res.json() == {"name": "سارا", "role": "student", "username": "sara"}
+    assert res.json() == {"name": "سارا", "role": "student", "username": "sara", "avatar": None}
     assert api.get("/api/auth/me").json()["username"] == "sara"
     person = db.scalar(select(Person).where(Person.name == "سارا"))
     assert person.phone is None  # an unverified phone would be a way to claim someone's account

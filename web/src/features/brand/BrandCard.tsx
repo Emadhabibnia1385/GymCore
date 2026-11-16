@@ -42,7 +42,7 @@ function Logo({ kind, brand, label, hint }: { kind: LogoKind; brand: Brand; labe
 	const [file, setFile] = useState<File | null>(null);
 	const [confirm, setConfirm] = useState(false);
 	const store = (next: Brand) => queryClient.setQueryData(brandQuery.queryKey, next);
-	const upload = useMutation({ mutationFn: () => uploadLogo(kind, file!), onSuccess: (next) => { setFile(null); store(next); } });
+	const upload = useMutation({ mutationFn: (chosen: File) => uploadLogo(kind, chosen), onSuccess: (next) => { setFile(null); store(next); } });
 	const remove = useMutation({ mutationFn: () => removeLogo(kind), onSuccess: (next) => { setConfirm(false); store(next); } });
 	const has = kind === "wide" ? brand.wide : brand.icon;
 	const error = upload.error ?? remove.error;
@@ -60,8 +60,8 @@ function Logo({ kind, brand, label, hint }: { kind: LogoKind; brand: Brand; labe
 				<p className="text-sm text-muted">{b.none}</p>
 			)}
 			{error ? <Notice tone="danger" role="alert">{error.message}</Notice> : null}
-			<FilePick label={b.choose} file={file} onChange={setFile} accept=".png,.jpg,.jpeg,.webp" />
-			<Button isDisabled={!file} isPending={upload.isPending} onPress={() => upload.mutate()}>{has ? b.replace : b.upload}</Button>
+			<FilePick label={has ? b.replace : b.upload} file={file} onChange={(chosen) => { setFile(chosen); if (chosen) upload.mutate(chosen); }} accept=".png,.jpg,.jpeg,.webp" />
+			{upload.isPending ? <p className="text-sm text-muted" role="status">{b.uploading}</p> : null}
 			<ConfirmDialog isOpen={confirm} onOpenChange={setConfirm} tone="danger" title={b.removeTitle} description={b.removeBody} confirmLabel={t.manage.deleteGo} isPending={remove.isPending} onConfirm={() => remove.mutate()} />
 		</div>
 	);
