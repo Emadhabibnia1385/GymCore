@@ -15,10 +15,11 @@ from sqlalchemy.orm import Session
 
 from app.api.web_deps import current_person
 from app.bots.common import grid
+from app.core import clock
 from app.core.exceptions import DomainError, NotFoundError
 from app.core.jalali import format_jalali
 from app.db.session import get_db
-from app.models import Course, CourseStatus, Person, Platform
+from app.models import AttendanceStatus, Course, CourseStatus, Person, Platform
 from app.services import classes as classes_service
 from app.services import courses as courses_service
 from app.services import crm as crm_service
@@ -101,11 +102,33 @@ class PackageDetail(PackageView):
     item_list: list[PackageItemView]
 
 
+class UpcomingSlot(BaseModel):
+    iso: str
+    date: str
+    weekday: str
+    time: str
+
+
+class RecentSlot(BaseModel):
+    iso: str
+    date: str
+    weekday: str
+    status: str
+    label: str
+    session_no: int | None
+
+
 class Home(BaseModel):
     name: str
+    avatar: int | None = None
     active_course: CourseSummary | None
     programs: int
     packages: int
+    rate: float | None = None  # share of the sessions that were attended, in percent
+    renew: bool = False  # few sessions left, or no course: invite them to ask for one
+    upcoming: list[UpcomingSlot] = []
+    recent: list[RecentSlot] = []
+    latest_programs: list[ProgramView] = []
 
 
 class ClassOption(BaseModel):
@@ -182,15 +205,53 @@ def program_view(a) -> ProgramView:
 
 # --- routes ---
 
+_ABSENT = (AttendanceStatus.ABSENT_ALLOWED, AttendanceStatus.ABSENT_UNAUTHORIZED)
+RENEW_AT = 2  # sessions left at or under which the student is invited to renew
+
+
+def _home_slots(db: Session, active: Course | None) -> tuple[list[UpcomingSlot], list[RecentSlot]]:
+    if active is None:
+        return [], []
+    today = clock.today()
+    slots = schedule_service.build(db, active)
+    upcoming = [
+        UpcomingSlot(
+            iso=s.date.isoformat(), date=format_jalali(s.date), weekday=s.weekday,
+            time=schedule_service.day_time(active, schedule_service.persian_weekday(s.date)),
+        )
+        for s in slots if s.status is None and s.date >= today
+    ][:5]
+    done = [s for s in slots if s.status is not None and s.date <= today]
+    recent = [
+        RecentSlot(
+            iso=s.date.isoformat(), date=format_jalali(s.date), weekday=s.weekday,
+            status=s.status.value, label=grid.outcome_label(s.status), session_no=s.session_no,
+        )
+        for s in reversed(done[-5:])
+    ]
+    return upcoming, recent
+
 
 @router.get("/home", response_model=Home, operation_id="me_home")
 def home(person: Person = Depends(current_person), db: Session = Depends(get_db)) -> Home:
     active = courses_service.active_course(db, person.id)
+    summary = course_summary(db, active) if active else None
+    upcoming, recent = _home_slots(db, active)
+    counts = schedule_service.summary(db, active) if active else None
+    attended = counts["present"] if counts else 0
+    counted = attended + counts["absent_allowed"] + counts["absent_unauthorized"] if counts else 0
+    assignments = plans_service.list_assignments(db, person_id=person.id, only_active=True)
     return Home(
         name=person.name,
-        active_course=course_summary(db, active) if active else None,
-        programs=len(plans_service.list_assignments(db, person_id=person.id, only_active=True)),
+        avatar=person.avatar_version or None,
+        active_course=summary,
+        programs=len(assignments),
         packages=len(packages_service.list_for_person(db, person.id)),
+        rate=round(100 * attended / counted, 1) if counted > 0 else None,
+        renew=summary is None or summary.remaining <= RENEW_AT,
+        upcoming=upcoming,
+        recent=recent,
+        latest_programs=[program_view(a) for a in assignments[:3]],
     )
 
 

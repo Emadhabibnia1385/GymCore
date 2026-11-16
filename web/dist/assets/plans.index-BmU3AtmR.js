@@ -1,0 +1,1 @@
+import{t as e}from"./plans-T9lnVZxl.js";var t=e;export{t as component};

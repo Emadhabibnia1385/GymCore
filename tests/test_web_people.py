@@ -293,3 +293,21 @@ def test_a_student_profile_shows_how_they_attend_and_what_happened_lately(db):
         assert data["activity"][0]["kind"] in ("payment", "note")  # today's, newest first
     finally:
         get_settings().web_dev_login = False
+
+
+def test_the_student_home_has_what_a_student_wants_and_no_money(db, api):
+    sara = _student(db)
+    course = _course(db, sara)
+    days = [s.date for s in schedule_service.build(db, course)]
+    attendance_service.record(db, course.id, days[0], AttendanceStatus.PRESENT, notify=False)
+    attendance_service.record(db, course.id, days[1], AttendanceStatus.ABSENT_UNAUTHORIZED,
+                              notify=False)
+    _sign_in(db, api, sara, "5001")
+    home = api.get("/api/me/home").json()
+    assert home["rate"] == 50.0 and home["avatar"] is None
+    assert [r["label"] for r in home["recent"]] == ["غایب", "حاضر"]  # newest first
+    today = clock.today().isoformat()
+    assert len(home["upcoming"]) <= 5 and all(u["iso"] >= today for u in home["upcoming"])
+    assert isinstance(home["renew"], bool)
+    text = str(home)
+    assert "tuition" not in text and "paid" not in text and "owing" not in text

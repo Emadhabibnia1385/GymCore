@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { EmptyState, ErrorState, KeyValueList, PageHeader, PageSkeleton, SectionCard, StatCard, StaticTable, StatusChip, type StatusTone, UsageBar } from "@nyxon/nasim";
+import { EmptyState, ErrorState, KeyValueList, PageHeader, PageSkeleton, SectionCard, StatCard, StaticTable, StatusChip, UsageBar } from "@nyxon/nasim";
 import { useState } from "react";
 import { OutcomeSheet, type Target } from "@/features/attendance";
 import { CourseActions } from "@/features/manage";
@@ -8,35 +8,10 @@ import { isoDay } from "@/shared/DatePick";
 import { formatNumber, formatToman } from "@/shared/format";
 import { fill, t } from "@/strings";
 import { courseQuery, type CourseDetail, type Slot } from "./api";
-import { CourseSummaryCard } from "./CourseSummaryCard";
+import { SessionTiles } from "./SessionTiles";
 
 const c = t.course;
-const TONES: Record<string, StatusTone> = {
-	PRESENT: "success",
-	ABSENT_UNAUTHORIZED: "danger",
-	ABSENT_ALLOWED: "info",
-	COACH_CANCELLED: "info",
-	HOLIDAY: "neutral",
-	MOVED: "info",
-};
-// A session's tile, tinted by its outcome so the whole course reads at a glance.
-const TILE: Record<string, string> = {
-	PRESENT: "border-success/50 bg-success/10",
-	ABSENT_UNAUTHORIZED: "border-danger/50 bg-danger/10",
-	ABSENT_ALLOWED: "border-warning/50 bg-warning/10",
-	COACH_CANCELLED: "border-info/50 bg-info/10",
-	HOLIDAY: "border-border bg-surface-secondary",
-	MOVED: "border-info/50 bg-info/10",
-};
 const KIND: Record<string, string> = { TUITION: "شهریه", GYM_FEE: "ورودی باشگاه", OTHER: "سایر" };
-
-function outcomeLabel(slot: Slot) {
-	return slot.session_no ? `${slot.label} · ${fill(c.sessionNo, { n: slot.session_no })}` : slot.label;
-}
-
-function Outcome({ slot }: { slot: Slot }) {
-	return <StatusChip size="sm" tone={slot.status ? (TONES[slot.status] ?? "neutral") : "neutral"} label={outcomeLabel(slot)} />;
-}
 
 export function CourseDetailPage({ role, id, backHref }: { role: "admin" | "student"; id: number; backHref: string }) {
 	const { data, isPending, isError, refetch } = useQuery(courseQuery(role, id));
@@ -71,24 +46,7 @@ export function CourseDetailPage({ role, id, backHref }: { role: "admin" | "stud
 					<SectionCard title={c.grid} description={t.attend.hint}>
 						<div className="flex flex-col gap-4">
 							<UsageBar warningAt={101} dangerAt={101} label={c.sessions} used={data.consumed} total={data.total} valueText={fill(c.used, { used: formatNumber(data.consumed), total: formatNumber(data.total) })} />
-							<ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
-								{data.slots.map((slot) => (
-									<li key={slot.iso}>
-										<button
-											type="button"
-											onClick={() => open(slot)}
-											className={`flex w-full flex-col gap-1 rounded-field border p-2.5 text-start outline-none transition-colors hover:brightness-125 focus-visible:ring-2 focus-visible:ring-accent ${slot.status ? (TILE[slot.status] ?? "border-border") : "border-dashed border-border"} ${slot.iso === today ? "ring-2 ring-accent" : ""}`}
-										>
-											<span className="flex items-center justify-between gap-1">
-												<span className="text-xs text-muted">{slot.weekday}</span>
-												{slot.session_no ? <span className="text-xs font-bold tabular-nums text-accent">{`#${formatNumber(slot.session_no)}`}</span> : null}
-											</span>
-											<span className="font-semibold tabular-nums">{slot.date}</span>
-											<Outcome slot={{ ...slot, session_no: null }} />
-										</button>
-									</li>
-								))}
-							</ul>
+							<SessionTiles slots={data.slots} today={today} onPick={open} />
 						</div>
 					</SectionCard>
 				</div>
@@ -126,14 +84,23 @@ export function CourseDetailPage({ role, id, backHref }: { role: "admin" | "stud
 }
 
 function StudentView({ data, backHref }: { data: CourseDetail; backHref: string }) {
+	const today = isoDay(0);
+	const next = data.slots.find((slot) => slot.status === null && slot.iso >= today);
 	return (
 		<div className="flex flex-col gap-6">
-			<PageHeader title={data.class_title} backHref={backHref} />
-			<CourseSummaryCard course={data} />
+			<PageHeader title={data.class_title} backHref={backHref} meta={<StatusChip size="sm" tone={data.status === "ACTIVE" ? "success" : data.status === "PAUSED" ? "warning" : "neutral"} label={data.status_label} />} />
+			<div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+				<StatCard label={c.remainingLabel} value={formatNumber(data.remaining)} hint={fill(c.used, { used: formatNumber(data.consumed), total: formatNumber(data.total) })} />
+				<StatCard className="col-span-2 xl:col-span-1" label={c.nextSession} value={next ? `${next.weekday} ${next.date}` : "—"} hint={data.schedule} />
+				<StatCard label={c.allowance} value={data.allowed_absence > 0 ? fill(c.allowanceOf, { used: formatNumber(data.absent_allowed), max: formatNumber(data.allowed_absence) }) : formatNumber(data.absent_allowed)} />
+				<StatCard label={c.unauthorized} value={formatNumber(data.absent_unauthorized)} />
+			</div>
 			<SectionCard title={c.grid}>
-				<StaticTable caption={c.gridCaption} columns={[c.date, c.outcome]} rows={data.slots.map((slot, index) => ({ id: String(index), cells: [`${slot.weekday} ${slot.date}`, <Outcome key="o" slot={slot} />] }))} />
+				<div className="flex flex-col gap-4">
+					<UsageBar warningAt={101} dangerAt={101} label={c.sessions} used={data.consumed} total={data.total} valueText={fill(c.used, { used: formatNumber(data.consumed), total: formatNumber(data.total) })} />
+					<SessionTiles slots={data.slots} today={today} />
+				</div>
 			</SectionCard>
 		</div>
 	);
 }
-
