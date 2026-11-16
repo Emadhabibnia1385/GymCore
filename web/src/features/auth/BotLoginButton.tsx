@@ -1,13 +1,13 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button, Notice } from "@nyxon/nasim";
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { t } from "@/strings";
 import { pollBotLogin, startBotLogin, type BotLogin, type Me } from "./api";
 
 const l = t.login;
 
 /** «Log in with the bot»: open the bot, approve there, and this page signs in by itself. */
-export function BotLoginButton({ onDone }: { onDone: (me: Me) => void }) {
+export function BotLoginButton({ onDone, aside }: { onDone: (me: Me) => void; aside?: ReactNode }) {
 	const [request, setRequest] = useState<BotLogin | null>(null);
 	const start = useMutation({
 		mutationFn: startBotLogin,
@@ -50,7 +50,10 @@ export function BotLoginButton({ onDone }: { onDone: (me: Me) => void }) {
 			{state === "denied" ? <Notice tone="danger" role="alert">{l.botDenied}</Notice> : null}
 			{state === "expired" ? <Notice tone="warning" role="alert">{l.botExpired}</Notice> : null}
 			{start.isError ? <Notice tone="danger" role="alert">{start.error.message}</Notice> : null}
-			<Button size="lg" isPending={start.isPending} onPress={() => { signedIn.current = false; start.mutate(); }}>{l.botLogin}</Button>
+			<div className="flex gap-2">
+				<Button size="lg" className="min-w-0 flex-1" isPending={start.isPending} onPress={() => { signedIn.current = false; start.mutate(); }}>{l.botLogin}</Button>
+				{aside}
+			</div>
 			<p className="text-center text-sm text-muted">{l.botHint}</p>
 		</div>
 	);

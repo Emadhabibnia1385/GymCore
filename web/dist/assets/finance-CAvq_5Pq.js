@@ -1,0 +1,1 @@
+import{t as e}from"./money-BIT8cTir.js";var t=e;export{t as component};

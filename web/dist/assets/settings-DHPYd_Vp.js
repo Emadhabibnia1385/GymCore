@@ -1,1 +1,0 @@
-import{t as e}from"./config-CBAe4TV5.js";var t=e;export{t as component};

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { Button, FilterChips, Notice, SectionCard } from "@nyxon/nasim";
+import { Button, Notice, SectionCard } from "@nyxon/nasim";
 import { useState } from "react";
 import {
 	loginConfigQuery,
@@ -40,25 +40,10 @@ function Login() {
 		<main className="grid min-h-dvh place-items-center px-page py-8">
 			<div className="flex w-full max-w-md flex-col gap-4">
 				<h1 className="flex justify-center"><BrandMark size="hero" /></h1>
-				<SectionCard title={t.login.title} description={t.login.hint}>
+				<SectionCard title={mode === "up" && canSignUp ? t.login.signUp : t.login.title} description={t.login.hint}>
 					<div className="flex flex-col gap-5">
-						{canSignUp ? (
-							<FilterChips
-								label={t.login.modeLabel}
-								value={mode}
-								onChange={(value) => setMode(value as "in" | "up")}
-								options={[
-									{ value: "in", label: t.login.signIn },
-									{ value: "up", label: t.login.signUp },
-								]}
-							/>
-						) : null}
-
 						{mode === "up" && canSignUp ? (
-							<>
-								<RegisterForm onDone={signedIn} />
-								<Notice tone="info">{t.login.signUpNotice}</Notice>
-							</>
+							<RegisterForm onDone={signedIn} />
 						) : (
 							<PasswordLoginForm onDone={signedIn} />
 						)}
@@ -80,9 +65,12 @@ function Login() {
 									</Button>
 								</div>
 							) : (
-								<BotLoginButton onDone={(me) => void signedIn(me)} />
+								<BotLoginButton
+									onDone={(me) => void signedIn(me)}
+									// Sign-in and sign-up each offer only the other one, right beside the Telegram button.
+									aside={canSignUp ? <Button size="lg" variant="secondary" onPress={() => setMode(mode === "up" ? "in" : "up")}>{mode === "up" ? t.login.signIn : t.login.signUp}</Button> : undefined}
+								/>
 							)}
-							<Notice tone="info">{t.login.notice}</Notice>
 						</div>
 					</div>
 				</SectionCard>
