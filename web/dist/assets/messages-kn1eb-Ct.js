@@ -1,1 +1,0 @@
-import{n as e}from"./config-BrOK5TMu.js";var t=e;export{t as component};

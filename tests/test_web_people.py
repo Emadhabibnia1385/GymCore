@@ -190,3 +190,30 @@ def test_a_student_profile_shows_courses_money_and_programs(db, api):
     assert api.get("/api/admin/students/999999").status_code == 404
     coach_id = identities_service.find_person(db, Platform.TELEGRAM, OWNER).id
     assert api.get(f"/api/admin/students/{coach_id}").status_code == 404
+
+
+def test_the_student_list_carries_phone_class_and_what_is_owed(db):
+    from fastapi.testclient import TestClient
+
+    from app.api.main import app
+    from app.core import clock
+    from app.core.config import get_settings
+    from app.services import classes as classes_service
+    from app.services import courses as courses_service
+
+    get_settings().web_cookie_secure = False
+    get_settings().web_dev_login = True
+    try:
+        client = TestClient(app)
+        assert client.post("/api/auth/dev").status_code == 200
+        student = persons_service.create(db, name="سارا", phone="09120000000")
+        kind = classes_service.list_class_types(db, only_active=True)[0]
+        courses_service.create(
+            db, client_id=student.id, class_type_id=kind.id, sessions_total=12, tuition=900_000,
+            start_date=clock.today(), weekdays="0", class_times="0@18:00",
+        )
+        row = client.get("/api/admin/students").json()["rows"][0]
+        assert (row["phone"], row["class_title"], row["total"], row["owing"]) == (
+            "09120000000", kind.title, 12, 900_000)
+    finally:
+        get_settings().web_dev_login = False

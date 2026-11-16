@@ -43,6 +43,10 @@ class StudentRow(BaseModel):
     remaining: int | None
     programs: int
     packages: int
+    phone: str | None = None
+    class_title: str | None = None
+    total: int | None = None
+    owing: int = 0
 
 
 class StudentList(BaseModel):
@@ -92,6 +96,7 @@ def students(
             StudentRow(
                 id=r.person.id, name=r.person.name, kind=r.person.student_type.value,
                 state=r.state, remaining=r.remaining, programs=r.programs, packages=r.packages,
+                phone=r.person.phone, class_title=r.class_title, total=r.total, owing=r.owing,
             )
             for r in rows
         ],

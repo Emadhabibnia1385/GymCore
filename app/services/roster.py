@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from app.models import Course, CourseStatus, Person, Role, StudentType
 from app.services import courses as courses_service
 from app.services import packages as packages_service
+from app.services import payments as payments_service
 from app.services import persons as persons_service
 from app.services import plans as plans_service
 from app.services import schedule as schedule_service
@@ -29,6 +30,16 @@ class RosterRow:
     remaining: int | None  # sessions left on the active course
     programs: int
     packages: int
+    class_title: str | None = None  # the active course's class
+    total: int | None = None  # sessions bought on the active course
+    owing: int = 0  # what the student still owes across every course
+
+
+def _owing(db: Session, person_id: int) -> int:
+    return sum(
+        payments_service.course_balance(db, course)["outstanding"]
+        for course in db.scalars(courses_service.list_stmt(person_id))
+    )
 
 
 def list_students(
@@ -40,16 +51,26 @@ def list_students(
         programs = len(plans_service.list_assignments(db, person_id=person.id))
         packages = len(packages_service.list_for_person(db, person.id))
         if person.student_type == StudentType.ONLINE:
-            rows.append(((3, 0), RosterRow(person, "online", None, programs, packages)))
+            rows.append(((3, 0), RosterRow(
+                person, "online", None, programs, packages, owing=_owing(db, person.id),
+            )))
             continue
         active = courses_service.active_course(db, person.id)
         if active is not None:
             left = courses_service.remaining_sessions(db, active)
-            rows.append(((0, left), RosterRow(person, "active", left, programs, packages)))
+            rows.append(((0, left), RosterRow(
+                person, "active", left, programs, packages,
+                class_title=active.class_type.title, total=active.sessions_total,
+                owing=_owing(db, person.id),
+            )))
         elif db.scalar(courses_service.list_stmt(person.id, CourseStatus.FINISHED).limit(1)):
-            rows.append(((1, 0), RosterRow(person, "ended", None, programs, packages)))
+            rows.append(((1, 0), RosterRow(
+                person, "ended", None, programs, packages, owing=_owing(db, person.id),
+            )))
         else:
-            rows.append(((2, 0), RosterRow(person, "none", None, programs, packages)))
+            rows.append(((2, 0), RosterRow(
+                person, "none", None, programs, packages, owing=_owing(db, person.id),
+            )))
     rows.sort(key=lambda row: row[0])
     return [row for _, row in rows]
 

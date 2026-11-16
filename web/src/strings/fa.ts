@@ -180,6 +180,12 @@ export const t = {
 		programCount: "{n} برنامه",
 		packageCount: "{n} پکیج",
 		noProgram: "بدون برنامه",
+		stat: { all: "همهٔ شاگردان", active: "دورهٔ فعال", ending: "نیازمند تمدید", owing: "بدهکار" },
+		filter: { all: "همه", active: "فعال", ending: "رو به پایان", ended: "تمام‌شده", none: "بدون دوره", online: "غیرحضوری", owing: "بدهکار" },
+		progress: "پیشرفت دوره",
+		progressText: "{used} از {total} جلسه",
+		owes: "بدهی {amount}",
+		count: "{n} نفر",
 	},
 	profile: {
 		remaining: "جلسهٔ باقی‌مانده",

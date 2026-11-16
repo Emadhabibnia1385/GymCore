@@ -1,0 +1,1 @@
+import{n as e}from"./config-C4TPT5fj.js";var t=e;export{t as component};

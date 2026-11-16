@@ -1,1 +1,0 @@
-import{t as e}from"./plans-CIQb1K7N.js";var t=e;export{t as component};

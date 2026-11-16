@@ -11,6 +11,10 @@ export type StudentRow = {
 	remaining: number | null;
 	programs: number;
 	packages: number;
+	phone: string | null;
+	class_title: string | null;
+	total: number | null;
+	owing: number;
 };
 export type StudentList = { in_person: number; online: number; rows: StudentRow[] };
 

@@ -1,0 +1,1 @@
+import{t as e}from"./attendance-DGg7263O.js";var t=e;export{t as component};

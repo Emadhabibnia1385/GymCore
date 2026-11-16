@@ -1,0 +1,1 @@
+import{t as e}from"./auth-JKQ7Fkt7.js";var t=e;export{t as component};

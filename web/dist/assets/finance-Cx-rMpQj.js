@@ -1,0 +1,1 @@
+import{t as e}from"./money-shjAps31.js";var t=e;export{t as component};

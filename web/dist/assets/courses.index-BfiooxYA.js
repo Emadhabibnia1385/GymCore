@@ -1,1 +1,0 @@
-import{t as e}from"./courses-CSVdJ1p_.js";var t=e;export{t as component};

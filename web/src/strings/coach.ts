@@ -68,6 +68,8 @@ export const coach = {
 		net: "سود خالص",
 		payments: "{n} پرداخت",
 		corrections: "و {n} اصلاحیه",
+		expenseCount: "{n} هزینهٔ ثبت‌شده",
+		kept: "{p}٪ درآمد باقی می‌ماند",
 		incomeByKind: "درآمد به تفکیک نوع",
 		expensesByCategory: "هزینه به تفکیک دسته",
 		kind: "نوع",

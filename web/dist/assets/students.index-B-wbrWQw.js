@@ -1,1 +1,0 @@
-import{n as e}from"./students-DCbUl3p3.js";var t=e;export{t as component};
