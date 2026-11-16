@@ -12,6 +12,7 @@ export const t = {
 		attendance: "حضور و غیاب",
 		finance: "مالی",
 		classes: "کلاس‌ها",
+		plans: "برنامه‌ها",
 		timetable: "برنامهٔ هفتگی",
 		followups: "پیگیری‌ها",
 		messages: "پیام‌ها",

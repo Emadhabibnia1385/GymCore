@@ -31,6 +31,7 @@ export function navFor(role: Me["role"]): NavItem[] {
 			{ to: "/finance", label: t.nav.finance, Icon: WalletIcon },
 			{ to: "/timetable", label: t.nav.timetable, Icon: CalendarMarkIcon },
 			{ to: "/followups", label: t.nav.followups, Icon: PhoneIcon },
+			{ to: "/plans", label: t.nav.plans, Icon: GiftIcon },
 			{ to: "/classes", label: t.nav.classes, Icon: DumbbellIcon },
 			{ to: "/messages", label: t.nav.messages, Icon: ChatIcon },
 			{ to: "/settings", label: t.nav.settings, Icon: SettingsIcon },
