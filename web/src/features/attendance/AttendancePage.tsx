@@ -13,6 +13,11 @@ const a = t.attend;
 const TONES: Record<string, StatusTone> = { PRESENT: "success", ABSENT_UNAUTHORIZED: "danger", ABSENT_ALLOWED: "info", COACH_CANCELLED: "info", HOLIDAY: "neutral" };
 const DAY = 24 * 3600 * 1000;
 const SHORT = ["ش", "ی", "د", "س", "چ", "پ", "ج"] as const; // the week from Saturday
+/** The same weekday, `weeks` weeks away. */
+function shiftWeeks(iso: string, weeks: number): string {
+	const moved = new Date(new Date(`${iso}T12:00:00`).getTime() + weeks * 7 * DAY);
+	return `${moved.getFullYear()}-${String(moved.getMonth() + 1).padStart(2, "0")}-${String(moved.getDate()).padStart(2, "0")}`;
+}
 const persianDay = new Intl.DateTimeFormat("fa-IR-u-ca-persian", { day: "numeric" });
 const weekdayName = new Intl.DateTimeFormat("fa-IR", { weekday: "short" });
 
@@ -72,9 +77,9 @@ function DayView() {
 				))}
 			</ul>
 			<div className="grid grid-cols-3 gap-2">
-				<Button variant="secondary" size="sm" onPress={() => setIso(data.prev)}>{a.prev}</Button>
+				<Button variant="secondary" size="sm" onPress={() => setIso(shiftWeeks(data.iso, -1))}>{`› ${a.prevWeek}`}</Button>
 				<Button variant={data.is_today ? "primary" : "secondary"} size="sm" onPress={() => setIso(null)}>{t.common.today}</Button>
-				<Button variant="secondary" size="sm" onPress={() => setIso(data.next)}>{a.next}</Button>
+				<Button variant="secondary" size="sm" onPress={() => setIso(shiftWeeks(data.iso, 1))}>{`${a.nextWeek} ‹`}</Button>
 			</div>
 
 			<div className="flex flex-wrap items-center justify-between gap-2">

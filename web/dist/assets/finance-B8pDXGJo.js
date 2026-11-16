@@ -1,1 +1,0 @@
-import{t as e}from"./money-3VPQm2Zz.js";var t=e;export{t as component};

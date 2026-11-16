@@ -1,1 +1,0 @@
-import{t as e}from"./manage-Dtt7e2ff.js";var t=e;export{t as component};

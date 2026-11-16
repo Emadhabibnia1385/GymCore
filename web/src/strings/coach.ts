@@ -18,6 +18,8 @@ export const coach = {
 	},
 	attend: {
 		opt: { present: "حاضر", allowed: "مجاز", absent: "غایب", cancelled: "لغو", holiday: "تعطیل" },
+		prevWeek: "هفتهٔ قبل",
+		nextWeek: "هفتهٔ بعد",
 		tabDay: "روز",
 		tabMonth: "جدول ماه",
 		quickPresent: "حاضر",
