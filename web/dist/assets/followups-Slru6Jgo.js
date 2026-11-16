@@ -1,0 +1,1 @@
+import{t as e}from"./followups-CUgMmi18.js";var t=e;export{t as component};

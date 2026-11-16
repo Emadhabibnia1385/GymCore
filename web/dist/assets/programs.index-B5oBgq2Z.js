@@ -1,0 +1,1 @@
+import{t as e}from"./programs-DxYOc3Q4.js";var t=e;export{t as component};

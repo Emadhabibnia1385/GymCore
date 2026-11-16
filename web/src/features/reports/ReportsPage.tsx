@@ -82,7 +82,7 @@ export function ReportsPage() {
 							<EmptyState title={r.attendance.none} />
 						) : (
 							<>
-								<UsageBar label={fill(r.kpi.attendanceHint, { p: formatNumber(a.present), t: formatNumber(counted) })} used={a.present} total={counted || null} valueText={`${formatNumber(a.rate)}٪`} />
+								<UsageBar warningAt={101} dangerAt={101} label={fill(r.kpi.attendanceHint, { p: formatNumber(a.present), t: formatNumber(counted) })} used={a.present} total={counted || null} valueText={`${formatNumber(a.rate)}٪`} />
 								<ul className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-5">
 									{(
 										[
