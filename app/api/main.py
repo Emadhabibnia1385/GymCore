@@ -21,6 +21,7 @@ from sqlalchemy import text
 from starlette.concurrency import run_in_threadpool
 
 from app import __version__
+from app.api import web as web_api
 from app.core.config import get_settings
 from app.core.logging import setup_logging
 from app.db.init import init_dev_schema
@@ -46,6 +47,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="GymCore", version=__version__, lifespan=lifespan, docs_url=None, redoc_url=None
 )
+app.include_router(web_api.router)
 
 _STATUS_PAGE = """<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

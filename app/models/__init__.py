@@ -29,6 +29,7 @@ from app.models.person import Person
 from app.models.plan_assignment import PlanAssignment
 from app.models.plan_type import PlanType
 from app.models.setting import Setting
+from app.models.web_session import WebSession
 
 __all__ = [
     "OPEN_LEAD_STATUSES",
@@ -62,4 +63,5 @@ __all__ = [
     "Role",
     "Setting",
     "StudentType",
+    "WebSession",
 ]

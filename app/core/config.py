@@ -60,6 +60,11 @@ class Settings(BaseSettings):
     telegram_owner_ids: str = ""
     telegram_bot_mode: str = "polling"
     telegram_api_base: str = "https://api.telegram.org"
+    # The bot the web panel's «Login with Telegram» button belongs to; its domain
+    # must be registered with BotFather (/setdomain).
+    telegram_bot_username: str = "MahdiSarmad_BOT"
+    # False only for plain-http local development.
+    web_cookie_secure: bool = True
 
     # --- Bale bot (Telegram-compatible Bot API) ---
     bale_bot_token: str = ""
