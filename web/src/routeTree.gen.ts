@@ -16,7 +16,11 @@ import { Route as AppAccountRouteImport } from './routes/_app/account'
 import { Route as AppAttendanceRouteImport } from './routes/_app/attendance'
 import { Route as AppClassesRouteImport } from './routes/_app/classes'
 import { Route as AppFinanceRouteImport } from './routes/_app/finance'
+import { Route as AppFollowupsRouteImport } from './routes/_app/followups'
+import { Route as AppMessagesRouteImport } from './routes/_app/messages'
 import { Route as AppRequestRouteImport } from './routes/_app/request'
+import { Route as AppSettingsRouteImport } from './routes/_app/settings'
+import { Route as AppTimetableRouteImport } from './routes/_app/timetable'
 import { Route as AppCoursesIndexRouteImport } from './routes/_app/courses.index'
 import { Route as AppCoursesIdRouteImport } from './routes/_app/courses.$id'
 import { Route as AppProgramsIndexRouteImport } from './routes/_app/programs.index'
@@ -58,9 +62,29 @@ const AppFinanceRoute = AppFinanceRouteImport.update({
   path: '/finance',
   getParentRoute: () => AppRoute,
 } as any)
+const AppFollowupsRoute = AppFollowupsRouteImport.update({
+  id: '/followups',
+  path: '/followups',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMessagesRoute = AppMessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppRequestRoute = AppRequestRouteImport.update({
   id: '/request',
   path: '/request',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTimetableRoute = AppTimetableRouteImport.update({
+  id: '/timetable',
+  path: '/timetable',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCoursesIndexRoute = AppCoursesIndexRouteImport.update({
@@ -101,7 +125,11 @@ export interface FileRoutesByFullPath {
   '/attendance': typeof AppAttendanceRoute
   '/classes': typeof AppClassesRoute
   '/finance': typeof AppFinanceRoute
+  '/followups': typeof AppFollowupsRoute
+  '/messages': typeof AppMessagesRoute
   '/request': typeof AppRequestRoute
+  '/settings': typeof AppSettingsRoute
+  '/timetable': typeof AppTimetableRoute
   '/courses/$id': typeof AppCoursesIdRoute
   '/programs/$id': typeof AppProgramsIdRoute
   '/students/$id': typeof AppStudentsIdRoute
@@ -115,7 +143,11 @@ export interface FileRoutesByTo {
   '/attendance': typeof AppAttendanceRoute
   '/classes': typeof AppClassesRoute
   '/finance': typeof AppFinanceRoute
+  '/followups': typeof AppFollowupsRoute
+  '/messages': typeof AppMessagesRoute
   '/request': typeof AppRequestRoute
+  '/settings': typeof AppSettingsRoute
+  '/timetable': typeof AppTimetableRoute
   '/': typeof AppIndexRoute
   '/courses/$id': typeof AppCoursesIdRoute
   '/programs/$id': typeof AppProgramsIdRoute
@@ -132,7 +164,11 @@ export interface FileRoutesById {
   '/_app/attendance': typeof AppAttendanceRoute
   '/_app/classes': typeof AppClassesRoute
   '/_app/finance': typeof AppFinanceRoute
+  '/_app/followups': typeof AppFollowupsRoute
+  '/_app/messages': typeof AppMessagesRoute
   '/_app/request': typeof AppRequestRoute
+  '/_app/settings': typeof AppSettingsRoute
+  '/_app/timetable': typeof AppTimetableRoute
   '/_app/': typeof AppIndexRoute
   '/_app/courses/$id': typeof AppCoursesIdRoute
   '/_app/programs/$id': typeof AppProgramsIdRoute
@@ -150,7 +186,11 @@ export interface FileRouteTypes {
     | '/attendance'
     | '/classes'
     | '/finance'
+    | '/followups'
+    | '/messages'
     | '/request'
+    | '/settings'
+    | '/timetable'
     | '/courses/$id'
     | '/programs/$id'
     | '/students/$id'
@@ -164,7 +204,11 @@ export interface FileRouteTypes {
     | '/attendance'
     | '/classes'
     | '/finance'
+    | '/followups'
+    | '/messages'
     | '/request'
+    | '/settings'
+    | '/timetable'
     | '/'
     | '/courses/$id'
     | '/programs/$id'
@@ -180,7 +224,11 @@ export interface FileRouteTypes {
     | '/_app/attendance'
     | '/_app/classes'
     | '/_app/finance'
+    | '/_app/followups'
+    | '/_app/messages'
     | '/_app/request'
+    | '/_app/settings'
+    | '/_app/timetable'
     | '/_app/'
     | '/_app/courses/$id'
     | '/_app/programs/$id'
@@ -246,11 +294,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppFinanceRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/followups': {
+      id: '/_app/followups'
+      path: '/followups'
+      fullPath: '/followups'
+      preLoaderRoute: typeof AppFollowupsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/messages': {
+      id: '/_app/messages'
+      path: '/messages'
+      fullPath: '/messages'
+      preLoaderRoute: typeof AppMessagesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/request': {
       id: '/_app/request'
       path: '/request'
       fullPath: '/request'
       preLoaderRoute: typeof AppRequestRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/timetable': {
+      id: '/_app/timetable'
+      path: '/timetable'
+      fullPath: '/timetable'
+      preLoaderRoute: typeof AppTimetableRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/courses/': {
@@ -303,7 +379,11 @@ interface AppRouteChildren {
   AppAttendanceRoute: typeof AppAttendanceRoute
   AppClassesRoute: typeof AppClassesRoute
   AppFinanceRoute: typeof AppFinanceRoute
+  AppFollowupsRoute: typeof AppFollowupsRoute
+  AppMessagesRoute: typeof AppMessagesRoute
   AppRequestRoute: typeof AppRequestRoute
+  AppSettingsRoute: typeof AppSettingsRoute
+  AppTimetableRoute: typeof AppTimetableRoute
   AppIndexRoute: typeof AppIndexRoute
   AppCoursesIdRoute: typeof AppCoursesIdRoute
   AppProgramsIdRoute: typeof AppProgramsIdRoute
@@ -318,7 +398,11 @@ const AppRouteChildren: AppRouteChildren = {
   AppAttendanceRoute: AppAttendanceRoute,
   AppClassesRoute: AppClassesRoute,
   AppFinanceRoute: AppFinanceRoute,
+  AppFollowupsRoute: AppFollowupsRoute,
+  AppMessagesRoute: AppMessagesRoute,
   AppRequestRoute: AppRequestRoute,
+  AppSettingsRoute: AppSettingsRoute,
+  AppTimetableRoute: AppTimetableRoute,
   AppIndexRoute: AppIndexRoute,
   AppCoursesIdRoute: AppCoursesIdRoute,
   AppProgramsIdRoute: AppProgramsIdRoute,

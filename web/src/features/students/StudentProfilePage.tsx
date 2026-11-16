@@ -4,6 +4,7 @@ import { Button, ConfirmDialog, EmptyState, Notice, ErrorState, KeyValueList, Pa
 import { CourseSummaryCard } from "@/features/courses";
 import { CourseFormSheet, deleteStudent, StudentFormSheet, type CourseDraft, type StudentDraft } from "@/features/manage";
 import { PaymentSheet, type PaymentTarget } from "@/features/money";
+import { NotesCard } from "./NotesCard";
 import { WebAccessCard } from "./WebAccessCard";
 import { useState } from "react";
 import { formatNumber, formatToman } from "@/shared/format";
@@ -46,6 +47,8 @@ export function StudentProfilePage({ id }: { id: number }) {
 					]}
 				/>
 			</SectionCard>
+
+			<NotesCard id={data.id} name={data.name} />
 
 			<WebAccessCard id={data.id} username={data.username} />
 
