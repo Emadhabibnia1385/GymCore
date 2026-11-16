@@ -1,46 +1,110 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Button, EmptyState, ErrorState, PageHeader, PageSkeleton, StatusChip, type StatusTone } from "@nyxon/nasim";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Button, EmptyState, ErrorState, Notice, PageHeader, PageSkeleton, StatusChip, Tabs, type StatusTone } from "@nyxon/nasim";
 import { useState } from "react";
-import { t } from "@/strings";
-import { dayQuery } from "./api";
+import { formatNumber } from "@/shared/format";
+import { TINT, tintStyle } from "@/shared/personColor";
+import { fill, t } from "@/strings";
+import { dayQuery, recordAttendance, type DayRow } from "./api";
 import { OutcomeSheet, type Target } from "./OutcomeSheet";
+import { SheetView } from "./SheetView";
 
 const a = t.attend;
 const TONES: Record<string, StatusTone> = { PRESENT: "success", ABSENT_UNAUTHORIZED: "danger", ABSENT_ALLOWED: "info", COACH_CANCELLED: "info", HOLIDAY: "neutral" };
+const DAY = 24 * 3600 * 1000;
+const persianDay = new Intl.DateTimeFormat("fa-IR-u-ca-persian", { day: "numeric" });
+const weekdayName = new Intl.DateTimeFormat("fa-IR", { weekday: "short" });
+
+/** The seven days (Saturday first) of the week that holds `iso`. */
+function weekOf(iso: string) {
+	const noon = new Date(`${iso}T12:00:00`);
+	const start = new Date(noon.getTime() - ((noon.getDay() + 1) % 7) * DAY);
+	return Array.from({ length: 7 }, (_, index) => {
+		const day = new Date(start.getTime() + index * DAY);
+		const stamp = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+		return { iso: stamp, label: persianDay.format(day), name: weekdayName.format(day), friday: index === 6 };
+	});
+}
 
 export function AttendancePage() {
+	return (
+		<div className="flex flex-col gap-4">
+			<PageHeader title={a.title} description={a.hint} />
+			<Tabs
+				label={a.title}
+				items={[
+					{ id: "day", label: a.tabDay, content: <DayView /> },
+					{ id: "month", label: a.tabMonth, content: <SheetView /> },
+				]}
+			/>
+		</div>
+	);
+}
+
+function DayView() {
+	const queryClient = useQueryClient();
 	const [iso, setIso] = useState<string | null>(null);
 	const [target, setTarget] = useState<Target | null>(null);
 	const { data, isPending, isError, refetch } = useQuery({ ...dayQuery(iso), placeholderData: keepPreviousData });
+	const quick = useMutation({
+		mutationFn: ({ row, status }: { row: DayRow; status: string }) => recordAttendance({ course_id: row.course_id, date: data!.iso, status }),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin"] }),
+	});
 	if (isPending) return <PageSkeleton />;
 	if (isError) return <ErrorState as="h1" onRetry={() => void refetch()} />;
 
+	const done = data.rows.filter((row) => row.status !== null).length;
+	const open = (row: DayRow) => setTarget({ courseId: row.course_id, iso: data.iso, title: row.student, subtitle: `${row.class_title}${row.time ? ` · ${row.time}` : ""} · ${data.label}`, current: row.status ? row.label : a.pending, isFuture: data.is_future });
+
 	return (
 		<div className="flex flex-col gap-4">
-			<PageHeader title={a.title} description={data.label} meta={<span className="text-sm text-muted">{a.hint}</span>} />
-			<div className="flex items-center justify-between gap-2">
-				<Button variant="secondary" size="sm" onPress={() => setIso(data.prev)}>{a.prev}</Button>
+			<div className="flex items-center gap-2">
+				<Button variant="secondary" size="sm" onPress={() => setIso(data.prev)} aria-label={a.prev}>›</Button>
+				<ul className="grid min-w-0 flex-1 grid-cols-7 gap-1" aria-label={a.week}>
+					{weekOf(data.iso).map((day) => (
+						<li key={day.iso}>
+							<button
+								type="button"
+								aria-current={day.iso === data.iso ? "date" : undefined}
+								onClick={() => setIso(day.iso)}
+								className={`flex w-full flex-col items-center rounded-field border py-1.5 text-xs outline-none focus-visible:ring-2 focus-visible:ring-accent ${day.iso === data.iso ? "border-accent bg-accent text-accent-foreground" : day.friday ? "border-border bg-danger/10" : "border-border bg-surface hover:bg-surface-secondary"}`}
+							>
+								<span className="opacity-80">{day.name}</span>
+								<span className="text-base font-semibold tabular-nums">{day.label}</span>
+							</button>
+						</li>
+					))}
+				</ul>
+				<Button variant="secondary" size="sm" onPress={() => setIso(data.next)} aria-label={a.next}>‹</Button>
 				<Button variant={data.is_today ? "primary" : "secondary"} size="sm" onPress={() => setIso(null)}>{t.common.today}</Button>
-				<Button variant="secondary" size="sm" onPress={() => setIso(data.next)}>{a.next}</Button>
 			</div>
+
+			<div className="flex flex-wrap items-center justify-between gap-2">
+				<h2 className="font-semibold">{data.label}</h2>
+				{data.rows.length > 0 ? <span className="text-sm text-muted">{fill(a.summary, { done: formatNumber(done), total: formatNumber(data.rows.length) })}</span> : null}
+			</div>
+			{quick.isError ? <Notice tone="danger" role="alert">{quick.error.message}</Notice> : null}
 
 			{data.rows.length === 0 ? (
 				<EmptyState title={a.none} description={a.noneHint} />
 			) : (
-				<ul className="flex flex-col gap-2">
+				<ul className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
 					{data.rows.map((row) => (
-						<li key={row.course_id}>
-							<button
-								type="button"
-								className="flex min-h-14 w-full items-center justify-between gap-3 rounded-field border border-border bg-surface p-4 text-start outline-none transition-colors hover:bg-surface-secondary focus-visible:ring-2 focus-visible:ring-accent"
-								onClick={() => setTarget({ courseId: row.course_id, iso: data.iso, title: row.student, subtitle: `${row.class_title}${row.time ? ` · ${row.time}` : ""} · ${data.label}`, current: row.status ? row.label : a.pending, isFuture: data.is_future })}
-							>
-								<span className="flex min-w-0 flex-col">
-									<span className="font-medium">{row.student}</span>
-									<span className="text-xs text-muted">{`${row.class_title}${row.time ? ` · ${row.time}` : ""}`}</span>
+						<li key={row.course_id} style={tintStyle(row.course_id)} className="flex flex-col gap-3 rounded-box border border-border bg-surface p-3">
+							<div className="flex items-start justify-between gap-2">
+								<span className="flex min-w-0 items-center gap-2">
+									<span className={`rounded-field px-2 py-1 text-xs font-semibold tabular-nums ${TINT}`}>{row.time || "—"}</span>
+									<span className="flex min-w-0 flex-col">
+										<span className="truncate font-medium">{row.student}</span>
+										<span className="truncate text-xs text-muted">{row.class_title}</span>
+									</span>
 								</span>
 								<StatusChip size="sm" tone={row.status ? (TONES[row.status] ?? "neutral") : "neutral"} label={row.status ? row.label : a.pending} />
-							</button>
+							</div>
+							<div className="grid grid-cols-3 gap-2">
+								<Button size="sm" variant={row.status === "PRESENT" ? "primary" : "secondary"} isDisabled={data.is_future || quick.isPending} onPress={() => quick.mutate({ row, status: "PRESENT" })}>{a.quickPresent}</Button>
+								<Button size="sm" variant={row.status === "ABSENT_UNAUTHORIZED" ? "danger" : "danger-soft"} isDisabled={data.is_future || quick.isPending} onPress={() => quick.mutate({ row, status: "ABSENT_UNAUTHORIZED" })}>{a.quickAbsent}</Button>
+								<Button size="sm" variant="ghost" onPress={() => open(row)}>{a.more}</Button>
+							</div>
 						</li>
 					))}
 				</ul>

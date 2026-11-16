@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { BottomSheet, Button, ErrorState, Notice, PageHeader, PageSkeleton, SectionCard, TextAreaField, TextField } from "@nyxon/nasim";
 import { useState } from "react";
 import { BrandCard } from "@/features/brand";
@@ -26,6 +27,17 @@ export function SettingsPage() {
 		<div className="flex flex-col gap-6">
 			<PageHeader title={s.title} description={s.hint} />
 			{error ? <Notice tone="danger" role="alert">{error.message}</Notice> : null}
+			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+				{[
+					{ to: "/classes", title: t.nav.classes, hint: s.classesHint },
+					{ to: "/messages", title: t.nav.messages, hint: s.messagesHint },
+				].map((item) => (
+					<Link key={item.to} to={item.to} className="flex flex-col gap-1 rounded-box border border-border bg-surface p-4 outline-none hover:bg-surface-secondary focus-visible:ring-2 focus-visible:ring-accent">
+						<span className="font-semibold">{item.title}</span>
+						<span className="text-sm text-muted">{item.hint}</span>
+					</Link>
+				))}
+			</div>
 			<BrandCard />
 			<SectionCard title={s.title}>
 				<ul className="flex flex-col gap-2">

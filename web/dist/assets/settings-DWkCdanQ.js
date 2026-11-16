@@ -1,0 +1,1 @@
+import{t as e}from"./config-Df5ox0xK.js";var t=e;export{t as component};

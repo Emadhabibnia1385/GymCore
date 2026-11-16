@@ -1,8 +1,10 @@
 import { coach } from "./coach";
+import { reports } from "./reports";
 
 // Every word the person sees. Screens take their copy from here, never inline.
 export const t = {
 	...coach,
+	reports,
 	brand: {
 		title: "نام و لوگو",
 		hint: "نام سایت، عنوان تب مرورگر و لوگوها؛ در صفحهٔ ورود، منو و آیکن برنامهٔ نصب‌شده دیده می‌شوند.",
@@ -28,6 +30,7 @@ export const t = {
 		students: "شاگردان",
 		attendance: "حضور و غیاب",
 		finance: "مالی",
+		reports: "گزارش‌ها",
 		classes: "کلاس‌ها",
 		plans: "برنامه‌ها",
 		timetable: "برنامهٔ هفتگی",
@@ -166,6 +169,11 @@ export const t = {
 		noProgram: "بدون برنامه",
 	},
 	profile: {
+		remaining: "جلسهٔ باقی‌مانده",
+		noActive: "دورهٔ فعالی نیست",
+		coursesCount: "{n} دوره در کل",
+		past: "دوره‌های قبلی و متوقف",
+		contact: "اطلاعات تماس",
 		phone: "شماره",
 		phone2: "شمارهٔ دوم",
 		kind: "نوع",

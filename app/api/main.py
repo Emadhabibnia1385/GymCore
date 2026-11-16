@@ -30,6 +30,8 @@ from app.api import (
     web_crm,
     web_manage,
     web_programs,
+    web_reports,
+    web_sheet,
     web_student,
 )
 from app.core.config import get_settings
@@ -72,6 +74,8 @@ app.include_router(web_manage.router)
 app.include_router(web_crm.router)
 app.include_router(web_config.router)
 app.include_router(web_programs.router)
+app.include_router(web_reports.router)
+app.include_router(web_sheet.router)
 app.include_router(web_brand.public)
 app.include_router(web_brand.admin)
 

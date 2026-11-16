@@ -32,7 +32,7 @@ bun run typecheck && bun run test && bun run build
 ```
 
 Sign-in: Telegram's widget → `POST /api/auth/telegram` verifies the signature → an httpOnly cookie
-keeps the browser signed in for 180 days of use. Admin rights are the bot's own owner whitelist.
+keeps the browser signed in for a year of use. Admin rights are the bot's own owner whitelist.
 
 ## Shipping a change
 

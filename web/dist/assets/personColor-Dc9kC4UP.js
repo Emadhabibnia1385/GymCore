@@ -1,0 +1,1 @@
+var e=e=>(e*47+20)%360,t=`border border-[oklch(0.62_0.13_var(--h))] bg-[oklch(0.93_0.07_var(--h))] text-[oklch(0.28_0.09_var(--h))] dark:bg-[oklch(0.3_0.08_var(--h))] dark:text-[oklch(0.93_0.07_var(--h))]`,n=t=>({"--h":e(t)});export{n,t};

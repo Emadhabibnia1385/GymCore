@@ -18,6 +18,7 @@ import { Route as AppClassesRouteImport } from './routes/_app/classes'
 import { Route as AppFinanceRouteImport } from './routes/_app/finance'
 import { Route as AppFollowupsRouteImport } from './routes/_app/followups'
 import { Route as AppMessagesRouteImport } from './routes/_app/messages'
+import { Route as AppReportsRouteImport } from './routes/_app/reports'
 import { Route as AppRequestRouteImport } from './routes/_app/request'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppTimetableRouteImport } from './routes/_app/timetable'
@@ -72,6 +73,11 @@ const AppFollowupsRoute = AppFollowupsRouteImport.update({
 const AppMessagesRoute = AppMessagesRouteImport.update({
   id: '/messages',
   path: '/messages',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppReportsRoute = AppReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => AppRoute,
 } as any)
 const AppRequestRoute = AppRequestRouteImport.update({
@@ -139,6 +145,7 @@ export interface FileRoutesByFullPath {
   '/finance': typeof AppFinanceRoute
   '/followups': typeof AppFollowupsRoute
   '/messages': typeof AppMessagesRoute
+  '/reports': typeof AppReportsRoute
   '/request': typeof AppRequestRoute
   '/settings': typeof AppSettingsRoute
   '/timetable': typeof AppTimetableRoute
@@ -159,6 +166,7 @@ export interface FileRoutesByTo {
   '/finance': typeof AppFinanceRoute
   '/followups': typeof AppFollowupsRoute
   '/messages': typeof AppMessagesRoute
+  '/reports': typeof AppReportsRoute
   '/request': typeof AppRequestRoute
   '/settings': typeof AppSettingsRoute
   '/timetable': typeof AppTimetableRoute
@@ -182,6 +190,7 @@ export interface FileRoutesById {
   '/_app/finance': typeof AppFinanceRoute
   '/_app/followups': typeof AppFollowupsRoute
   '/_app/messages': typeof AppMessagesRoute
+  '/_app/reports': typeof AppReportsRoute
   '/_app/request': typeof AppRequestRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/timetable': typeof AppTimetableRoute
@@ -206,6 +215,7 @@ export interface FileRouteTypes {
     | '/finance'
     | '/followups'
     | '/messages'
+    | '/reports'
     | '/request'
     | '/settings'
     | '/timetable'
@@ -226,6 +236,7 @@ export interface FileRouteTypes {
     | '/finance'
     | '/followups'
     | '/messages'
+    | '/reports'
     | '/request'
     | '/settings'
     | '/timetable'
@@ -248,6 +259,7 @@ export interface FileRouteTypes {
     | '/_app/finance'
     | '/_app/followups'
     | '/_app/messages'
+    | '/_app/reports'
     | '/_app/request'
     | '/_app/settings'
     | '/_app/timetable'
@@ -330,6 +342,13 @@ declare module '@tanstack/react-router' {
       path: '/messages'
       fullPath: '/messages'
       preLoaderRoute: typeof AppMessagesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/reports': {
+      id: '/_app/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AppReportsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/request': {
@@ -419,6 +438,7 @@ interface AppRouteChildren {
   AppFinanceRoute: typeof AppFinanceRoute
   AppFollowupsRoute: typeof AppFollowupsRoute
   AppMessagesRoute: typeof AppMessagesRoute
+  AppReportsRoute: typeof AppReportsRoute
   AppRequestRoute: typeof AppRequestRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppTimetableRoute: typeof AppTimetableRoute
@@ -440,6 +460,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppFinanceRoute: AppFinanceRoute,
   AppFollowupsRoute: AppFollowupsRoute,
   AppMessagesRoute: AppMessagesRoute,
+  AppReportsRoute: AppReportsRoute,
   AppRequestRoute: AppRequestRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppTimetableRoute: AppTimetableRoute,

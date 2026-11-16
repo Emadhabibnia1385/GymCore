@@ -1,1 +1,0 @@
-import{t as e}from"./plans-DK05y9UI.js";var t=e;export{t as component};

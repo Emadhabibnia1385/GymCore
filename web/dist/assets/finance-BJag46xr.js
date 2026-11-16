@@ -1,1 +1,0 @@
-import{t as e}from"./money-DYon2ciC.js";var t=e;export{t as component};

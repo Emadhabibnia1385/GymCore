@@ -1,1 +1,0 @@
-import{t as e}from"./manage-CPzuXEKK.js";var t=e;export{t as component};

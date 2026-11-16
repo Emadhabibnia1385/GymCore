@@ -1,0 +1,1 @@
+import{t as e}from"./money-FaS-6bnC.js";var t=e;export{t as component};

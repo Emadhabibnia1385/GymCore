@@ -1,15 +1,14 @@
 import type { ComponentType, SVGProps } from "react";
 import CalendarIcon from "~icons/solar/calendar-linear";
-import ChatIcon from "~icons/solar/chat-round-dots-linear";
 import CalendarMarkIcon from "~icons/solar/calendar-mark-linear";
 import PhoneIcon from "~icons/solar/phone-calling-linear";
 import SettingsIcon from "~icons/solar/settings-linear";
 import CheckIcon from "~icons/solar/check-circle-linear";
-import DumbbellIcon from "~icons/solar/dumbbell-large-minimalistic-linear";
 import WalletIcon from "~icons/solar/wallet-linear";
 import CartIcon from "~icons/solar/cart-large-2-linear";
 import GiftIcon from "~icons/solar/gift-linear";
 import HomeIcon from "~icons/solar/home-2-linear";
+import ChartIcon from "~icons/solar/chart-2-linear";
 import UsersIcon from "~icons/solar/users-group-rounded-linear";
 import type { Me } from "@/features/auth";
 import { t } from "@/strings";
@@ -26,14 +25,15 @@ export function navFor(role: Me["role"]): NavItem[] {
 	if (role === "admin") {
 		return [
 			home,
+			// The daily four come first — they are the phone's bottom bar. Class types and messages
+			// live inside settings, which keeps the menu short.
 			{ to: "/attendance", label: t.nav.attendance, Icon: CheckIcon },
 			{ to: "/students", label: t.nav.students, Icon: UsersIcon },
-			{ to: "/finance", label: t.nav.finance, Icon: WalletIcon },
 			{ to: "/timetable", label: t.nav.timetable, Icon: CalendarMarkIcon },
+			{ to: "/finance", label: t.nav.finance, Icon: WalletIcon },
+			{ to: "/reports", label: t.nav.reports, Icon: ChartIcon },
 			{ to: "/followups", label: t.nav.followups, Icon: PhoneIcon },
 			{ to: "/plans", label: t.nav.plans, Icon: GiftIcon },
-			{ to: "/classes", label: t.nav.classes, Icon: DumbbellIcon },
-			{ to: "/messages", label: t.nav.messages, Icon: ChatIcon },
 			{ to: "/settings", label: t.nav.settings, Icon: SettingsIcon },
 		];
 	}

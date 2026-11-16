@@ -1,1 +1,0 @@
-import{t as e}from"./config-Oz44BNY-.js";var t=e;export{t as component};

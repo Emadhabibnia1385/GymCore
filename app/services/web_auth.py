@@ -23,7 +23,7 @@ from app.models import Person, Platform, Role, WebSession
 from app.services import auth as auth_service
 from app.services import identities as identities_service
 
-SESSION_DAYS = 180
+SESSION_DAYS = 365
 # Slide the expiry at most this often, so reads don't write on every request.
 _SLIDE_EVERY = timedelta(hours=12)
 # A Telegram signature older than this is a replay, not a login.
