@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.api.web_deps import COOKIE, current_session, require_admin
 from app.core import clock
 from app.core.config import get_settings
 from app.core.exceptions import AuthError
@@ -26,7 +27,6 @@ from app.services import schedule as schedule_service
 from app.services import stats as stats_service
 from app.services import web_auth
 
-COOKIE = "gc_session"
 _COOKIE_MAX_AGE = 400 * 24 * 3600  # the longest a browser keeps a cookie; the server decides
 
 router = APIRouter(prefix="/api", tags=["web"])
@@ -37,6 +37,7 @@ router = APIRouter(prefix="/api", tags=["web"])
 
 class LoginConfig(BaseModel):
     bot_username: str
+    dev_login: bool = False
 
 
 class Me(BaseModel):
@@ -101,30 +102,15 @@ class AdminDashboard(BaseModel):
     follow_ups: FollowUps
 
 
-# --- session plumbing ---
-
-
-def current_session(request: Request, db: Session = Depends(get_db)) -> WebSession:
-    session = web_auth.resolve_session(db, request.cookies.get(COOKIE))
-    if session is None:
-        raise HTTPException(status_code=401, detail="وارد نشده‌ای")
-    return session
-
-
-def require_admin(
-    session: WebSession = Depends(current_session), db: Session = Depends(get_db)
-) -> WebSession:
-    if not auth_service.is_admin(db, Platform.TELEGRAM, session.telegram_user_id):
-        raise HTTPException(status_code=403, detail="دسترسی به این بخش مجاز نیست")
-    return session
-
-
 # --- auth ---
 
 
 @router.get("/auth/config", response_model=LoginConfig, operation_id="auth_config")
 def login_config() -> LoginConfig:
-    return LoginConfig(bot_username=get_settings().telegram_bot_username)
+    settings = get_settings()
+    return LoginConfig(
+        bot_username=settings.telegram_bot_username, dev_login=settings.web_dev_login
+    )
 
 
 @router.post("/auth/telegram", response_model=Me, operation_id="auth_telegram")
@@ -137,14 +123,29 @@ def login_telegram(
         person = web_auth.person_for_login(db, fields)
     except AuthError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
-    token = web_auth.start_session(
-        db, person, fields["id"], request.headers.get("user-agent")
-    )
+    return _open_session(db, person, fields["id"], request, response)
+
+
+@router.post("/auth/dev", response_model=Me, operation_id="auth_dev", include_in_schema=False)
+def login_dev(request: Request, response: Response, db: Session = Depends(get_db)) -> Me:
+    """Local development only (WEB_DEV_LOGIN=true): sign in as the first owner."""
+    owners = get_settings().telegram_owner_id_list
+    if not get_settings().web_dev_login or not owners:
+        raise HTTPException(status_code=404, detail="یافت نشد")
+    user_id = str(owners[0])
+    person = web_auth.person_for_login(db, {"id": user_id, "first_name": "مربی"})
+    return _open_session(db, person, user_id, request, response)
+
+
+def _open_session(
+    db: Session, person: Person, user_id: str, request: Request, response: Response
+) -> Me:
+    token = web_auth.start_session(db, person, user_id, request.headers.get("user-agent"))
     response.set_cookie(
         COOKIE, token, max_age=_COOKIE_MAX_AGE, httponly=True, samesite="lax",
-        secure=settings.web_cookie_secure, path="/",
+        secure=get_settings().web_cookie_secure, path="/",
     )
-    return _me(db, person, fields["id"])
+    return _me(db, person, user_id)
 
 
 @router.get("/auth/me", response_model=Me, operation_id="auth_me")

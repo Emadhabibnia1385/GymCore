@@ -40,7 +40,9 @@ def _signed(user_id, first_name="کاربر", auth_date=None, token=BOT_TOKEN, *
 
 
 def test_the_login_button_knows_the_bot(client):
-    assert client.get("/api/auth/config").json() == {"bot_username": "MahdiSarmad_BOT"}
+    assert client.get("/api/auth/config").json() == {
+        "bot_username": "MahdiSarmad_BOT", "dev_login": False,
+    }
 
 
 def test_a_forged_or_stale_signature_is_refused(client):
@@ -127,3 +129,13 @@ def test_the_admin_dashboard_reports_the_gyms_real_numbers(db, client):
         {"student": "سارا", "class_title": class_type.title, "amount": 600_000}]}
     assert data["today"] == [{"time": "18:00", "student": "سارا", "class_title": class_type.title}]
     assert len(data["months"]) == 12 and data["totals"]["active_courses"] == 1
+
+
+def test_the_dev_login_is_off_unless_asked_for(db, client, monkeypatch):
+    assert client.get("/api/auth/config").json()["dev_login"] is False
+    assert client.post("/api/auth/dev").status_code == 404  # a server never has it
+    monkeypatch.setattr(get_settings(), "web_dev_login", True)
+    assert client.get("/api/auth/config").json()["dev_login"] is True
+    res = client.post("/api/auth/dev")
+    assert res.status_code == 200 and res.json()["role"] == "admin"
+    assert client.get("/api/admin/dashboard").status_code == 200

@@ -22,6 +22,7 @@ from starlette.concurrency import run_in_threadpool
 
 from app import __version__
 from app.api import web as web_api
+from app.api import web_admin, web_student
 from app.core.config import get_settings
 from app.core.logging import setup_logging
 from app.db.init import init_dev_schema
@@ -48,6 +49,8 @@ app = FastAPI(
     title="GymCore", version=__version__, lifespan=lifespan, docs_url=None, redoc_url=None
 )
 app.include_router(web_api.router)
+app.include_router(web_student.router)
+app.include_router(web_admin.router)
 
 _STATUS_PAGE = """<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

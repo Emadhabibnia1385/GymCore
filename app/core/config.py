@@ -65,6 +65,9 @@ class Settings(BaseSettings):
     telegram_bot_username: str = "MahdiSarmad_BOT"
     # False only for plain-http local development.
     web_cookie_secure: bool = True
+    # Local development only: a button that signs in as the first owner without
+    # Telegram (the widget can't run on localhost). Never set on a server.
+    web_dev_login: bool = False
 
     # --- Bale bot (Telegram-compatible Bot API) ---
     bale_bot_token: str = ""

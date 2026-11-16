@@ -565,3 +565,39 @@ def summary(db: Session, today: date | None = None) -> Summary:
         )
     )
     return Summary(due=due, renewals=len(candidates), leads=len(open_leads), waiting=waiting)
+
+
+# --- a student asking for a course (from the web panel) ---
+
+COURSE_REQUEST_PREFIX = "درخواست دوره (پنل وب)"
+_REQUEST_NOTE_MAX = 300
+
+
+def request_course(
+    db: Session,
+    person: Person,
+    class_title: str | None = None,
+    note: str | None = None,
+    today: date | None = None,
+) -> FollowUp:
+    """A student asks the coach for a course: a note on their timeline and a
+    follow-up due today, so it lands on «⏰ امروز» with everything else the coach
+    chases. One open request at a time; the coach registers the course and records
+    the payment as always, so money never moves from the web."""
+    open_request = db.scalar(
+        select(FollowUp).where(
+            FollowUp.person_id == person.id,
+            FollowUp.done.is_(False),
+            FollowUp.note.like(f"{COURSE_REQUEST_PREFIX}%"),
+        )
+    )
+    if open_request is not None:
+        raise ConflictError("درخواست قبلی‌ات هنوز در انتظار بررسی مربی است")
+    text = f"{COURSE_REQUEST_PREFIX}: {class_title or 'نوع کلاس مشخص نشده'}"
+    extra = " ".join((note or "").split())[:_REQUEST_NOTE_MAX]
+    if extra:
+        text = f"{text} — {extra}"
+    add_note(db, person.id, text, created_by="web")
+    return add_follow_up(
+        db, today or local_today(), person_id=person.id, note=text, created_by="web"
+    )
