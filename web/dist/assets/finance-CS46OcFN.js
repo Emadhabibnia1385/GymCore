@@ -1,0 +1,1 @@
+import{t as e}from"./money-47wdnMPd.js";var t=e;export{t as component};

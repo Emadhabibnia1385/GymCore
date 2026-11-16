@@ -1,1 +1,0 @@
-import{t as e}from"./manage-B-Qmi4fd.js";var t=e;export{t as component};

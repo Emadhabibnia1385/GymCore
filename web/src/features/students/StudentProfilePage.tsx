@@ -5,6 +5,8 @@ import { CourseSummaryCard } from "@/features/courses";
 import { CourseFormSheet, deleteStudent, StudentFormSheet, type CourseDraft, type StudentDraft } from "@/features/manage";
 import { PaymentSheet, type PaymentTarget } from "@/features/money";
 import { AvatarEditor } from "@/features/avatar";
+import { PersonAvatar } from "@/shared/PersonAvatar";
+import { ActivityList } from "./ActivityList";
 import { NotesCard } from "./NotesCard";
 import { WebAccessCard } from "./WebAccessCard";
 import { useState } from "react";
@@ -32,10 +34,12 @@ export function StudentProfilePage({ id }: { id: number }) {
 	if (isPending) return <PageSkeleton />;
 	if (isError) return <ErrorState as="h1" onRetry={() => void refetch()} />;
 
-	const accounts = [data.on_telegram ? p.telegram : "", data.on_bale ? p.bale : ""].filter(Boolean).join("، ");
+	const accounts = [data.on_telegram ? p.telegram : "", data.on_bale ? p.bale : "", data.username ? p.webPanel : ""].filter(Boolean);
 	const active = data.courses.filter((course) => course.status === "ACTIVE");
 	const others = data.courses.filter((course) => course.status !== "ACTIVE");
 	const remaining = active.reduce((sum, course) => sum + course.remaining, 0);
+	const stats = data.stats;
+	const absences = stats.absent_allowed + stats.absent_unauthorized;
 	const newCourse = () => setCourse({ courseId: null, clientId: data.id, classTypeId: null, sessions: 12, tuition: 0, gymFee: 0, allowed: 2, weekdays: [], times: {} });
 	const pay = () => {
 		const latest = active[0] ?? data.courses[0];
@@ -59,21 +63,30 @@ export function StudentProfilePage({ id }: { id: number }) {
 			<PageHeader
 				title={data.name}
 				backHref="/students"
-				meta={<StatusChip size="sm" tone="neutral" label={data.kind === "ONLINE" ? t.students.online : t.students.inPerson} />}
+				description={data.phone ?? undefined}
+				meta={
+					<span className="flex flex-wrap items-center gap-2">
+						<PersonAvatar id={data.id} name={data.name} size={40} src={data.avatar ? `/api/admin/students/${data.id}/avatar?v=${data.avatar}` : null} />
+						<StatusChip size="sm" tone="neutral" label={data.kind === "ONLINE" ? t.students.online : t.students.inPerson} />
+						{accounts.map((label) => <StatusChip key={label} size="sm" tone="info" label={label} />)}
+					</span>
+				}
 				actions={
 					<div className="flex flex-wrap gap-2">
+						{data.phone ? <a href={`tel:${data.phone}`} className="inline-flex min-h-9 items-center rounded-field border border-border px-3 text-sm hover:bg-surface-secondary">{p.call}</a> : null}
 						<Button size="sm" onPress={newCourse}>{t.manage.addCourse}</Button>
 						{data.courses.length > 0 ? <Button size="sm" variant="secondary" onPress={pay}>{t.money.recordPayment}</Button> : null}
+						<Link to="/plans" className="inline-flex min-h-9 items-center rounded-field border border-border px-3 text-sm hover:bg-surface-secondary">{p.sendProgram}</Link>
 						<Button size="sm" variant="secondary" onPress={() => setEditing({ id: data.id, name: data.name, phone: data.phone ?? "", phone2: data.phone2 ?? "", kind: data.kind })}>{t.manage.editStudent}</Button>
 					</div>
 				}
 			/>
 
-			<div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-4">
+			<div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 xl:grid-cols-4">
 				<StatCard label={p.remaining} value={formatNumber(remaining)} hint={active.length > 0 ? active.map((course) => course.class_title).join("، ") : p.noActive} />
-				<StatCard label={p.paid} value={formatToman(data.paid)} />
-				<StatCard label={p.owing} value={data.owing > 0 ? formatToman(data.owing) : p.settled} />
-				<StatCard label={p.programs} value={formatNumber(data.programs.length + data.packages.length)} hint={fill(p.coursesCount, { n: formatNumber(data.courses.length) })} />
+				<StatCard label={p.rate} value={stats.rate === null ? "—" : `${formatNumber(stats.rate)}٪`} hint={fill(p.rateHint, { p: formatNumber(stats.present), a: formatNumber(absences) })} />
+				<StatCard label={p.paid} value={formatToman(data.paid)} hint={data.owing > 0 ? fill(p.owesHint, { amount: formatToman(data.owing) }) : p.settled} />
+				<StatCard label={p.since} value={stats.since ?? "—"} hint={fill(p.coursesCount, { n: formatNumber(stats.courses) })} />
 			</div>
 
 			<div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
@@ -82,8 +95,33 @@ export function StudentProfilePage({ id }: { id: number }) {
 						label={data.name}
 						items={[
 							{
+								id: "overview",
+								label: p.tabOverview,
+								content: (
+									<div className="flex flex-col gap-6 pt-4">
+										<SectionCard title={p.sessionsTitle}>
+											<KeyValueList
+												layout="grid"
+												items={[
+													{ label: p.nextSession, value: stats.next_session ?? "—", numeric: true },
+													{ label: p.lastSession, value: stats.last_session ?? "—", numeric: true },
+													{ label: p.present, value: formatNumber(stats.present), numeric: true },
+													{ label: p.absentAllowed, value: formatNumber(stats.absent_allowed), numeric: true },
+													{ label: p.absentUnauthorized, value: formatNumber(stats.absent_unauthorized), numeric: true },
+													{ label: p.cancelled, value: formatNumber(stats.cancelled), numeric: true },
+												]}
+											/>
+										</SectionCard>
+										{active.length > 0 ? courseList(active.slice(0, 1)) : null}
+										<SectionCard title={p.activity}>
+											<ActivityList rows={data.activity} />
+										</SectionCard>
+									</div>
+								),
+							},
+							{
 								id: "courses",
-								label: p.courses,
+								label: `${p.courses} (${formatNumber(data.courses.length)})`,
 								content: (
 									<div className="flex flex-col gap-6 pt-4">
 										{data.courses.length === 0 ? <EmptyState title={p.noCourses} /> : null}
@@ -101,7 +139,16 @@ export function StudentProfilePage({ id }: { id: number }) {
 								id: "money",
 								label: p.money,
 								content: (
-									<div className="pt-4">
+									<div className="flex flex-col gap-4 pt-4">
+										<KeyValueList
+											layout="grid"
+											items={[
+												{ label: p.paid, value: formatToman(data.paid), numeric: true },
+												{ label: p.owing, value: data.owing > 0 ? formatToman(data.owing) : p.settled, numeric: true },
+												{ label: p.paymentCount, value: formatNumber(stats.payment_count), numeric: true },
+												{ label: p.averagePayment, value: formatToman(stats.average_payment), numeric: true },
+											]}
+										/>
 										{data.payments.length === 0 ? (
 											<EmptyState title={p.noPayments} />
 										) : (
@@ -140,24 +187,32 @@ export function StudentProfilePage({ id }: { id: number }) {
 									</div>
 								),
 							},
+							{
+								id: "notes",
+								label: `${p.tabNotes} (${formatNumber(data.notes)})`,
+								content: (
+									<div className="pt-4">
+										<NotesCard id={data.id} name={data.name} />
+									</div>
+								),
+							},
 						]}
 					/>
 				</div>
 
 				<div className="flex flex-col gap-6">
-					<SectionCard title={t.avatar.studentTitle}>
-						<AvatarEditor base={`/api/admin/students/${data.id}/avatar`} version={data.avatar} id={data.id} name={data.name} onChange={() => void queryClient.invalidateQueries({ queryKey: ["admin"] })} />
-					</SectionCard>
 					<SectionCard title={p.contact}>
 						<KeyValueList
 							items={[
 								{ label: p.phone, value: data.phone ?? "—", ltr: true },
 								!!data.phone2 && { label: p.phone2, value: data.phone2, ltr: true },
-								{ label: p.accounts, value: accounts || p.noAccounts },
+								{ label: p.accounts, value: accounts.join("، ") || p.noAccounts },
 							]}
 						/>
 					</SectionCard>
-					<NotesCard id={data.id} name={data.name} />
+					<SectionCard title={t.avatar.studentTitle}>
+						<AvatarEditor base={`/api/admin/students/${data.id}/avatar`} version={data.avatar} id={data.id} name={data.name} onChange={() => void queryClient.invalidateQueries({ queryKey: ["admin"] })} />
+					</SectionCard>
 					<WebAccessCard id={data.id} username={data.username} />
 					{remove.isError ? <Notice tone="danger" role="alert">{remove.error.message}</Notice> : null}
 					<Button variant="danger-soft" onPress={() => setConfirmDelete(true)}>{t.manage.deleteStudent}</Button>

@@ -30,6 +30,7 @@ from app.services import packages as packages_service
 from app.services import payments as payments_service
 from app.services import plans as plans_service
 from app.services import roster as roster_service
+from app.services import student_overview as student_overview_service
 from app.services import web_accounts
 
 router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(require_admin)])
@@ -64,6 +65,30 @@ class PaymentRow(BaseModel):
     note: str | None
 
 
+class StudentStats(BaseModel):
+    present: int
+    absent_allowed: int
+    absent_unauthorized: int
+    cancelled: int
+    rate: float | None
+    since: str | None
+    courses: int
+    last_session: str | None
+    next_session: str | None
+    average_payment: int
+    payment_count: int
+
+
+class ActivityRow(BaseModel):
+    kind: str  # attendance | payment | note | program
+    date: str
+    iso: str
+    title: str
+    detail: str | None
+    amount: int | None
+    status: str | None
+
+
 class StudentProfile(BaseModel):
     id: int
     name: str
@@ -81,6 +106,8 @@ class StudentProfile(BaseModel):
     notes: int
     username: str | None
     avatar: int = 0
+    stats: StudentStats
+    activity: list[ActivityRow]
 
 
 @router.get("/students", response_model=StudentList, operation_id="admin_students")
@@ -119,6 +146,7 @@ def student(person_id: int, db: Session = Depends(get_db)) -> StudentProfile:
     courses = courses_service.list_courses(db, client_id=person.id)
     owing = sum(payments_service.course_balance(db, c)["outstanding"] for c in courses)
     platforms = {i.platform for i in person.identities}
+    overview = student_overview_service.overview(db, person.id)
     return StudentProfile(
         id=person.id, name=person.name, phone=person.phone, phone2=person.phone2,
         kind=person.student_type.value,
@@ -146,6 +174,14 @@ def student(person_id: int, db: Session = Depends(get_db)) -> StudentProfile:
         notes=crm_service.count_notes(db, person.id),
         username=web_accounts.username_of(db, person.id),
         avatar=person.avatar_version or 0,
+        stats=StudentStats(**vars(overview.stats)),
+        activity=[
+            ActivityRow(
+                kind=a.kind, date=format_jalali(a.day), iso=a.day.isoformat(), title=a.title,
+                detail=a.detail, amount=a.amount, status=a.status,
+            )
+            for a in overview.activity
+        ],
     )
 
 

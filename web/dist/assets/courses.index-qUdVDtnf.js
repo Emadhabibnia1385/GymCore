@@ -1,1 +1,0 @@
-import{t as e}from"./courses-BeqR6fig.js";var t=e;export{t as component};

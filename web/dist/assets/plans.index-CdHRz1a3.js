@@ -1,1 +1,0 @@
-import{t as e}from"./plans-fbu0mPtr.js";var t=e;export{t as component};

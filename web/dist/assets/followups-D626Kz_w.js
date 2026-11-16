@@ -1,0 +1,1 @@
+import{t as e}from"./followups-DI_usALU.js";var t=e;export{t as component};

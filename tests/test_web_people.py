@@ -248,3 +248,48 @@ def test_the_course_page_carries_what_was_paid_and_what_is_left(db):
         assert [p["amount"] for p in data["payments"]] == [300_000]
     finally:
         get_settings().web_dev_login = False
+
+
+def test_a_student_profile_shows_how_they_attend_and_what_happened_lately(db):
+    from fastapi.testclient import TestClient
+
+    from app.api.main import app
+    from app.core.config import get_settings
+    from app.models import PaymentKind
+    from app.services import classes as classes_service
+    from app.services import courses as courses_service
+    from app.services import crm as crm_service
+    from app.services import payments as payments_service
+
+    get_settings().web_cookie_secure = False
+    get_settings().web_dev_login = True
+    try:
+        client = TestClient(app)
+        assert client.post("/api/auth/dev").status_code == 200
+        student = persons_service.create(db, name="سارا")
+        kind = classes_service.list_class_types(db, only_active=True)[0]
+        course = courses_service.create(
+            db, client_id=student.id, class_type_id=kind.id, sessions_total=12,
+            tuition=900_000, start_date=clock.today() - timedelta(days=3),
+            weekdays="0,1,2,3,4,5,6", class_times=",".join(f"{d}@18:00" for d in range(7)),
+        )
+        attendance_service.record(db, course.id, clock.today() - timedelta(days=2),
+                                  AttendanceStatus.PRESENT)
+        attendance_service.record(db, course.id, clock.today() - timedelta(days=1),
+                                  AttendanceStatus.ABSENT_UNAUTHORIZED)
+        payments_service.record(db, student.id, 300_000, PaymentKind.TUITION, clock.today(),
+                                course_id=course.id, notify=False)
+        crm_service.add_note(db, student.id, "زانو درد دارد", created_by="web")
+
+        data = client.get(f"/api/admin/students/{student.id}").json()
+        stats = data["stats"]
+        assert (stats["present"], stats["absent_unauthorized"], stats["courses"]) == (1, 1, 1)
+        assert stats["rate"] == 50.0 and stats["payment_count"] == 1
+        assert stats["average_payment"] == 300_000 and stats["next_session"]
+        kinds = [a["kind"] for a in data["activity"]]
+        assert {"attendance", "payment", "note"} <= set(kinds)
+        assert [a["iso"] for a in data["activity"]] == sorted(
+            (a["iso"] for a in data["activity"]), reverse=True)
+        assert data["activity"][0]["kind"] in ("payment", "note")  # today's, newest first
+    finally:
+        get_settings().web_dev_login = False

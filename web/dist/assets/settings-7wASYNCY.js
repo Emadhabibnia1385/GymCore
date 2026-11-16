@@ -1,0 +1,1 @@
+import{t as e}from"./config-DgiXJcr7.js";var t=e;export{t as component};

@@ -21,6 +21,20 @@ export type StudentList = { in_person: number; online: number; rows: StudentRow[
 
 export type Program = { id: number; title: string; type_title: string; date: string; note: string | null; kind: string | null; has_file: boolean };
 export type PackageSummary = { id: number; title: string; description: string | null; items: number };
+export type StudentStats = {
+	present: number;
+	absent_allowed: number;
+	absent_unauthorized: number;
+	cancelled: number;
+	rate: number | null;
+	since: string | null;
+	courses: number;
+	last_session: string | null;
+	next_session: string | null;
+	average_payment: number;
+	payment_count: number;
+};
+export type ActivityRow = { kind: "attendance" | "payment" | "note" | "program"; date: string; iso: string; title: string; detail: string | null; amount: number | null; status: string | null };
 export type StudentProfile = {
 	id: number;
 	name: string;
@@ -38,6 +52,8 @@ export type StudentProfile = {
 	notes: number;
 	username: string | null;
 	avatar: number;
+	stats: StudentStats;
+	activity: ActivityRow[];
 };
 
 export const studentsQuery = (kind: Kind | null, q: string) =>
