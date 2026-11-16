@@ -31,6 +31,7 @@ export type StudentProfile = {
 	programs: Program[];
 	packages: PackageSummary[];
 	notes: number;
+	username: string | null;
 };
 
 export const studentsQuery = (kind: Kind | null, q: string) =>

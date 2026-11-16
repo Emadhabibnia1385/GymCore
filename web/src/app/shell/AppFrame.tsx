@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { AccountMenu, AppShell, OfflineBanner, ThemeToggle } from "@nyxon/nasim";
 import DownloadIcon from "~icons/solar/download-minimalistic-linear";
+import UserIcon from "~icons/solar/user-circle-linear";
 import LogoutIcon from "~icons/solar/logout-2-linear";
 import { logout, type Me } from "@/features/auth";
 import { useInstall } from "@/features/pwa";
@@ -22,8 +23,9 @@ export function AppFrame({ me }: { me: Me }) {
 	}
 
 	const items = [
-		...(install ? [{ id: "install", label: t.account.install, icon: <DownloadIcon /> }] : []),
-		{ id: "logout", label: t.account.logout, icon: <LogoutIcon />, tone: "danger" as const },
+		{ id: "account", label: t.account.menu, href: "/account", icon: <UserIcon /> },
+		...(install ? [{ id: "install", label: t.role.install, icon: <DownloadIcon /> }] : []),
+		{ id: "logout", label: t.role.logout, icon: <LogoutIcon />, tone: "danger" as const },
 	];
 
 	return (
@@ -41,7 +43,7 @@ export function AppFrame({ me }: { me: Me }) {
 				sidebarFooter={
 					<AccountMenu
 						name={me.name}
-						description={me.role === "admin" ? t.account.coach : t.account.student}
+						description={me.role === "admin" ? t.role.coach : t.role.student}
 						items={items}
 						onAction={(id) => (id === "logout" ? void signOut() : void install?.())}
 					/>

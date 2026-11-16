@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { EmptyState, ErrorState, KeyValueList, PageHeader, PageSkeleton, SectionCard, StaticTable, StatusChip } from "@nyxon/nasim";
 import { CourseSummaryCard } from "@/features/courses";
+import { WebAccessCard } from "./WebAccessCard";
 import { formatNumber, formatToman } from "@/shared/format";
 import { fill, t } from "@/strings";
 import { studentQuery } from "./api";
@@ -29,6 +30,8 @@ export function StudentProfilePage({ id }: { id: number }) {
 					]}
 				/>
 			</SectionCard>
+
+			<WebAccessCard id={data.id} username={data.username} />
 
 			<SectionCard title={p.courses}>
 				{data.courses.length === 0 ? (

@@ -1,8 +1,9 @@
 import { queryOptions } from "@tanstack/react-query";
 import { apiFetch } from "@/shared/api";
 
-export type Me = { name: string; role: "admin" | "student" };
-export type LoginConfig = { bot_username: string; dev_login: boolean };
+export type Me = { name: string; role: "admin" | "student"; username: string | null };
+export type LoginConfig = { bot_username: string; dev_login: boolean; registration_open: boolean };
+export type Done = { ok: boolean; message: string };
 
 /** What Telegram's widget hands over; the server verifies the signature. */
 export type TelegramUser = Record<string, string | number>;
@@ -17,17 +18,16 @@ export const meQuery = queryOptions({
 export const loginConfigQuery = queryOptions({
 	queryKey: ["login-config"],
 	queryFn: () => apiFetch<LoginConfig>("/api/auth/config"),
-	staleTime: Infinity,
+	staleTime: 60_000,
 });
 
-export function loginWithTelegram(user: TelegramUser): Promise<Me> {
-	return apiFetch<Me>("/api/auth/telegram", { method: "POST", body: JSON.stringify(user) });
-}
+const post = <T>(path: string, body?: unknown) =>
+	apiFetch<T>(path, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) });
 
-export function loginDev(student = false): Promise<Me> {
-	return apiFetch<Me>(`/api/auth/dev?student=${student}`, { method: "POST" });
-}
-
-export function logout(): Promise<unknown> {
-	return apiFetch("/api/auth/logout", { method: "POST" });
-}
+export const loginWithTelegram = (user: TelegramUser) => post<Me>("/api/auth/telegram", user);
+export const loginWithPassword = (body: { username: string; password: string }) => post<Me>("/api/auth/password", body);
+export const register = (body: { name: string; username: string; password: string }) => post<Me>("/api/auth/register", body);
+export const loginDev = (student = false) => post<Me>(`/api/auth/dev?student=${student}`);
+export const setPassword = (body: { username: string; password: string }) => post<Me>("/api/auth/password/set", body);
+export const changePassword = (body: { old_password: string; new_password: string }) => post<Done>("/api/auth/password/change", body);
+export const logout = () => post<unknown>("/api/auth/logout");
