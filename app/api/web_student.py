@@ -78,6 +78,7 @@ class ProgramView(BaseModel):
     title: str
     type_title: str
     date: str
+    iso: str
     note: str | None
     kind: str | None
     has_file: bool
@@ -197,6 +198,7 @@ def program_view(a) -> ProgramView:
         title=a.title or a.plan_type.title,
         type_title=a.plan_type.title,
         date=format_jalali(a.created_at),
+        iso=a.created_at.date().isoformat(),
         note=a.coach_note,
         kind=a.file_kind,
         has_file=bool(a.platform_file_id or a.file_path),

@@ -1,1 +1,0 @@
-import{t as e}from"./courses-WVM_Eriu.js";var t=e;export{t as component};

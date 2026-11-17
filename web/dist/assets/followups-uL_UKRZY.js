@@ -1,1 +1,0 @@
-import{t as e}from"./followups-B8DCflxE.js";var t=e;export{t as component};

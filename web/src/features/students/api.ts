@@ -19,7 +19,7 @@ export type StudentRow = {
 };
 export type StudentList = { in_person: number; online: number; rows: StudentRow[] };
 
-export type Program = { id: number; title: string; type_title: string; date: string; note: string | null; kind: string | null; has_file: boolean };
+export type Program = { id: number; title: string; type_title: string; date: string; iso: string; note: string | null; kind: string | null; has_file: boolean };
 export type PackageSummary = { id: number; title: string; description: string | null; items: number };
 export type StudentStats = {
 	present: number;

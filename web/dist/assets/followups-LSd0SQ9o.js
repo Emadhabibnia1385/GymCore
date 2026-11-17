@@ -1,0 +1,1 @@
+import{t as e}from"./followups-B6yjPJ3D.js";var t=e;export{t as component};

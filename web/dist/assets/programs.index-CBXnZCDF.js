@@ -1,0 +1,1 @@
+import{t as e}from"./programs-CHuyNSgb.js";var t=e;export{t as component};

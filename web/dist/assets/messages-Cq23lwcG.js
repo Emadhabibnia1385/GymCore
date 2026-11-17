@@ -1,1 +1,0 @@
-import{n as e}from"./config-XUvQuXUj.js";var t=e;export{t as component};
